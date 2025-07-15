@@ -1,22 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FortuneSpin - Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
 </head>
 <body>
-  <div class="spin-section">
-    <h2>🎯 Fortune Spin</h2>
-    <div class="wheel-container">
-      <img id="wheel" src="assets/wheel.png" alt="Spin Wheel" />
-      <button id="spin-btn" onclick="spinWheel()">SPIN</button>
-    </div>
-    <h3 id="spin-result"></h3>
-    <h4>💰 Balance: ₹<span id="user-balance">0</span></h4>
-  </div>
+  <header class="dashboard-header">
+    <img src="assets/logo.png" alt="FortuneSpin Logo" class="logo" />
+    <h1>FortuneSpin</h1>
+  </header>
+
+  <main>
+    <!-- Spin Wheel Section -->
+    <section class="spin-section">
+      <h2>🎯 Try Your Luck</h2>
+      <div class="wheel-container">
+        <img id="wheel" src="assets/wheel.png" alt="Spin Wheel" />
+        <button id="spin-btn" onclick="spinWheel()">SPIN</button>
+      </div>
+      <h3 id="spin-result">Tap SPIN to win!</h3>
+    </section>
+
+    <!-- Balance Display -->
+    <section class="balance-section">
+      <h3>💰 Balance: ₹<span id="user-balance">0</span></h3>
+      <p>Your UID: <span id="user-uid">loading...</span></p>
+    </section>
+
+    <!-- Withdrawal Section -->
+    <section class="withdraw-section">
+      <h2>💸 Request Withdrawal</h2>
+      <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
+      <button onclick="requestWithdrawal()">Submit Request</button>
+      <p id="withdraw-msg"></p>
+    </section>
+
+    <!-- Notification Area -->
+    <section class="notification-section">
+      <h3>🔔 Notifications</h3>
+      <div id="notifications"></div>
+    </section>
+  </main>
 
   <script type="module" src="firebase.js"></script>
   <script type="module" src="script.js"></script>
+  <script type="module" src="referral.js"></script>
+  <script type="module" src="support.js"></script>
 </body>
 </html>
