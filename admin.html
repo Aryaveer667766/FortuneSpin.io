@@ -41,6 +41,13 @@
       <button onclick="showReferralTree()">Show Tree</button>
       <pre id="referral-tree-output"></pre>
     </section>
+    <section class="admin-section">
+  <h2>📬 Support Tickets</h2>
+  <input type="text" id="reply-uid" placeholder="User UID" />
+  <input type="text" id="reply-text" placeholder="Reply message" />
+  <button onclick="replySupport()">Send Reply</button>
+</section>
+
   </main>
 
   <script type="module" src="firebase.js"></script>
@@ -169,6 +176,15 @@
       print(rootUid, 1);
       output.innerText = tree;
     };
+    window.replySupport = async function () {
+  const uid = document.getElementById("reply-uid").value.trim();
+  const msg = document.getElementById("reply-text").value.trim();
+  if (!uid || !msg) return alert("Both fields required");
+
+  await push(ref(db, `support/${uid}`), `👨‍💼 Admin: ${msg}`);
+  alert("Reply sent");
+};
+
   </script>
 </body>
 </html>
