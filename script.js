@@ -6,70 +6,101 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 import {
-  ref,
-  set,
-  get,
-  update
+  ref, set, get, update, onValue
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// Login
+// 🔐 LOGIN
 window.login = async function () {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const loginMsg = document.getElementById("login-msg");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const msg = document.getElementById("login-msg");
 
   try {
     const userCred = await signInWithEmailAndPassword(auth, email, password);
-    loginMsg.innerText = "Login successful!";
-    location.href = (email === "admin@admin.com") ? "admin.html" : "index.html";
-  } catch (error) {
-    loginMsg.innerText = error.message;
+    const isAdmin = email === "admin@admin.com";
+    location.href = isAdmin ? "admin.html" : "index.html";
+  } catch (err) {
+    msg.innerText = err.message;
   }
 };
 
-// Register
+// 🔐 REGISTER
 window.register = async function () {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const loginMsg = document.getElementById("login-msg");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const msg = document.getElementById("login-msg");
 
   try {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = userCred.user.uid;
+
+    // Get referral ID from URL param (if present)
+    const params = new URLSearchParams(window.location.search);
+    const referredBy = params.get("ref");
+
     await set(ref(db, "users/" + uid), {
-      email: email,
-      uid: uid,
+      uid,
+      email,
       balance: 0,
-      referrals: [],
-      rewardHistory: [],
-      spinCount: 0
+      spinCount: 0,
+      referredBy: referredBy || null,
+      rewardHistory: []
     });
-    loginMsg.innerText = "Registered successfully!";
+
+    // Reward referrer ₹99
+    if (referredBy) {
+      const refSnap = await get(ref(db, "users/" + referredBy));
+      if (refSnap.exists()) {
+        const oldBal = refSnap.val().balance || 0;
+        await update(ref(db, "users/" + referredBy), {
+          balance: oldBal + 99
+        });
+      }
+    }
+
     location.href = "index.html";
-  } catch (error) {
-    loginMsg.innerText = error.message;
+  } catch (err) {
+    msg.innerText = err.message;
   }
 };
 
-// Spin Logic
+// 🧠 USER STATE INIT
 let currentUser = null;
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
-    const snapshot = await get(ref(db, "users/" + user.uid));
-    if (snapshot.exists()) {
-      document.getElementById("user-balance").innerText = snapshot.val().balance;
-    }
+
+    // Show balance
+    const userRef = ref(db, "users/" + user.uid);
+    const snap = await get(userRef);
+    const data = snap.val();
+    document.getElementById("user-balance")?.innerText = data.balance || 0;
+    document.getElementById("user-uid")?.innerText = data.uid;
+
+    // Real-time notification
+    const notiRef = ref(db, "notifications/" + user.uid);
+    onValue(notiRef, snap => {
+      if (snap.exists()) {
+        const msg = snap.val().msg;
+        document.getElementById("notifications").innerText = "📢 " + msg;
+      }
+    });
+
   } else {
-    if (location.pathname.includes("index")) location.href = "login.html";
+    // Redirect if not logged in
+    const page = window.location.pathname;
+    if (page.includes("index") || page.includes("admin")) {
+      window.location.href = "login.html";
+    }
   }
 });
 
+// 🎰 SPIN LOGIC
 window.spinWheel = async function () {
   const wheel = document.getElementById("wheel");
   const result = document.getElementById("spin-result");
 
-  const rewards = [0, 5, 10, 15, 20, 25, 50, 100];
+  const rewards = [0, 50, 100, 500, 1000, 1500, 2000, 5000];
   const angles = [0, 45, 90, 135, 180, 225, 270, 315];
 
   const index = Math.floor(Math.random() * rewards.length);
@@ -80,7 +111,7 @@ window.spinWheel = async function () {
   result.innerText = "Spinning...";
 
   setTimeout(async () => {
-    result.innerText = `You won ₹${reward}! 🎉`;
+    result.innerText = `🎉 You won ₹${reward}`;
 
     const userRef = ref(db, "users/" + currentUser.uid);
     const snap = await get(userRef);
@@ -94,4 +125,35 @@ window.spinWheel = async function () {
 
     document.getElementById("user-balance").innerText = prevBal + reward;
   }, 4000);
+};
+
+// 💸 REQUEST WITHDRAWAL
+window.requestWithdrawal = async function () {
+  const amount = parseInt(document.getElementById("withdraw-amount").value);
+  const msg = document.getElementById("withdraw-msg");
+
+  if (!amount || amount < 50) {
+    msg.innerText = "Minimum ₹50 required.";
+    return;
+  }
+
+  const userRef = ref(db, "users/" + currentUser.uid);
+  const snap = await get(userRef);
+  const balance = snap.val().balance;
+
+  if (amount > balance) {
+    msg.innerText = "Not enough balance.";
+    return;
+  }
+
+  const withdrawalRef = ref(db, `withdrawals/${currentUser.uid}_${Date.now()}`);
+  await set(withdrawalRef, {
+    uid: currentUser.uid,
+    email: snap.val().email,
+    amount: amount,
+    status: "pending",
+    timestamp: Date.now()
+  });
+
+  msg.innerText = `Request for ₹${amount} sent ✅`;
 };
