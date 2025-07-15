@@ -9,6 +9,8 @@ import {
   ref, set, get, update, onValue
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
+let currentUser = null;
+
 // 🔐 LOGIN
 window.login = async function () {
   const email = document.getElementById("email").value.trim();
@@ -44,7 +46,8 @@ window.register = async function () {
       balance: 0,
       spinCount: 0,
       referredBy: referredBy || null,
-      rewardHistory: []
+      rewardHistory: [],
+      locked: true  // 🔐 user is locked by default
     });
 
     // Reward referrer ₹99
@@ -64,20 +67,27 @@ window.register = async function () {
   }
 };
 
-// 🧠 USER STATE INIT
-let currentUser = null;
+// 🔁 AUTH STATE CHECK
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
 
-    // Show balance
     const userRef = ref(db, "users/" + user.uid);
     const snap = await get(userRef);
     const data = snap.val();
+
+    // 🔐 Check lock status
+    if (!data || data.locked === true) {
+      document.getElementById("locked-msg")?.style?.setProperty("display", "block");
+      document.querySelectorAll("section:not(.balance-section)").forEach(sec => sec.style.display = "none");
+      return;
+    }
+
+    // ✅ Load dashboard
     document.getElementById("user-balance")?.innerText = data.balance || 0;
     document.getElementById("user-uid")?.innerText = data.uid;
 
-    // Real-time notification
+    // 🔔 Notifications
     const notiRef = ref(db, "notifications/" + user.uid);
     onValue(notiRef, snap => {
       if (snap.exists()) {
@@ -90,17 +100,17 @@ onAuthStateChanged(auth, async user => {
     // Redirect if not logged in
     const page = window.location.pathname;
     if (page.includes("index") || page.includes("admin")) {
-      window.location.href = "login.html";
+      location.href = "login.html";
     }
   }
 });
 
-// 🎰 SPIN LOGIC
+// 🎰 SPIN FUNCTION
 window.spinWheel = async function () {
   const wheel = document.getElementById("wheel");
   const result = document.getElementById("spin-result");
 
-  const rewards = [0, 50, 100, 500, 1000, 1500, 2000, 5000];
+  const rewards = [0, 5, 10, 15, 20, 25, 50, 100];
   const angles = [0, 45, 90, 135, 180, 225, 270, 315];
 
   const index = Math.floor(Math.random() * rewards.length);
@@ -127,7 +137,7 @@ window.spinWheel = async function () {
   }, 4000);
 };
 
-// 💸 REQUEST WITHDRAWAL
+// 💸 WITHDRAW REQUEST
 window.requestWithdrawal = async function () {
   const amount = parseInt(document.getElementById("withdraw-amount").value);
   const msg = document.getElementById("withdraw-msg");
