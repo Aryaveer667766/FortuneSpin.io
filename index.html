@@ -30,6 +30,13 @@
       <p>Your UID: <span id="user-uid">loading...</span></p>
     </section>
 
+    <!-- Referral Link -->
+    <section class="admin-section" id="referral-link-box">
+      <h2>🌐 Your Referral Link</h2>
+      <input id="ref-link" readonly />
+      <button onclick="copyReferral()">Copy Link</button>
+    </section>
+
     <!-- Withdrawal Section -->
     <section class="withdraw-section">
       <h2>💸 Request Withdrawal</h2>
@@ -41,10 +48,11 @@
     <!-- Notification Area -->
     <section class="notification-section">
       <h3>🔔 Notifications</h3>
-      <div id="notifications"></div>
+      <div id="notifications">No new notifications</div>
     </section>
   </main>
 
+  <!-- Scripts -->
   <script type="module" src="firebase.js"></script>
   <script type="module" src="script.js"></script>
   <script type="module" src="referral.js"></script>
