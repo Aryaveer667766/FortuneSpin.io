@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - FortuneSpin</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+</head>
+<body>
+  <header class="dashboard-header">
+    <img src="assets/logo.png" alt="FortuneSpin Logo" class="logo" />
+    <h1>🛡️ Admin Panel</h1>
+  </header>
+
+  <main>
+    <!-- Notifications -->
+    <section class="admin-section">
+      <h2>🔔 Send Notification</h2>
+      <input type="text" id="notify-uid" placeholder="User UID or 'all'" />
+      <textarea id="notify-msg" placeholder="Type your message"></textarea>
+      <button onclick="sendNotification()">Send</button>
+    </section>
+
+    <!-- Withdrawals -->
+    <section class="admin-section">
+      <h2>💸 Withdrawal Requests</h2>
+      <div id="withdrawals-container">Loading...</div>
+    </section>
+
+    <!-- Users -->
+    <section class="admin-section">
+      <h2>👥 Users & Control</h2>
+      <div id="users-container">Loading...</div>
+    </section>
+
+    <!-- Referral Tree -->
+    <section class="admin-section">
+      <h2>🌳 Referral Tree</h2>
+      <input type="text" id="tree-root-uid" placeholder="Enter UID to trace tree" />
+      <button onclick="showReferralTree()">Show Tree</button>
+      <pre id="referral-tree-output"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import {
+      ref, onValue, update, get, remove, set
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+    onAuthStateChanged(auth, user => {
+      if (!user || user.email !== "admin@admin.com") {
+        location.href = "login.html";
+      } else {
+        loadWithdrawals();
+        loadUsers();
+      }
+    });
+
+    // 🔔 Notifications
+    window.sendNotification = async function () {
+      const uid = document.getElementById("notify-uid").value.trim();
+      const msg = document.getElementById("notify-msg").value.trim();
+      if (!msg) return alert("Message cannot be empty!");
+
+      if (uid === "all") {
+        const snap = await get(ref(db, "users"));
+        snap.forEach(user => {
+          set(ref(db, `notifications/${user.key}`), { msg, time: Date.now() });
+        });
+      } else {
+        set(ref(db, `notifications/${uid}`), { msg, time: Date.now() });
+      }
+
+      alert("Notification sent!");
+    };
+
+    // 💸 Withdrawals
+    function loadWithdrawals() {
+      const out = document.getElementById("withdrawals-container");
+      onValue(ref(db, "withdrawals"), snap => {
+        out.innerHTML = "";
+        snap.forEach(req => {
+          const r = req.val();
+          if (r.status === "pending") {
+            out.innerHTML += `
+              <div>
+                <p><b>${r.email}</b> requested ₹${r.amount}</p>
+                <button onclick="approveWithdrawal('${req.key}', '${r.uid}', ${r.amount})">Approve</button>
+                <hr />
+              </div>`;
+          }
+        });
+      });
+    }
+
+    window.approveWithdrawal = async function (key, uid, amount) {
+      const userRef = ref(db, "users/" + uid);
+      const snap = await get(userRef);
+      const balance = snap.val().balance;
+      if (amount > balance) return alert("Insufficient balance!");
+
+      await update(userRef, { balance: balance - amount });
+      await update(ref(db, "withdrawals/" + key), { status: "approved" });
+      alert("Approved!");
+    };
+
+    // 👥 Users
+    function loadUsers() {
+      const out = document.getElementById("users-container");
+      onValue(ref(db, "users"), snap => {
+        out.innerHTML = "";
+        snap.forEach(user => {
+          const u = user.val();
+          out.innerHTML += `
+            <div>
+              <p><b>${u.email}</b> (₹${u.balance})</p>
+              <input type="number" placeholder="Set balance" id="bal-${u.uid}" />
+              <input type="password" placeholder="Set password" id="pass-${u.uid}" />
+              <button onclick="updateUser('${u.uid}')">Update</button>
+              <button onclick="deleteUser('${u.uid}')">❌ Delete</button>
+              <hr />
+            </div>`;
+        });
+      });
+    }
+
+    window.updateUser = async function (uid) {
+      const balance = parseInt(document.getElementById(`bal-${uid}`).value);
+      const password = document.getElementById(`pass-${uid}`).value;
+      if (!isNaN(balance)) await update(ref(db, "users/" + uid), { balance });
+      if (password.length >= 6) {
+        // Firebase Auth password update not supported directly via DB
+        alert("Password update requires user re-authentication via client.");
+      }
+      alert("User updated.");
+    };
+
+    window.deleteUser = async function (uid) {
+      if (confirm("Delete this user permanently?")) {
+        await remove(ref(db, "users/" + uid));
+        alert("User deleted.");
+      }
+    };
+
+    // 🌳 Referral Tree
+    window.showReferralTree = async function () {
+      const rootUid = document.getElementById("tree-root-uid").value.trim();
+      const output = document.getElementById("referral-tree-output");
+      const snap = await get(ref(db, "users"));
+      let tree = "";
+
+      function print(uid, level) {
+        snap.forEach(child => {
+          const c = child.val();
+          if ((c.referredBy || "") === uid) {
+            tree += `${"  ".repeat(level)}↳ ${c.email} (${c.uid})\n`;
+            print(c.uid, level + 1);
+          }
+        });
+      }
+
+      tree = `Referral tree from UID: ${rootUid}\n`;
+      print(rootUid, 1);
+      output.innerText = tree;
+    };
+  </script>
+</body>
+</html>
