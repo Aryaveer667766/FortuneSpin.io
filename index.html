@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FortuneSpin - Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="spin-section">
+    <h2>🎯 Fortune Spin</h2>
+    <div class="wheel-container">
+      <img id="wheel" src="assets/wheel.png" alt="Spin Wheel" />
+      <button id="spin-btn" onclick="spinWheel()">SPIN</button>
+    </div>
+    <h3 id="spin-result"></h3>
+    <h4>💰 Balance: ₹<span id="user-balance">0</span></h4>
+  </div>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
