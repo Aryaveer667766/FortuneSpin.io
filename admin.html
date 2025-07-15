@@ -3,188 +3,192 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Panel - FortuneSpin</title>
+  <title>FortuneSpin Admin</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="assets/logo.png" type="image/png" />
+  <style>
+    .admin-title {
+      text-align: center;
+      color: gold;
+      font-size: 26px;
+      margin: 20px 0;
+    }
+    .user-box {
+      background: #2c2c44;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 500px;
+      color: white;
+    }
+    .user-box input {
+      margin: 6px 0;
+    }
+    .withdraw-box {
+      background: #1e1e2f;
+      padding: 15px;
+      border: 1px solid #444;
+      border-radius: 10px;
+      margin: 15px auto;
+      max-width: 450px;
+    }
+  </style>
 </head>
 <body>
   <header class="dashboard-header">
-    <img src="assets/logo.png" alt="FortuneSpin Logo" class="logo" />
-    <h1>🛡️ Admin Panel</h1>
+
+    <h1>FortuneSpin Admin</h1>
   </header>
 
   <main>
-    <!-- Notifications -->
-    <section class="admin-section">
-      <h2>🔔 Send Notification</h2>
-      <input type="text" id="notify-uid" placeholder="User UID or 'all'" />
-      <textarea id="notify-msg" placeholder="Type your message"></textarea>
-      <button onclick="sendNotification()">Send</button>
-    </section>
+    <h2 class="admin-title">👥 Users</h2>
+    <div id="user-list"></div>
 
-    <!-- Withdrawals -->
-    <section class="admin-section">
-      <h2>💸 Withdrawal Requests</h2>
-      <div id="withdrawals-container">Loading...</div>
-    </section>
+    <h2 class="admin-title">💸 Withdraw Requests</h2>
+    <div id="withdraw-list"></div>
 
-    <!-- Users -->
+    <h2 class="admin-title">📬 Reply to Support</h2>
     <section class="admin-section">
-      <h2>👥 Users & Control</h2>
-      <div id="users-container">Loading...</div>
+      <input type="text" id="reply-uid" placeholder="User UID" />
+      <input type="text" id="reply-text" placeholder="Reply message" />
+      <button onclick="replySupport()">Send Reply</button>
     </section>
-
-    <!-- Referral Tree -->
-    <section class="admin-section">
-      <h2>🌳 Referral Tree</h2>
-      <input type="text" id="tree-root-uid" placeholder="Enter UID to trace tree" />
-      <button onclick="showReferralTree()">Show Tree</button>
-      <pre id="referral-tree-output"></pre>
-    </section>
-    <section class="admin-section">
-  <h2>📬 Support Tickets</h2>
-  <input type="text" id="reply-uid" placeholder="User UID" />
-  <input type="text" id="reply-text" placeholder="Reply message" />
-  <button onclick="replySupport()">Send Reply</button>
-</section>
-
   </main>
 
-  <script type="module" src="firebase.js"></script>
   <script type="module">
     import { auth, db } from './firebase.js';
     import {
-      ref, onValue, update, get, remove, set
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-    import {
+      signInWithEmailAndPassword,
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+    import {
+      ref, get, update, remove, onValue, set
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
+    // Protect Admin Page
     onAuthStateChanged(auth, user => {
       if (!user || user.email !== "admin@admin.com") {
         location.href = "login.html";
       } else {
-        loadWithdrawals();
         loadUsers();
+        loadWithdrawals();
       }
     });
 
-    // 🔔 Notifications
-    window.sendNotification = async function () {
-      const uid = document.getElementById("notify-uid").value.trim();
-      const msg = document.getElementById("notify-msg").value.trim();
-      if (!msg) return alert("Message cannot be empty!");
+    // 🔓 Load All Users
+    async function loadUsers() {
+      const out = document.getElementById("user-list");
+      const snap = await get(ref(db, "users"));
+      const users = snap.val();
+      out.innerHTML = "";
 
-      if (uid === "all") {
-        const snap = await get(ref(db, "users"));
-        snap.forEach(user => {
-          set(ref(db, `notifications/${user.key}`), { msg, time: Date.now() });
-        });
-      } else {
-        set(ref(db, `notifications/${uid}`), { msg, time: Date.now() });
-      }
-
-      alert("Notification sent!");
-    };
-
-    // 💸 Withdrawals
-    function loadWithdrawals() {
-      const out = document.getElementById("withdrawals-container");
-      onValue(ref(db, "withdrawals"), snap => {
-        out.innerHTML = "";
-        snap.forEach(req => {
-          const r = req.val();
-          if (r.status === "pending") {
-            out.innerHTML += `
-              <div>
-                <p><b>${r.email}</b> requested ₹${r.amount}</p>
-                <button onclick="approveWithdrawal('${req.key}', '${r.uid}', ${r.amount})">Approve</button>
-                <hr />
-              </div>`;
-          }
-        });
-      });
-    }
-
-    window.approveWithdrawal = async function (key, uid, amount) {
-      const userRef = ref(db, "users/" + uid);
-      const snap = await get(userRef);
-      const balance = snap.val().balance;
-      if (amount > balance) return alert("Insufficient balance!");
-
-      await update(userRef, { balance: balance - amount });
-      await update(ref(db, "withdrawals/" + key), { status: "approved" });
-      alert("Approved!");
-    };
-
-    // 👥 Users
-    function loadUsers() {
-      const out = document.getElementById("users-container");
-      onValue(ref(db, "users"), snap => {
-        out.innerHTML = "";
-        snap.forEach(user => {
-          const u = user.val();
+      if (users) {
+        Object.values(users).forEach(u => {
           out.innerHTML += `
-            <div>
-              <p><b>${u.email}</b> (₹${u.balance})</p>
+            <div class="user-box">
+              <p><b>${u.email}</b></p>
+              <p>UID: ${u.uid}</p>
+              <p>Balance: ₹${u.balance || 0}</p>
+              <p>Referred By: ${u.referredBy || '—'}</p>
               <input type="number" placeholder="Set balance" id="bal-${u.uid}" />
-              <input type="password" placeholder="Set password" id="pass-${u.uid}" />
+              <input type="password" placeholder="New password" id="pass-${u.uid}" />
+              <label><input type="checkbox" id="lock-${u.uid}" ${u.locked ? 'checked' : ''}/> Locked</label>
               <button onclick="updateUser('${u.uid}')">Update</button>
               <button onclick="deleteUser('${u.uid}')">❌ Delete</button>
-              <hr />
-            </div>`;
+            </div>
+          `;
         });
-      });
+      }
     }
 
-    window.updateUser = async function (uid) {
-      const balance = parseInt(document.getElementById(`bal-${uid}`).value);
-      const password = document.getElementById(`pass-${uid}`).value;
-      if (!isNaN(balance)) await update(ref(db, "users/" + uid), { balance });
-      if (password.length >= 6) {
-        // Firebase Auth password update not supported directly via DB
-        alert("Password update requires user re-authentication via client.");
+    // ✏️ Update User
+    window.updateUser = async function(uid) {
+      const balInput = document.getElementById(`bal-${uid}`).value;
+      const passInput = document.getElementById(`pass-${uid}`).value;
+      const locked = document.getElementById(`lock-${uid}`).checked;
+
+      const updates = {
+        locked: locked
+      };
+
+      if (balInput !== "") updates.balance = parseInt(balInput);
+
+      await update(ref(db, "users/" + uid), updates);
+
+      // Change password if provided
+      if (passInput) {
+        await set(ref(db, "passwords/" + uid), passInput);
       }
-      alert("User updated.");
+
+      alert("User updated ✅");
+      loadUsers();
     };
 
-    window.deleteUser = async function (uid) {
-      if (confirm("Delete this user permanently?")) {
-        await remove(ref(db, "users/" + uid));
-        alert("User deleted.");
-      }
+    // ❌ Delete User
+    window.deleteUser = async function(uid) {
+      if (!confirm("Are you sure?")) return;
+      await remove(ref(db, "users/" + uid));
+      await remove(ref(db, "support/" + uid));
+      await remove(ref(db, "notifications/" + uid));
+      alert("User deleted");
+      loadUsers();
     };
 
-    // 🌳 Referral Tree
-    window.showReferralTree = async function () {
-      const rootUid = document.getElementById("tree-root-uid").value.trim();
-      const output = document.getElementById("referral-tree-output");
-      const snap = await get(ref(db, "users"));
-      let tree = "";
+    // 💸 Load Withdrawals
+    async function loadWithdrawals() {
+      const out = document.getElementById("withdraw-list");
+      const snap = await get(ref(db, "withdrawals"));
+      const data = snap.val();
+      out.innerHTML = "";
 
-      function print(uid, level) {
-        snap.forEach(child => {
-          const c = child.val();
-          if ((c.referredBy || "") === uid) {
-            tree += `${"  ".repeat(level)}↳ ${c.email} (${c.uid})\n`;
-            print(c.uid, level + 1);
+      if (data) {
+        Object.entries(data).forEach(([key, obj]) => {
+          if (obj.status === "pending") {
+            out.innerHTML += `
+              <div class="withdraw-box">
+                <p><b>${obj.email}</b> requests ₹${obj.amount}</p>
+                <p>UID: ${obj.uid}</p>
+                <button onclick="approveWithdraw('${key}', '${obj.uid}', ${obj.amount})">✅ Approve</button>
+                <button onclick="rejectWithdraw('${key}')">❌ Reject</button>
+              </div>
+            `;
           }
         });
       }
+    }
 
-      tree = `Referral tree from UID: ${rootUid}\n`;
-      print(rootUid, 1);
-      output.innerText = tree;
+    // ✅ Approve
+    window.approveWithdraw = async function(key, uid, amount) {
+      const userRef = ref(db, "users/" + uid);
+      const snap = await get(userRef);
+      const bal = snap.val().balance || 0;
+      if (bal < amount) return alert("Insufficient balance");
+
+      await update(ref(db, "withdrawals/" + key), { status: "approved" });
+      await update(userRef, { balance: bal - amount });
+
+      alert("Withdrawal approved");
+      loadWithdrawals();
+      loadUsers();
     };
+
+    // ❌ Reject
+    window.rejectWithdraw = async function(key) {
+      await update(ref(db, "withdrawals/" + key), { status: "rejected" });
+      alert("Withdrawal rejected");
+      loadWithdrawals();
+    };
+
+    // 📨 Reply to support
     window.replySupport = async function () {
-  const uid = document.getElementById("reply-uid").value.trim();
-  const msg = document.getElementById("reply-text").value.trim();
-  if (!uid || !msg) return alert("Both fields required");
+      const uid = document.getElementById("reply-uid").value.trim();
+      const msg = document.getElementById("reply-text").value.trim();
+      if (!uid || !msg) return alert("Both fields required");
 
-  await push(ref(db, `support/${uid}`), `👨‍💼 Admin: ${msg}`);
-  alert("Reply sent");
-};
-
+      const supportRef = ref(db, "support/" + uid);
+      await set(ref(db, `support/${uid}/${Date.now()}`), `👨‍💼 Admin: ${msg}`);
+      alert("Reply sent ✅");
+    };
   </script>
 </body>
 </html>
