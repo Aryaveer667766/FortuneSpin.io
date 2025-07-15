@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>FortuneSpin Login</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FortuneSpin - Login</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
 </head>
 <body>
-  <div class="login-box">
-    <h2>Welcome to FortuneSpin</h2>
+  <div class="login-container">
+    <img src="assets/logo.png" alt="FortuneSpin Logo" class="logo" />
+    <h2 class="title">Welcome to FortuneSpin</h2>
+
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
+
     <button onclick="login()">Login</button>
     <button onclick="register()">Register</button>
-    <p id="login-msg"></p>
+
+    <p id="login-msg" class="message"></p>
+
+    <div class="help-link">
+      <a href="mailto:support@fortunespin.io">Need help?</a>
+    </div>
   </div>
 
   <script type="module" src="firebase.js"></script>
