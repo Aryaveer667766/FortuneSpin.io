@@ -16,12 +16,12 @@ import {
 
 // 🔐 Only allow admin
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = "login.html");
+  if (!user) return (window.location.href = "index.html");
 
   const snap = await get(ref(db, `users/${user.uid}`));
-  if (!snap.exists() || user.email !== "admin@fortunespin.io") {
+  if (!snap.exists() || user.email !== "admin@admin.com") {
     alert("Access Denied: Not Admin");
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
