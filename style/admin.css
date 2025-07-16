@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body.admin-body {
+  font-family: 'Orbitron', sans-serif;
+  background: linear-gradient(135deg, #0a0a1e, #090a20);
+  color: #00ffff;
+  padding: 20px;
+  overflow-x: hidden;
+  animation: backgroundScan 10s linear infinite;
+}
+
+/* 🔻 HEADER */
+header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #00ffff55;
+  padding-bottom: 10px;
+}
+
+.admin-logo {
+  width: 80px;
+  filter: drop-shadow(0 0 8px #00ffffaa);
+}
+
+header h1 {
+  font-size: 28px;
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff99;
+}
+
+.live-indicator {
+  color: lime;
+  font-size: 14px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* ⚙️ PANELS */
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 25px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #00ffff33;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 0 15px #00ffff44;
+  backdrop-filter: blur(10px);
+  animation: slideIn 0.6s ease-in-out;
+}
+
+.panel h2 {
+  color: #FFD700;
+  margin-bottom: 15px;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #0d0f1f;
+  color: #00ffff;
+  border: 1px solid #00ffff55;
+  border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #00ffff;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #29fcd3;
+  box-shadow: 0 0 10px #00ffff88;
+  transform: scale(1.02);
+}
+
+#user-result,
+#withdraw-list,
+#ticket-list,
+#ref-tree {
+  font-size: 14px;
+  padding-top: 10px;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* 🛰️ Animations */
+@keyframes pulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes backgroundScan {
+  0% { background-position: 0 0; }
+  100% { background-position: 100vw 100vh; }
+}
+
+/* ⚠️ ALERT TEXT */
+.alert {
+  background-color: #ff003344;
+  color: #ff5555;
+  border-left: 4px solid red;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+/* ✅ APPROVED TEXT */
+.success {
+  background-color: #00ff1a22;
+  color: #00ff88;
+  border-left: 4px solid #00ff99;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+/* 🌐 SCROLLING */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #00ffff88;
+  border-radius: 6px;
+}
+
+/* 📱 RESPONSIVE */
+@media screen and (max-width: 500px) {
+  header h1 {
+    font-size: 20px;
+  }
+  .admin-logo {
+    width: 60px;
+  }
+}
