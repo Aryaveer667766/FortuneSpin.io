@@ -1,194 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FortuneSpin Admin</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="assets/logo.png" type="image/png" />
-  <style>
-    .admin-title {
-      text-align: center;
-      color: gold;
-      font-size: 26px;
-      margin: 20px 0;
-    }
-    .user-box {
-      background: #2c2c44;
-      padding: 20px;
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 500px;
-      color: white;
-    }
-    .user-box input {
-      margin: 6px 0;
-    }
-    .withdraw-box {
-      background: #1e1e2f;
-      padding: 15px;
-      border: 1px solid #444;
-      border-radius: 10px;
-      margin: 15px auto;
-      max-width: 450px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>🛰️ FortuneSpin God Mode HQ</title>
+  <link rel="stylesheet" href="style/admin.css">
+  <link rel="icon" href="assets/logos/logo.png">
+  <link href="https://fonts.googleapis.com/css22?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
 </head>
-<body>
-  <header class="dashboard-header">
+<body class="admin-body">
 
-    <h1>FortuneSpin Admin</h1>
+  <!-- 🔻 HEADER -->
+  <header>
+    <img src="assets/logos/logo.png" class="admin-logo" />
+    <h1>FORTUNESPIN | ADMIN HQ</h1>
+    <p class="live-indicator">🟢 SYSTEM ONLINE</p>
   </header>
 
+  <!-- ⚙️ CONTROL PANEL -->
   <main>
-    <h2 class="admin-title">👥 Users</h2>
-    <div id="user-list"></div>
+    <section class="panel" id="user-panel">
+      <h2>👤 User Control</h2>
+      <input type="text" placeholder="Search UID or username..." id="search-user" />
+      <button onclick="searchUser()">Search</button>
+      <div id="user-result">No user selected.</div>
+    </section>
 
-    <h2 class="admin-title">💸 Withdraw Requests</h2>
-    <div id="withdraw-list"></div>
+    <section class="panel">
+      <h2>🎡 Spin Control</h2>
+      <input type="text" id="spin-uid" placeholder="UID" />
+      <input type="number" id="spin-count" placeholder="Spins to Add" />
+      <input type="number" id="win-amount" placeholder="Set Win ₹ Amount (Optional)" />
+      <button onclick="assignSpin()">Assign Spin</button>
+    </section>
 
-    <h2 class="admin-title">📬 Reply to Support</h2>
-    <section class="admin-section">
-      <input type="text" id="reply-uid" placeholder="User UID" />
-      <input type="text" id="reply-text" placeholder="Reply message" />
-      <button onclick="replySupport()">Send Reply</button>
+    <section class="panel">
+      <h2>💸 Withdrawals</h2>
+      <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
+      <div id="withdraw-list">No pending requests.</div>
+    </section>
+
+    <section class="panel">
+      <h2>🧾 Tickets</h2>
+      <button onclick="loadTickets()">🔁 Refresh Tickets</button>
+      <div id="ticket-list">No tickets loaded.</div>
+    </section>
+
+    <section class="panel">
+      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
+      <input type="text" id="ref-uid" placeholder="Enter UID" />
+      <button onclick="viewReferralTree()">View Tree</button>
+      <div id="ref-tree"></div>
     </section>
   </main>
 
-  <script type="module">
-    import { auth, db } from './firebase.js';
-    import {
-      signInWithEmailAndPassword,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-    import {
-      ref, get, update, remove, onValue, set
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+  <!-- 🔊 SOUNDS -->
+  <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
+  <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
+  <audio id="confetti-sound" src="assets/sounds/confetti.mp3" preload="auto"></audio>
 
-    // Protect Admin Page
-    onAuthStateChanged(auth, user => {
-      if (!user || user.email !== "admin@admin.com") {
-        location.href = "login.html";
-      } else {
-        loadUsers();
-        loadWithdrawals();
-      }
-    });
-
-    // 🔓 Load All Users
-    async function loadUsers() {
-      const out = document.getElementById("user-list");
-      const snap = await get(ref(db, "users"));
-      const users = snap.val();
-      out.innerHTML = "";
-
-      if (users) {
-        Object.values(users).forEach(u => {
-          out.innerHTML += `
-            <div class="user-box">
-              <p><b>${u.email}</b></p>
-              <p>UID: ${u.uid}</p>
-              <p>Balance: ₹${u.balance || 0}</p>
-              <p>Referred By: ${u.referredBy || '—'}</p>
-              <input type="number" placeholder="Set balance" id="bal-${u.uid}" />
-              <input type="password" placeholder="New password" id="pass-${u.uid}" />
-              <label><input type="checkbox" id="lock-${u.uid}" ${u.locked ? 'checked' : ''}/> Locked</label>
-              <button onclick="updateUser('${u.uid}')">Update</button>
-              <button onclick="deleteUser('${u.uid}')">❌ Delete</button>
-            </div>
-          `;
-        });
-      }
-    }
-
-    // ✏️ Update User
-    window.updateUser = async function(uid) {
-      const balInput = document.getElementById(`bal-${uid}`).value;
-      const passInput = document.getElementById(`pass-${uid}`).value;
-      const locked = document.getElementById(`lock-${uid}`).checked;
-
-      const updates = {
-        locked: locked
-      };
-
-      if (balInput !== "") updates.balance = parseInt(balInput);
-
-      await update(ref(db, "users/" + uid), updates);
-
-      // Change password if provided
-      if (passInput) {
-        await set(ref(db, "passwords/" + uid), passInput);
-      }
-
-      alert("User updated ✅");
-      loadUsers();
-    };
-
-    // ❌ Delete User
-    window.deleteUser = async function(uid) {
-      if (!confirm("Are you sure?")) return;
-      await remove(ref(db, "users/" + uid));
-      await remove(ref(db, "support/" + uid));
-      await remove(ref(db, "notifications/" + uid));
-      alert("User deleted");
-      loadUsers();
-    };
-
-    // 💸 Load Withdrawals
-    async function loadWithdrawals() {
-      const out = document.getElementById("withdraw-list");
-      const snap = await get(ref(db, "withdrawals"));
-      const data = snap.val();
-      out.innerHTML = "";
-
-      if (data) {
-        Object.entries(data).forEach(([key, obj]) => {
-          if (obj.status === "pending") {
-            out.innerHTML += `
-              <div class="withdraw-box">
-                <p><b>${obj.email}</b> requests ₹${obj.amount}</p>
-                <p>UID: ${obj.uid}</p>
-                <button onclick="approveWithdraw('${key}', '${obj.uid}', ${obj.amount})">✅ Approve</button>
-                <button onclick="rejectWithdraw('${key}')">❌ Reject</button>
-              </div>
-            `;
-          }
-        });
-      }
-    }
-
-    // ✅ Approve
-    window.approveWithdraw = async function(key, uid, amount) {
-      const userRef = ref(db, "users/" + uid);
-      const snap = await get(userRef);
-      const bal = snap.val().balance || 0;
-      if (bal < amount) return alert("Insufficient balance");
-
-      await update(ref(db, "withdrawals/" + key), { status: "approved" });
-      await update(userRef, { balance: bal - amount });
-
-      alert("Withdrawal approved");
-      loadWithdrawals();
-      loadUsers();
-    };
-
-    // ❌ Reject
-    window.rejectWithdraw = async function(key) {
-      await update(ref(db, "withdrawals/" + key), { status: "rejected" });
-      alert("Withdrawal rejected");
-      loadWithdrawals();
-    };
-
-    // 📨 Reply to support
-    window.replySupport = async function () {
-      const uid = document.getElementById("reply-uid").value.trim();
-      const msg = document.getElementById("reply-text").value.trim();
-      if (!uid || !msg) return alert("Both fields required");
-
-      const supportRef = ref(db, "support/" + uid);
-      await set(ref(db, `support/${uid}/${Date.now()}`), `👨‍💼 Admin: ${msg}`);
-      alert("Reply sent ✅");
-    };
+  <!-- 🎯 JS -->
+  <script type="module" src="js/admin.js"></script>
+  <script>
+    // Sound Effects
+    const click = document.getElementById("click-sound");
+    document.querySelectorAll("button").forEach(btn =>
+      btn.addEventListener("click", () => click.play())
+    );
   </script>
+
 </body>
 </html>
+
