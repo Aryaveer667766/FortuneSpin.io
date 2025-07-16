@@ -1,0 +1,217 @@
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap');
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #090a1a, #1c1f36);
+  font-family: 'Poppins', sans-serif;
+  color: white;
+}
+
+/* ---------- LOGIN PAGE ---------- */
+body.login-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-container {
+  width: 360px;
+  padding: 30px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.login-logo {
+  width: 80px;
+  margin-bottom: 10px;
+}
+
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  background: #ffffff10;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #FFD700;
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #fff87f;
+  transform: scale(1.03);
+  box-shadow: 0 0 10px #FFD70088;
+}
+
+.note {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 10px;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.gold {
+  color: #FFD700;
+}
+
+/* ---------- DASHBOARD ---------- */
+main {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+section {
+  margin-bottom: 25px;
+  padding: 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #FFD70033;
+  box-shadow: 0 0 12px #00000050;
+  backdrop-filter: blur(10px);
+}
+
+.dashboard-header {
+  text-align: center;
+  padding: 20px 0;
+  background: linear-gradient(to right, #2c2f5a, #191b30);
+  border-bottom: 2px solid #FFD70055;
+}
+
+.dashboard-header img {
+  width: 70px;
+}
+
+.dashboard-header h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 28px;
+  color: #FFD700;
+}
+
+/* UID + Balance */
+#user-uid,
+#user-balance {
+  font-weight: bold;
+  color: #00FFB2;
+}
+
+/* Spin Section */
+#spin-section {
+  text-align: center;
+}
+
+#wheel {
+  width: 250px;
+  margin: 10px auto;
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0% { filter: drop-shadow(0 0 5px #FFD70044); }
+  50% { filter: drop-shadow(0 0 20px #FFD700); }
+  100% { filter: drop-shadow(0 0 5px #FFD70044); }
+}
+
+#spin-result {
+  margin-top: 10px;
+  font-size: 18px;
+  color: #FFD700;
+}
+
+/* Locked Message */
+#locked-msg {
+  color: orange;
+  text-align: center;
+  font-size: 18px;
+  padding: 20px;
+  border: 1px solid orange;
+  border-radius: 10px;
+  background-color: rgba(255, 165, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+/* Referral */
+#referral-link {
+  width: 100%;
+  background: #333;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  color: #FFD700;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Notifications */
+.notification-section #notifications {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #cfcfcf;
+}
+
+/* Withdrawal */
+#withdraw-amount {
+  width: 100%;
+  padding: 10px;
+  background: #1a1a2a;
+  color: #FFD700;
+  border: 1px solid #FFD70033;
+  border-radius: 8px;
+}
+
+#withdraw-msg {
+  font-weight: bold;
+}
+
+/* Confetti Placeholder (you’ll trigger via JS) */
+canvas#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+}
+
+/* Responsive */
+@media screen and (max-width: 480px) {
+  main {
+    padding: 10px;
+  }
+
+  section {
+    padding: 15px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 22px;
+  }
+}
