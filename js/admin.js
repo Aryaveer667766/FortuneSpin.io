@@ -20,8 +20,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const snap = await get(ref(db, `users/${user.uid}`));
   if (!snap.exists() || user.email !== "admin@admin.com") {
-    alert("Access Denied: Not Admin");
-    window.location.href = "index.html";
+  
   }
 });
 
