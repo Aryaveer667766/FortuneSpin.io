@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fortune Realm</title>
+  <link rel="stylesheet" href="style/user.css" />
+  <link rel="icon" href="assets/logos/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- 🔱 Header -->
+  <header class="dashboard-header">
+    <img src="assets/logos/logo.png" />
+    <h1>FortuneSpin Dashboard</h1>
+    <p>Your UID: <span id="user-uid">Loading...</span></p>
+  </header>
+
+  <main>
+
+    <!-- 🔒 LOCKED SCREEN -->
+    <div id="locked-msg" style="display: none;">
+      <p>🔒 Your Lucky Draw is Locked</p>
+      <p>Send your UID on WhatsApp to unlock spins.</p>
+      <img src="assets/qr/whatsapp-qr.png" width="180" style="margin:10px 0;" />
+      <button onclick="openWhatsApp()" class="contact-btn">📱 Contact Admin via WhatsApp</button>
+    </div>
+
+    <!-- 🎡 SPIN WHEEL -->
+    <section id="spin-section" style="display: none;">
+      <h2>🎯 Try Your Luck!</h2>
+      <img src="assets/wheel.png" id="wheel" />
+      <br><br>
+      <button onclick="spinWheel()">SPIN</button>
+      <p id="spin-result">Tap SPIN to win!</p>
+    </section>
+
+    <!-- 💰 BALANCE PANEL -->
+    <section class="balance-section">
+      <h3>💰 Your Balance</h3>
+      ₹<span id="user-balance">0</span>
+    </section>
+
+    <!-- 🧑‍🤝‍🧑 REFERRAL -->
+    <section>
+      <h3>👫 Invite & Earn ₹99</h3>
+      <input type="text" id="referral-link" readonly />
+      <button onclick="copyReferral()">Copy Referral Link</button>
+    </section>
+
+    <!-- 💸 WITHDRAW -->
+    <section>
+      <h3>💸 Withdraw Winnings</h3>
+      <input type="number" id="withdraw-amount" placeholder="Enter amount" />
+      <button onclick="requestWithdrawal()">Request Withdrawal</button>
+      <p id="withdraw-msg"></p>
+    </section>
+
+    <!-- 🧾 SUPPORT TICKET -->
+    <section>
+      <h3>🆘 Support Ticket</h3>
+      <input type="text" id="ticket-subject" placeholder="Subject" />
+      <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
+      <button onclick="submitTicket()">Submit Ticket</button>
+    </section>
+
+    <!-- 📢 NOTIFICATIONS -->
+    <section class="notification-section">
+      <h3>📢 Notifications</h3>
+      <div id="notifications">No messages yet.</div>
+    </section>
+
+    <!-- 🏆 WINNER FEED -->
+    <section>
+      <h3>🏆 Live Winners</h3>
+      <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #FFD700; font-weight:bold;" id="winner-feed">
+        🎉 UID#X83KTR won ₹10,000 • 🎉 UID#M22BDX won ₹5,000 • 🎉 UID#A77ZZQ won ₹25,000
+      </marquee>
+    </section>
+  </main>
+
+  <!-- 🎉 Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- ✅ Script -->
+  <script type="module" src="js/user.js"></script>
+  <script>
+    function openWhatsApp() {
+      const uid = document.getElementById("user-uid").textContent.trim();
+      const message = `Hi, my UID is ${uid}`;
+      const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
+    }
+
+    function copyReferral() {
+      const link = document.getElementById("referral-link");
+      link.select();
+      document.execCommand("copy");
+      alert("Link copied!");
+    }
+  </script>
+</body>
+</html>
