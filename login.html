@@ -3,29 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FortuneSpin - Login</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>FortuneSpin Login</title>
+  <link rel="stylesheet" href="style/user.css" />
+  <link rel="icon" href="assets/logos/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
 </head>
-<body>
-  <div class="login-container">
-    <img src="assets/logo.png" alt="FortuneSpin Logo" class="logo" />
-    <h2 class="title">Welcome to FortuneSpin</h2>
-
+<body class="login-body">
+  <div class="login-container glass-card">
+    <img src="assets/logos/logo.png" class="login-logo" />
+    <h2>Welcome to <span class="gold">FortuneSpin.io</span></h2>
+    
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
 
     <button onclick="login()">Login</button>
-    <button onclick="register()">Register</button>
+    <p id="error-msg" class="error"></p>
 
-    <p id="login-msg" class="message"></p>
-
-    <div class="help-link">
-      <a href="mailto:support@fortunespin.io">Need help?</a>
-    </div>
+    <p class="note">New user? Your spins will be locked until admin approval.</p>
+    <p class="note">Admin credentials → <code>admin@admin.com / admin121</code></p>
   </div>
 
-  <script type="module" src="firebase.js"></script>
-  <script type="module" src="script.js"></script>
+  <script type="module">
+    import { auth } from './js/firebase.js';
+    import {
+      signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+    window.login = async function () {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorMsg = document.getElementById("error-msg");
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        if (email === "admin@admin.com") {
+          window.location.href = "admin-panel.html";
+        } else {
+          window.location.href = "user-dashboard.html";
+        }
+      } catch (error) {
+        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
+      }
+    };
+  </script>
 </body>
 </html>
+
