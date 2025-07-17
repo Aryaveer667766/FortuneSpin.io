@@ -56,13 +56,26 @@
       <input type="text" id="referral-input" placeholder="Enter UID of the person who invited you" />
     </section>
 
-    <!-- 💸 WITHDRAW -->
-    <section>
-      <h3>💸 Withdraw Winnings</h3>
-      <input type="number" id="withdraw-amount" placeholder="Enter amount" />
-      <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <p id="withdraw-msg"></p>
-    </section>
+   <!-- 💸 WITHDRAW -->
+<section>
+  <h3>💸 Withdraw Winnings</h3>
+
+  <input type="text" id="withdraw-mobile" placeholder="Enter your mobile number" />
+  <input type="text" id="withdraw-upi" placeholder="Enter your UPI ID or Bank Account Number" />
+  <input type="text" id="withdraw-ifsc" placeholder="Enter IFSC Code (if using bank)" />
+  <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
+
+  <button onclick="requestWithdrawal()">Request Withdrawal</button>
+
+  <p id="withdraw-msg" style="color: gold;"></p>
+  
+  <!-- 🕒 STATUS TRACKER -->
+  <div id="withdraw-status-box" style="display: none;">
+    <h4>⏳ Withdrawal Status:</h4>
+    <p>Status: <span id="withdraw-status">Loading...</span></p>
+  </div>
+</section>
+
 
     <!-- 🧾 SUPPORT TICKET -->
     <section>
