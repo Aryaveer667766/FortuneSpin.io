@@ -1,68 +1,78 @@
-// spin.js
+// 🎡 Spin Logic for FortuneSpin.io
 
 const wheel = document.getElementById("wheel");
-const resultDisplay = document.getElementById("spin-result");
-const spinSound = document.getElementById("spin-sound");
-const winSound = document.getElementById("win-sound");
-const errorSound = document.getElementById("error-sound");
-const canvas = document.getElementById("confetti-canvas");
+const resultText = document.getElementById("spin-result");
+const spinButton = document.querySelector("button[onclick='spinWheel()']");
 
-let isSpinning = false;
+// 🎵 Load spin sound
+const spinSound = new Audio("assets/spin.mp3");
+spinSound.preload = "auto";
 
-// Fake prize list (adjust as needed)
+// 💸 Prize List
 const prizes = ["₹168", "₹596", "₹991", "₹1047", "₹1579", "₹2039", "₹0", "₹5097"];
 
-function spinWheel() {
-  if (isSpinning) return;
+// Track rotation to avoid snapback
+let currentRotation = 0;
 
-  isSpinning = true;
+// 🎯 Spin Function
+function spinWheel() {
+  spinButton.disabled = true;
+  resultText.textContent = ""; // Clear previous result
+
+  const prizeIndex = Math.floor(Math.random() * prizes.length);
+  const prize = prizes[prizeIndex];
+
+  const sliceAngle = 360 / prizes.length;
+  const targetAngle = (prizes.length - prizeIndex) * sliceAngle;
+  const extraSpins = 5 * 360; // 5 full rotations
+
+  const finalRotation = currentRotation + extraSpins + targetAngle;
+
+  // Apply rotation
+  wheel.style.transition = "transform 4s ease-out";
+  wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+  // Play sound
+  spinSound.currentTime = 0;
   spinSound.play();
 
-  // Random angle between 5 and 10 full spins
-  const randomRotation = 360 * (5 + Math.floor(Math.random() * 5));
-  const prizeIndex = Math.floor(Math.random() * prizes.length);
-  const extraAngle = 360 / prizes.length * prizeIndex;
-
-  // Total spin
-  const totalRotation = randomRotation + extraAngle;
-
-  wheel.style.transition = "transform 4s ease-out";
-  wheel.style.transform = `rotate(${totalRotation}deg)`;
-
-  // Wait for animation to finish
+  // Result after spin
   setTimeout(() => {
-    const prize = prizes[prizeIndex];
-
-    if (prize !== "₹0") {
-      winSound.play();
-      resultDisplay.innerText = `🎉 You won ${prize}!`;
-      launchConfetti();
+    if (prize === "₹0") {
+      resultText.textContent = "😢 Oops! You got ₹0!";
     } else {
-      errorSound.play();
-      resultDisplay.innerText = "😢 Better luck next time!";
+      resultText.textContent = `🎉 You won ${prize}!`;
+      triggerConfetti();
     }
 
-    isSpinning = false;
+    spinButton.disabled = false;
   }, 4000);
+
+  currentRotation = finalRotation % 360; // Save new rotation
 }
 
-// ----------- CONFETTI ANIMATION -------------
-function launchConfetti() {
-  const duration = 2 * 1000;
+// 🎊 Confetti Effect (optional)
+function triggerConfetti() {
+  const duration = 2000;
   const animationEnd = Date.now() + duration;
-  const colors = ["#bb0000", "#ffffff", "#FFD700", "#00ffcc"];
 
-  (function frame() {
-    const timeLeft = animationEnd - Date.now();
-    if (timeLeft <= 0) return;
+  const interval = setInterval(() => {
+    if (Date.now() > animationEnd) {
+      return clearInterval(interval);
+    }
 
-    const confetti = document.createElement("div");
-    confetti.className = "confetti";
-    confetti.style.left = Math.random() * 100 + "vw";
-    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    document.body.appendChild(confetti);
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      spread: 70,
+      origin: { x: 0 }
+    });
 
-    setTimeout(() => confetti.remove(), 2000);
-    requestAnimationFrame(frame);
-  })();
+    confetti({
+      particleCount: 5,
+      angle: 120,
+      spread: 70,
+      origin: { x: 1 }
+    });
+  }, 200);
 }
