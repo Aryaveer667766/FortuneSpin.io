@@ -1,28 +1,46 @@
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background: #000;
-  margin: 0;
-}
-
-.wheel-container {
-  text-align: center;
-}
+/* spin.css */
 
 #wheel {
-  width: 300px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
   transition: transform 4s ease-out;
+  margin: 0 auto;
+  display: block;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
 
-#spin-btn {
-  margin-top: 20px;
-  padding: 12px 24px;
-  font-size: 18px;
-  background-color: gold;
-  color: black;
+button {
+  font-size: 1rem;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1de9b6, #1dc4e9);
+  color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+button:hover {
+  background: linear-gradient(135deg, #00e676, #00b0ff);
+}
+
+/* Confetti */
+.confetti {
+  position: fixed;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0.9;
+  animation: confetti-fall 2s linear forwards;
+  z-index: 9999;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(100vh) rotateZ(360deg);
+    opacity: 0;
+  }
 }
