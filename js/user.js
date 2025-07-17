@@ -8,16 +8,13 @@ import {
   ref,
   get,
   set,
-  child,
   update,
   push,
   onValue
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-let currentUser, uid;
-
-// 🌟 Confetti setup
 import confetti from 'https://cdn.skypack.dev/canvas-confetti';
+
 const confettiCanvas = document.getElementById("confetti-canvas");
 confettiCanvas.width = window.innerWidth;
 confettiCanvas.height = window.innerHeight;
@@ -26,20 +23,21 @@ const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 
-// 🔔 SOUND EFFECTS
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
 const clickSound = new Audio('assets/sounds/click.mp3');
 
-// 🧠 Helper: Generate UID
+let currentUser, uid;
+
+// Generate UID
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  for(let i = 0; i < length; i++) result += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < length; i++) result += chars[Math.floor(Math.random() * chars.length)];
   return `UID#${result}`;
 }
 
-// ✅ On Auth
+// 🔔 Auth Check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
@@ -77,12 +75,13 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     loadNotifications();
+    loadWithdrawals();
   } else {
     window.location.href = "login.html";
   }
 });
 
-// 🎡 Spin Logic
+// 🎡 Spin
 window.spinWheel = async () => {
   spinSound.play();
 
@@ -96,15 +95,14 @@ window.spinWheel = async () => {
   }
 
   document.getElementById("spin-result").innerText = "Spinning...";
-  
+
   setTimeout(async () => {
-    // Admin controlled outcome (you can change this logic)
-    const outcome = data.assignedWin || Math.floor(Math.random() * 1000); // fallback
+    const outcome = data.assignedWin || Math.floor(Math.random() * 1000);
     winSound.play();
     confetti({ particleCount: 100, spread: 70 });
 
     document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}`;
-    
+
     await update(userRef, {
       balance: (data.balance || 0) + outcome,
       spinsLeft: data.spinsLeft - 1
@@ -114,25 +112,83 @@ window.spinWheel = async () => {
   }, 3000);
 };
 
-// 💸 Withdrawal
+// 💸 Withdraw Logic
 window.requestWithdrawal = async () => {
-  const amount = parseInt(document.getElementById("withdraw-amount").value);
-  if (isNaN(amount) || amount <= 0) return alert("Enter valid amount");
+  const mobile = document.getElementById("withdraw-mobile").value.trim();
+  const upi = document.getElementById("withdraw-upi").value.trim();
+  const account = document.getElementById("withdraw-account").value.trim();
+  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
+  const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
 
-  const userSnap = await get(ref(db, `users/${uid}`));
-  const data = userSnap.val();
+  if (!mobile || isNaN(amount) || amount <= 0 || (!upi && !account)) {
+    alert("Please fill all required fields properly.");
+    return;
+  }
 
-  if (amount > data.balance) return alert("Insufficient balance");
+  if (account && !ifsc) {
+    alert("IFSC is required for bank withdrawals.");
+    return;
+  }
 
-  const withdrawalRef = ref(db, `withdrawals/${uid}`);
-  await push(withdrawalRef, {
+  const snap = await get(ref(db, `users/${uid}`));
+  const data = snap.val();
+
+  if (amount > data.balance) {
+    alert("Insufficient balance.");
+    return;
+  }
+
+  // Check referral count
+  const referralsSnap = await get(ref(db, `referrals/${data.uidCode}`));
+  const referralList = referralsSnap.exists() ? Object.values(referralsSnap.val()) : [];
+
+  if (referralList.length < 3) {
+    alert("❌ You must have at least 3 referrals to withdraw.");
+    return;
+  }
+
+  const withdrawalData = {
+    mobile,
+    upi,
+    account,
+    ifsc,
     amount,
     status: "Pending",
     date: new Date().toISOString()
+  };
+
+  await push(ref(db, `withdrawals/${uid}`), withdrawalData);
+  document.getElementById("withdraw-msg").innerText = "✅ Withdrawal Requested! You can track it below.";
+  document.getElementById("withdraw-form").reset();
+
+  // Deduct amount immediately
+  await update(ref(db, `users/${uid}`), {
+    balance: data.balance - amount
   });
 
-  document.getElementById("withdraw-msg").innerText = "✅ Withdrawal requested!";
+  balanceEl.innerText = data.balance - amount;
+  loadWithdrawals();
 };
+
+// 📊 Track Withdrawals
+function loadWithdrawals() {
+  const list = document.getElementById("withdraw-history");
+  const refPath = ref(db, `withdrawals/${uid}`);
+
+  onValue(refPath, (snap) => {
+    list.innerHTML = "";
+    if (snap.exists()) {
+      Object.values(snap.val()).forEach(w => {
+        const item = document.createElement("div");
+        item.className = "withdraw-item";
+        item.innerHTML = `<p>₹${w.amount} — ${w.status}</p><small>${new Date(w.date).toLocaleString()}</small>`;
+        list.appendChild(item);
+      });
+    } else {
+      list.innerHTML = "<p>No withdrawals yet.</p>";
+    }
+  });
+}
 
 // 🧾 Support Ticket
 window.submitTicket = async () => {
