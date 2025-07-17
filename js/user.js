@@ -1,22 +1,19 @@
-// 📦 Firebase Setup
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {
-  getDatabase,
-  ref,
-  get,
-  set,
-  child,
-  onValue,
-  update,
-  push
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 import {
   getAuth,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  get,
+  set,
+  onValue,
+  update,
+  push
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// 🔐 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCHh9XG4eK2IDYgaUzja8Lk6obU6zxIIwc",
   authDomain: "fortunespin-57b4f.firebaseapp.com",
@@ -28,268 +25,166 @@ const firebaseConfig = {
   measurementId: "G-VT1N70H3HK"
 };
 
-// 🚀 Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getDatabase();
 const auth = getAuth(app);
+const db = getDatabase(app);
 
-let currentUID = null;
+let currentUID = "";
+let currentUserRef = null;
 
-// 🔁 Auth Listener
+// ⏳ On Login State Change
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUID = user.uid;
-    loadUserData(user.uid);
-    loadWithdrawalHistory();
-    loadNotifications();
+    currentUserRef = ref(db, "users/" + currentUID);
+
+    document.getElementById("user-uid").textContent = currentUID;
+    fetchUserData();
+    listenToNotifications();
+    checkSpinLock();
+    trackWithdrawalStatus();
+    generateReferralLink();
   } else {
     window.location.href = "index.html";
   }
 });
 
-
-// 🎡 Spin Logic
-const wheel = document.getElementById("wheel");
-const resultText = document.getElementById("spin-result");
-const spinButton = document.querySelector("button[onclick='spinWheel()']");
-const spinSound = new Audio("assets/spin.mp3");
-spinSound.preload = "auto";
-
-const prizes = ["₹168", "₹596", "₹991", "₹1047", "₹1579", "₹2039", "₹0", "₹5097"];
-
-function spinWheel() {
-  if (!currentUID) return;
-
-  spinButton.disabled = true;
-  const prizeIndex = Math.floor(Math.random() * prizes.length);
-  const prize = prizes[prizeIndex];
-  const sliceAngle = 360 / prizes.length;
-  const randomOffset = Math.floor(Math.random() * sliceAngle);
-  const rotation = (360 * 5) + (prizeIndex * sliceAngle) + randomOffset;
-
-  wheel.style.transition = "transform 4s ease-out";
-  wheel.style.transform = `rotate(${rotation}deg)`;
-
-  spinSound.currentTime = 0;
-  spinSound.play();
-
-  setTimeout(() => {
-    if (prize === "₹0") {
-      resultText.textContent = "😢 Oops! You got ₹0!";
-    } else {
-      resultText.textContent = `🎉 You won ${prize}!`;
-      triggerConfetti();
-
-      // Add to user balance
-      const wonAmount = parseInt(prize.replace("₹", ""));
-      const balanceRef = ref(db, `users/${currentUID}/balance`);
-      get(balanceRef).then((snapshot) => {
-        const currentBalance = snapshot.exists() ? snapshot.val() : 0;
-        set(balanceRef, currentBalance + wonAmount);
-      });
-    }
-
-    spinButton.disabled = false;
-  }, 4000);
-}
-
-// 🎊 Confetti
-function triggerConfetti() {
-  const canvas = document.getElementById("confetti-canvas");
-  if (!canvas) return;
-
-  const confetti = window.confetti.create(canvas, { resize: true });
-  confetti({ particleCount: 100, spread: 90 });
-}
-
-// 📩 Load Notifications
-function loadNotifications() {
-  const notiBox = document.getElementById("notifications");
-  if (!notiBox) return;
-
-  const notiRef = ref(db, `notifications/${currentUID}`);
-  onValue(notiRef, (snapshot) => {
-    notiBox.innerHTML = "";
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      for (const id in data) {
-        const msg = data[id];
-        const div = document.createElement("div");
-        div.className = "notification";
-        div.innerText = msg;
-        notiBox.appendChild(div);
-      }
-    }
-  });
-}
-// ✅ After Firebase initialization and auth setup
-// ✅ After spin logic
-// ✅ After support request logic
-
-// 🆕 Withdrawal request handler
-function requestWithdrawal() {
-  const mobile = document.getElementById("withdraw-mobile").value.trim();
-  const upiOrAccount = document.getElementById("withdraw-upi").value.trim();
-  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
-  const amount = parseFloat(document.getElementById("withdraw-amount").value.trim());
-  const msgEl = document.getElementById("withdraw-msg");
-
-  if (!mobile || !upiOrAccount || isNaN(amount) || amount <= 0) {
-    msgEl.textContent = "❌ Please fill all required fields correctly.";
-    return;
-  }
-
-  const user = auth.currentUser;
-  if (!user) {
-    msgEl.textContent = "❌ You must be logged in to withdraw.";
-    return;
-  }
-
-  const uid = user.uid;
-  const userRef = db.ref("users/" + uid);
-
-  userRef.once("value").then((snapshot) => {
+// 📊 Fetch User Data
+function fetchUserData() {
+  onValue(currentUserRef, (snapshot) => {
     const data = snapshot.val();
-
-    if (!data || !data.balance || isNaN(data.balance)) {
-      msgEl.textContent = "❌ Unable to fetch balance.";
-      return;
+    if (data) {
+      document.getElementById("user-balance").textContent = data.balance || 0;
     }
-
-    if (data.balance < amount) {
-      msgEl.textContent = "❌ Insufficient balance.";
-      return;
-    }
-
-    // 🔍 Check referral count
-    if (!data.referrals || Object.keys(data.referrals).length < 3) {
-      msgEl.textContent = "⚠️ You must have at least 3 referrals to withdraw.";
-      return;
-    }
-
-    const withdrawalData = {
-      mobile,
-      upiOrAccount,
-      ifsc: ifsc || "N/A",
-      amount,
-      timestamp: new Date().toISOString(),
-      status: "Pending"
-    };
-
-    // 🔽 Deduct balance and push withdrawal request
-    const updates = {};
-    updates["/users/" + uid + "/balance"] = data.balance - amount;
-    updates["/withdrawals/" + uid + "_" + Date.now()] = {
-      ...withdrawalData,
-      uid,
-      name: data.name || "Unknown"
-    };
-
-    db.ref().update(updates)
-      .then(() => {
-        msgEl.textContent = "✅ Withdrawal request submitted successfully!";
-        document.getElementById("withdraw-form").reset();
-      })
-      .catch((error) => {
-        console.error(error);
-        msgEl.textContent = "❌ Something went wrong. Please try again.";
-      });
   });
 }
 
+// 🧷 Check if Spin is Locked
+function checkSpinLock() {
+  get(currentUserRef).then((snapshot) => {
+    const userData = snapshot.val();
+    const isLocked = userData?.locked;
+    document.getElementById("locked-msg").style.display = isLocked ? "block" : "none";
+    document.getElementById("spin-section").style.display = isLocked ? "none" : "block";
+  });
+}
 
-// 📤 Withdrawal Request
+// 🧾 Submit Support Ticket
+window.submitTicket = function () {
+  const subject = document.getElementById("ticket-subject").value.trim();
+  const message = document.getElementById("ticket-message").value.trim();
+  if (!subject || !message) return alert("Please fill both fields.");
+
+  const ticketRef = push(ref(db, `tickets/${currentUID}`));
+  set(ticketRef, {
+    subject,
+    message,
+    timestamp: Date.now()
+  }).then(() => {
+    alert("Ticket submitted!");
+    document.getElementById("ticket-subject").value = "";
+    document.getElementById("ticket-message").value = "";
+  });
+};
+
+// 🔔 Notifications
+function listenToNotifications() {
+  const notiRef = ref(db, "notifications/" + currentUID);
+  onValue(notiRef, (snapshot) => {
+    const notis = snapshot.val();
+    const box = document.getElementById("notifications");
+    box.innerHTML = "";
+    if (notis) {
+      Object.values(notis).reverse().forEach(n => {
+        const div = document.createElement("div");
+        div.textContent = "🔔 " + n;
+        box.appendChild(div);
+      });
+    } else {
+      box.textContent = "No messages yet.";
+    }
+  });
+}
+
+// 🔗 Referral Link
+function generateReferralLink() {
+  const link = `${window.location.origin}/signup.html?ref=${currentUID}`;
+  document.getElementById("referral-link").value = link;
+}
+
+// 💸 Withdrawal Request
 window.requestWithdrawal = function () {
   const mobile = document.getElementById("withdraw-mobile").value.trim();
   const upi = document.getElementById("withdraw-upi").value.trim();
-  const account = document.getElementById("withdraw-account").value.trim();
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
-  const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
-  const msgBox = document.getElementById("withdraw-msg");
+  const amount = parseFloat(document.getElementById("withdraw-amount").value.trim());
+  const msg = document.getElementById("withdraw-msg");
 
-  if (!mobile || (!upi && !account) || !amount || amount < 1) {
-    msgBox.innerText = "⚠️ Fill all required fields correctly.";
+  if (!mobile || !upi || !amount || amount <= 0) {
+    msg.textContent = "❌ Fill all required fields.";
     return;
   }
 
-  // Must have 3 referrals
-  const referralRef = ref(db, `users/${currentUID}/referrals`);
-  get(referralRef).then((snapshot) => {
-    const referrals = snapshot.exists() ? Object.keys(snapshot.val()) : [];
-    if (referrals.length < 3) {
-      msgBox.innerText = "❌ You need at least 3 referrals to withdraw.";
+  get(ref(db, `users/${currentUID}`)).then((snap) => {
+    const user = snap.val();
+    const balance = parseFloat(user.balance || 0);
+    const referrals = user.referrals ? Object.keys(user.referrals).length : 0;
+
+    if (referrals < 3) {
+      msg.textContent = "❌ Minimum 3 referrals required to withdraw.";
       return;
     }
 
-    // Check balance
-    const balanceRef = ref(db, `users/${currentUID}/balance`);
-    get(balanceRef).then((balSnap) => {
-      const balance = balSnap.exists() ? balSnap.val() : 0;
-      if (amount > balance) {
-        msgBox.innerText = "⚠️ Insufficient balance.";
-        return;
-      }
+    if (amount > balance) {
+      msg.textContent = "❌ Insufficient balance.";
+      return;
+    }
 
-      // Deduct balance and push withdrawal
-      const withdrawRef = ref(db, `withdrawals/${currentUID}`);
-      const newRef = push(withdrawRef);
-      const requestData = {
-        mobile,
-        upi,
-        account,
-        ifsc,
-        amount,
-        status: "Pending",
-        time: new Date().toLocaleString()
-      };
+    // Deduct Balance and Store Request
+    const withdrawalData = {
+      uid: currentUID,
+      mobile,
+      upi,
+      ifsc,
+      amount,
+      timestamp: Date.now(),
+      status: "Pending"
+    };
 
-      set(newRef, requestData).then(() => {
-        set(balanceRef, balance - amount);
-        msgBox.innerText = "✅ Withdrawal request submitted!";
-        loadWithdrawalHistory();
-      });
+    const newRef = push(ref(db, "withdrawals"));
+    set(newRef, withdrawalData);
+    update(currentUserRef, {
+      balance: balance - amount
     });
+
+    msg.textContent = "✅ Withdrawal request submitted.";
+    trackWithdrawalStatus(); // Refresh status
   });
 };
 
-// 📜 Load Withdrawal History
-function loadWithdrawalHistory() {
-  const box = document.getElementById("withdraw-history");
-  if (!box) return;
+// 📦 Track Withdrawal Status
+function trackWithdrawalStatus() {
+  const statusBox = document.getElementById("withdraw-status-box");
+  const statusText = document.getElementById("withdraw-status");
 
-  const refHist = ref(db, `withdrawals/${currentUID}`);
-  onValue(refHist, (snapshot) => {
-    box.innerHTML = "";
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const entries = Object.values(data).reverse();
+  const withdrawalsRef = ref(db, "withdrawals");
+  onValue(withdrawalsRef, (snapshot) => {
+    let latest = null;
 
-      for (const entry of entries) {
-        const div = document.createElement("div");
-        div.className = "withdraw-entry";
-        div.innerHTML = `
-          <b>₹${entry.amount}</b> – ${entry.status}<br/>
-          <small>${entry.time}</small>
-        `;
-        box.appendChild(div);
+    snapshot.forEach(child => {
+      const data = child.val();
+      if (data.uid === currentUID) {
+        if (!latest || data.timestamp > latest.timestamp) {
+          latest = data;
+        }
       }
+    });
+
+    if (latest) {
+      statusBox.style.display = "block";
+      statusText.textContent = latest.status || "Pending";
     } else {
-      box.innerHTML = "<p>No withdrawals yet.</p>";
+      statusBox.style.display = "none";
     }
   });
 }
-
-// 👤 Load User Data (Balance, Name, etc)
-function loadUserData(uid) {
-  const balRef = ref(db, `users/${uid}/balance`);
-  get(balRef).then((snap) => {
-    if (snap.exists()) {
-      document.getElementById("balance").innerText = "₹" + snap.val();
-    }
-  });
-}
-
-// 🚪 Logout
-window.logout = function () {
-  signOut(auth);
-};
