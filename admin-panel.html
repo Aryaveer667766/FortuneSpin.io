@@ -2,105 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>God Mode HQ – FortuneSpin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>God Mode HQ – FortuneSpin Admin</title>
   <link rel="stylesheet" href="style/admin.css" />
-  <script type="module" src="js/admin.js"></script>
-  <script type="module" src="firebase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
 </head>
-<body class="cyberpunk-bg">
-  <audio id="system-sound" src="assets/sounds/system-beep.mp3"></audio>
+<body>
 
-  <header>
-    <h1>🛰️ GOD MODE HQ</h1>
-    <button onclick="logout()">Logout</button>
-  </header>
+  <!-- Login Section -->
+  <div id="login-section">
+    <h2>🔐 Admin Login</h2>
+    <input type="text" id="admin-username" placeholder="Username" />
+    <input type="password" id="admin-password" placeholder="Password" />
+    <button onclick="adminLogin()">Login</button>
+    <p id="login-status"></p>
+  </div>
 
-  <main>
-    <section class="dashboard-grid">
+  <!-- Admin Dashboard -->
+  <div id="admin-dashboard" style="display:none;">
+    <h1>🛰️ God Mode HQ</h1>
 
-      <!-- USERS -->
-      <div class="card">
-        <h2>👤 User Management</h2>
-        <input type="text" id="searchUID" placeholder="Enter UID" />
-        <button onclick="viewUser()">View User</button>
-        <button onclick="deleteUser()">Delete</button>
-        <input type="password" id="newPass" placeholder="New Password" />
-        <button onclick="changePassword()">Change Password</button>
-        <pre id="userInfo">User info will appear here</pre>
-      </div>
+    <button onclick="logoutAdmin()">🚪 Logout</button>
 
-      <!-- BALANCE -->
-      <div class="card">
-        <h2>💰 Balance Control</h2>
-        <input type="text" id="uid-balance" placeholder="User UID" />
-        <input type="number" id="newBalance" placeholder="New Balance" />
-        <button onclick="updateBalance()">Update Balance</button>
-      </div>
-
-      <!-- WITHDRAWALS -->
-      <div class="card">
-        <h2>🏦 Withdrawals</h2>
-        <button onclick="loadWithdrawals()">Load Requests</button>
-        <div id="withdrawalsList">No requests yet</div>
-      </div>
-
-      <!-- NOTIFICATIONS -->
-      <div class="card">
-        <h2>📢 Notify Users</h2>
-        <input type="text" id="notifyUID" placeholder="UID (or ALL)" />
-        <input type="text" id="notifyMsg" placeholder="Message" />
-        <button onclick="sendNotification()">Send</button>
-      </div>
-
-      <!-- REFERRALS -->
-      <div class="card">
-        <h2>🌲 Referral Tree</h2>
-        <input type="text" id="refUID" placeholder="User UID" />
-        <button onclick="viewTree()">View Tree</button>
-        <pre id="treeData">Tree will appear here</pre>
-      </div>
-
-      <!-- SPIN CONTROL -->
-      <div class="card">
-        <h2>🎯 Spin Outcome</h2>
-        <input type="text" id="spinUID" placeholder="UID" />
-        <select id="forcedPrize">
-          <option value="">Random</option>
-          <option value="10">10</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-        <button onclick="controlSpin()">Force Spin</button>
-      </div>
-
-      <!-- SUPPORT -->
-      <div class="card">
-        <h2>🛠️ Support Tickets</h2>
-        <button onclick="loadTickets()">Load Tickets</button>
-        <div id="supportList"></div>
-      </div>
-
-      <!-- FAKE WINNER -->
-      <div class="card">
-        <h2>🕵️‍♂️ Fake Winners</h2>
-        <input type="text" id="fakeName" placeholder="Name" />
-        <input type="text" id="fakePrize" placeholder="Prize" />
-        <button onclick="addFakeWinner()">Add</button>
-      </div>
-
+    <section>
+      <h3>📋 All Users</h3>
+      <div id="user-list"></div>
     </section>
-  </main>
 
-  <footer>
-    <p>🧠 FortuneSpin Intelligence Center | Admin: <strong>admin</strong></p>
-  </footer>
+    <section>
+      <h3>💰 Control Balance</h3>
+      <input type="text" id="balance-uid" placeholder="User UID" />
+      <input type="number" id="balance-amount" placeholder="Amount" />
+      <button onclick="updateUserBalance()">Update Balance</button>
+    </section>
 
-  <script>
-    function logout() {
-      import("./firebase.js").then(({ auth }) => {
-        auth.signOut().then(() => location.href = "index.html");
-      });
-    }
-  </script>
+    <section>
+      <h3>💸 Withdrawal Requests</h3>
+      <div id="withdrawals"></div>
+    </section>
+
+    <section>
+      <h3>📢 Send Notification</h3>
+      <input type="text" id="notify-uid" placeholder="User UID (or 'all')" />
+      <input type="text" id="notify-message" placeholder="Message" />
+      <button onclick="sendNotification()">Send</button>
+    </section>
+
+    <section>
+      <h3>🌳 Referral Tree Viewer</h3>
+      <input type="text" id="ref-tree-uid" placeholder="User UID" />
+      <button onclick="viewReferralTree()">View Tree</button>
+      <pre id="referral-output"></pre>
+    </section>
+
+    <section>
+      <h3>🎫 Support Tickets</h3>
+      <div id="support-tickets"></div>
+    </section>
+
+    <section>
+      <h3>🎡 Spin Control</h3>
+      <input type="text" id="spin-uid" placeholder="User UID" />
+      <input type="number" id="spin-reward" placeholder="Reward Amount" />
+      <button onclick="setSpinOutcome()">Force Spin Outcome</button>
+    </section>
+
+    <section>
+      <h3>🏆 Create Fake Winner</h3>
+      <input type="text" id="fake-name" placeholder="Name" />
+      <input type="number" id="fake-amount" placeholder="Amount" />
+      <button onclick="addFakeWinner()">Add</button>
+    </section>
+  </div>
+
+  <script type="module" src="admin.js"></script>
 </body>
 </html>
