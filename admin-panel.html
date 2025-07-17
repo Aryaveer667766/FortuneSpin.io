@@ -1,73 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>🛰️ FortuneSpin God Mode HQ</title>
-  <link rel="stylesheet" href="style/admin.css">
-  <link rel="icon" href="assets/logos/logo.png">
-  <link href="https://fonts.googleapis.com/css22?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>God Mode HQ – FortuneSpin</title>
+  <link rel="stylesheet" href="godmode.css" />
+  <script type="module" src="admin.js"></script>
+  <script type="module" src="firebase.js"></script>
 </head>
-<body class="admin-body">
+<body class="cyberpunk-bg">
+  <audio id="system-sound" src="assets/sounds/system-beep.mp3"></audio>
 
-  <!-- 🔻 HEADER -->
   <header>
-    <img src="assets/logos/logo.png" class="admin-logo" />
-    <h1>FORTUNESPIN | ADMIN HQ</h1>
-    <p class="live-indicator">🟢 SYSTEM ONLINE</p>
+    <h1>🛰️ GOD MODE HQ</h1>
+    <button onclick="logout()">Logout</button>
   </header>
 
-  <!-- ⚙️ CONTROL PANEL -->
   <main>
-    <section class="panel" id="user-panel">
-      <h2>👤 User Control</h2>
-      <input type="text" placeholder="Search UID or username..." id="search-user" />
-      <button onclick="searchUser()">Search</button>
-      <div id="user-result">No user selected.</div>
-    </section>
+    <section class="dashboard-grid">
 
-    <section class="panel">
-      <h2>🎡 Spin Control</h2>
-      <input type="text" id="spin-uid" placeholder="UID" />
-      <input type="number" id="spin-count" placeholder="Spins to Add" />
-      <input type="number" id="win-amount" placeholder="Set Win ₹ Amount (Optional)" />
-      <button onclick="assignSpin()">Assign Spin</button>
-    </section>
+      <!-- USERS -->
+      <div class="card">
+        <h2>👤 User Management</h2>
+        <input type="text" id="searchUID" placeholder="Enter UID" />
+        <button onclick="viewUser()">View User</button>
+        <button onclick="deleteUser()">Delete</button>
+        <input type="password" id="newPass" placeholder="New Password" />
+        <button onclick="changePassword()">Change Password</button>
+        <pre id="userInfo">User info will appear here</pre>
+      </div>
 
-    <section class="panel">
-      <h2>💸 Withdrawals</h2>
-      <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
-      <div id="withdraw-list">No pending requests.</div>
-    </section>
+      <!-- BALANCE -->
+      <div class="card">
+        <h2>💰 Balance Control</h2>
+        <input type="text" id="uid-balance" placeholder="User UID" />
+        <input type="number" id="newBalance" placeholder="New Balance" />
+        <button onclick="updateBalance()">Update Balance</button>
+      </div>
 
-    <section class="panel">
-      <h2>🧾 Tickets</h2>
-      <button onclick="loadTickets()">🔁 Refresh Tickets</button>
-      <div id="ticket-list">No tickets loaded.</div>
-    </section>
+      <!-- WITHDRAWALS -->
+      <div class="card">
+        <h2>🏦 Withdrawals</h2>
+        <button onclick="loadWithdrawals()">Load Requests</button>
+        <div id="withdrawalsList">No requests yet</div>
+      </div>
 
-    <section class="panel">
-      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
-      <input type="text" id="ref-uid" placeholder="Enter UID" />
-      <button onclick="viewReferralTree()">View Tree</button>
-      <div id="ref-tree"></div>
+      <!-- NOTIFICATIONS -->
+      <div class="card">
+        <h2>📢 Notify Users</h2>
+        <input type="text" id="notifyUID" placeholder="UID (or ALL)" />
+        <input type="text" id="notifyMsg" placeholder="Message" />
+        <button onclick="sendNotification()">Send</button>
+      </div>
+
+      <!-- REFERRALS -->
+      <div class="card">
+        <h2>🌲 Referral Tree</h2>
+        <input type="text" id="refUID" placeholder="User UID" />
+        <button onclick="viewTree()">View Tree</button>
+        <pre id="treeData">Tree will appear here</pre>
+      </div>
+
+      <!-- SPIN CONTROL -->
+      <div class="card">
+        <h2>🎯 Spin Outcome</h2>
+        <input type="text" id="spinUID" placeholder="UID" />
+        <select id="forcedPrize">
+          <option value="">Random</option>
+          <option value="10">10</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <button onclick="controlSpin()">Force Spin</button>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="card">
+        <h2>🛠️ Support Tickets</h2>
+        <button onclick="loadTickets()">Load Tickets</button>
+        <div id="supportList"></div>
+      </div>
+
+      <!-- FAKE WINNER -->
+      <div class="card">
+        <h2>🕵️‍♂️ Fake Winners</h2>
+        <input type="text" id="fakeName" placeholder="Name" />
+        <input type="text" id="fakePrize" placeholder="Prize" />
+        <button onclick="addFakeWinner()">Add</button>
+      </div>
+
     </section>
   </main>
 
-  <!-- 🔊 SOUNDS -->
-  <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
-  <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
-  <audio id="confetti-sound" src="assets/sounds/confetti.mp3" preload="auto"></audio>
+  <footer>
+    <p>🧠 FortuneSpin Intelligence Center | Admin: <strong>admin</strong></p>
+  </footer>
 
-  <!-- 🎯 JS -->
-  <script type="module" src="js/admin.js"></script>
   <script>
-    // Sound Effects
-    const click = document.getElementById("click-sound");
-    document.querySelectorAll("button").forEach(btn =>
-      btn.addEventListener("click", () => click.play())
-    );
+    function logout() {
+      import("./firebase.js").then(({ auth }) => {
+        auth.signOut().then(() => location.href = "index.html");
+      });
+    }
   </script>
-
 </body>
 </html>
-
