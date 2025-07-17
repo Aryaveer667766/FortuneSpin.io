@@ -17,30 +17,6 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
-// Replace with your admin number
-const adminPhoneNumber = '6283194274244';
-
-function openWhatsAppSupportWithUID(uid) {
-  const message = encodeURIComponent(`Hello, my UID is ${uid}. Please unlock my FortuneSpin account.`);
-  const whatsappUrl = `https://wa.me/${adminPhoneNumber}?text=${message}`;
-  window.open(whatsappUrl, '_blank');
-}
-
-// Call this only when user is logged in
-const auth = getAuth();
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    const uid = user.uid;
-
-    // You can attach this to a button click or call directly
-    document.getElementById("unlockBtn").addEventListener("click", () => {
-      openWhatsAppSupportWithUID(uid);
-    });
-
-  } else {
-    console.error("User not logged in");
-  }
-});
 
 
 // 🎨 Confetti Canvas
