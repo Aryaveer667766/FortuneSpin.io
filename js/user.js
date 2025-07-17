@@ -47,6 +47,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+
 // 🎡 Spin Logic
 const wheel = document.getElementById("wheel");
 const resultText = document.getElementById("spin-result");
@@ -121,6 +122,81 @@ function loadNotifications() {
     }
   });
 }
+// ✅ After Firebase initialization and auth setup
+// ✅ After spin logic
+// ✅ After support request logic
+
+// 🆕 Withdrawal request handler
+function requestWithdrawal() {
+  const mobile = document.getElementById("withdraw-mobile").value.trim();
+  const upiOrAccount = document.getElementById("withdraw-upi").value.trim();
+  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
+  const amount = parseFloat(document.getElementById("withdraw-amount").value.trim());
+  const msgEl = document.getElementById("withdraw-msg");
+
+  if (!mobile || !upiOrAccount || isNaN(amount) || amount <= 0) {
+    msgEl.textContent = "❌ Please fill all required fields correctly.";
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    msgEl.textContent = "❌ You must be logged in to withdraw.";
+    return;
+  }
+
+  const uid = user.uid;
+  const userRef = db.ref("users/" + uid);
+
+  userRef.once("value").then((snapshot) => {
+    const data = snapshot.val();
+
+    if (!data || !data.balance || isNaN(data.balance)) {
+      msgEl.textContent = "❌ Unable to fetch balance.";
+      return;
+    }
+
+    if (data.balance < amount) {
+      msgEl.textContent = "❌ Insufficient balance.";
+      return;
+    }
+
+    // 🔍 Check referral count
+    if (!data.referrals || Object.keys(data.referrals).length < 3) {
+      msgEl.textContent = "⚠️ You must have at least 3 referrals to withdraw.";
+      return;
+    }
+
+    const withdrawalData = {
+      mobile,
+      upiOrAccount,
+      ifsc: ifsc || "N/A",
+      amount,
+      timestamp: new Date().toISOString(),
+      status: "Pending"
+    };
+
+    // 🔽 Deduct balance and push withdrawal request
+    const updates = {};
+    updates["/users/" + uid + "/balance"] = data.balance - amount;
+    updates["/withdrawals/" + uid + "_" + Date.now()] = {
+      ...withdrawalData,
+      uid,
+      name: data.name || "Unknown"
+    };
+
+    db.ref().update(updates)
+      .then(() => {
+        msgEl.textContent = "✅ Withdrawal request submitted successfully!";
+        document.getElementById("withdraw-form").reset();
+      })
+      .catch((error) => {
+        console.error(error);
+        msgEl.textContent = "❌ Something went wrong. Please try again.";
+      });
+  });
+}
+
 
 // 📤 Withdrawal Request
 window.requestWithdrawal = function () {
