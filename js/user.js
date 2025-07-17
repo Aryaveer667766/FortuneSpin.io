@@ -27,7 +27,7 @@ const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 
 // 🔔 SOUND EFFECTS
-const spinSound = new Audio('assets/sounds/spin.mp3');
+const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/sounds/win.mp3');
 const clickSound = new Audio('assets/sounds/click.mp3');
 
