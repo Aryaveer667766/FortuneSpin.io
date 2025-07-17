@@ -54,12 +54,15 @@
     <section>
       <h3>👥 Got a Referral?</h3>
       <input type="text" id="referral-input" placeholder="Enter UID of the person who invited you" />
+      <button onclick="submitReferral()">Submit Referral</button>
     </section>
 
     <!-- 💸 WITHDRAW -->
     <section>
       <h3>💸 Withdraw Winnings</h3>
-      <input type="number" id="withdraw-amount" placeholder="Enter amount" />
+      <p style="color: #ff5;">*Minimum 3 referrals required to request withdrawal</p>
+      <input type="text" id="upi-id" placeholder="Enter your UPI ID" />
+      <input type="number" id="withdraw-amount" placeholder="Enter amount (₹)" />
       <button onclick="requestWithdrawal()">Request Withdrawal</button>
       <p id="withdraw-msg"></p>
     </section>
@@ -99,19 +102,20 @@
   <script type="module" src="js/user.js"></script>
   <script src="js/spin.js"></script>
 
+  <!-- 🔧 Helper Scripts -->
   <script>
     function openWhatsApp() {
       const uid = document.getElementById("user-uid").textContent.trim();
-      const message = Hi, my UID is ${uid};
-      const url = https://wa.me/6283194274244?text=${encodeURIComponent(message)};
+      const message = `Hi, my UID is ${uid}`;
+      const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
       window.open(url, "_blank");
     }
 
     function copyReferral() {
       const link = document.getElementById("referral-link");
-      link.select();
-      document.execCommand("copy");
-      alert("Link copied!");
+      navigator.clipboard.writeText(link.value)
+        .then(() => alert("Referral link copied to clipboard!"))
+        .catch(() => alert("Copy failed. Please try again."));
     }
   </script>
 </body>
