@@ -2,156 +2,197 @@ import { auth, db } from './firebase.js';
 import {
   onAuthStateChanged,
   signOut
-} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
 import {
   ref,
   get,
   set,
   update,
-  onValue,
-  push
-} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
+  push,
+  onValue
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// Elements
-const spinBtn = document.getElementById('spinBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const withdrawBtn = document.getElementById('withdrawBtn');
-const confettiCanvas = document.getElementById('confettiCanvas');
-const notificationDiv = document.getElementById('notification');
-const balanceDisplay = document.getElementById('balance');
-const upiInput = document.getElementById('upiInput');
-const amountInput = document.getElementById('amountInput');
-const ticketForm = document.getElementById('ticketForm');
+import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
-let currentUser, uid, userData;
+let currentUser, uid;
 
-// ✅ Confetti setup
-const confetti = new JSConfetti({ canvas: confettiCanvas });
-
-// ✅ Auth state check
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    uid = user.uid;
-    currentUser = user;
-    await fetchUserData();
-    listenForNotifications();
-  } else {
-    window.location.href = 'login.html';
-  }
-});
-
-// ✅ Fetch user data
-async function fetchUserData() {
-  const snapshot = await get(ref(db, 'users/' + uid));
-  userData = snapshot.val();
-  if (!userData) {
-    alert("User data not found!");
-    return;
-  }
-  balanceDisplay.textContent = userData.balance || 0;
+// 🎨 Confetti Canvas
+const confettiCanvas = document.getElementById("confetti-canvas");
+if (confettiCanvas) {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
 }
 
-// ✅ Spin button logic
-spinBtn.addEventListener('click', async () => {
-  spinBtn.disabled = true;
+// 🎵 Sounds
+const spinSound = new Audio('assets/spin.mp3');
+const winSound = new Audio('assets/win.mp3');
 
-  // Play spin sound
-  const audio = new Audio('assets/spin.mp3');
-  audio.play();
+// 💸 Elements
+const balanceEl = document.getElementById("user-balance");
+const uidEl = document.getElementById("user-uid");
+const referralEl = document.getElementById("referral-link");
 
-  const result = Math.random() < 0.5 ? 10 : 0; // 50% chance to win 10
-  setTimeout(async () => {
-    if (result > 0) {
-      await update(ref(db, 'users/' + uid), {
-        balance: (userData.balance || 0) + result
-      });
-      confetti.addConfetti();
-      alert('🎉 You won ₹' + result);
-    } else {
-      alert('Better luck next time!');
+// 🧠 UID Generator
+function generateUID(length = 6) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `UID#${result}`;
+}
+
+// ✅ On Auth Login
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return window.location.href = "login.html";
+
+  currentUser = user;
+  uid = user.uid;
+
+  const userRef = ref(db, `users/${uid}`);
+  const userSnap = await get(userRef);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const referralBy = urlParams.get("ref");
+
+  if (!userSnap.exists()) {
+    const newUID = generateUID();
+
+    await set(userRef, {
+      email: user.email,
+      balance: 0,
+      unlocked: false,
+      uidCode: newUID,
+      referralBy: referralBy || "",
+      notifications: [],
+      spinsLeft: 1
+    });
+
+    if (referralBy) {
+      const referralRef = ref(db, `referrals/${referralBy}/${uid}`);
+      await set(referralRef, true);
     }
-    await fetchUserData();
-    spinBtn.disabled = false;
-  }, 3000);
+
+    uidEl.innerText = newUID;
+    referralEl.value = `${window.location.origin}/?ref=${newUID}`;
+    document.getElementById("locked-msg").style.display = "block";
+    return;
+  }
+
+  const data = userSnap.val();
+  uidEl.innerText = data.uidCode;
+  referralEl.value = `${window.location.origin}/?ref=${data.uidCode}`;
+  balanceEl.innerText = data.balance || 0;
+
+  if (data.unlocked) {
+    document.getElementById("spin-section").style.display = "block";
+  } else {
+    document.getElementById("locked-msg").style.display = "block";
+  }
+
+  loadNotifications();
 });
 
-// ✅ Withdraw logic
-withdrawBtn.addEventListener('click', async () => {
-  const upi = upiInput.value.trim();
-  const amount = parseInt(amountInput.value.trim());
+// 🎡 SPIN Wheel Logic
+window.spinWheel = async () => {
+  const userRef = ref(db, `users/${uid}`);
+  const snap = await get(userRef);
+  const data = snap.val();
 
-  if (!upi || isNaN(amount) || amount <= 0) {
-    alert("Enter valid UPI and amount");
-    return;
-  }
+  if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left!");
 
-  if ((userData.balance || 0) < amount) {
-    alert("Insufficient balance");
-    return;
-  }
+  spinSound.play();
+  document.getElementById("spin-result").innerText = "Spinning...";
 
-  // ✅ Check referral count
-  const refSnapshot = await get(ref(db, 'referrals/' + uid));
-  const referralData = refSnapshot.val();
-  const referralCount = referralData ? Object.keys(referralData).length : 0;
+  setTimeout(async () => {
+    const outcome = data.assignedWin || Math.floor(Math.random() * 200 + 10); // ₹10–₹210
+    winSound.play();
+    confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
+
+    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
+
+    await update(userRef, {
+      balance: (data.balance || 0) + outcome,
+      spinsLeft: data.spinsLeft - 1
+    });
+
+    balanceEl.innerText = (data.balance || 0) + outcome;
+  }, 3000);
+};
+
+// 💸 Withdrawal Request Logic
+window.requestWithdrawal = async () => {
+  const amount = parseInt(document.getElementById("withdraw-amount").value);
+  if (isNaN(amount) || amount <= 0) return alert("⚠️ Enter a valid amount.");
+
+  const userRef = ref(db, `users/${uid}`);
+  const userSnap = await get(userRef);
+  const data = userSnap.val();
+
+  // Count referrals
+  const refSnap = await get(ref(db, `referrals/${data.uidCode}`));
+  const referralCount = refSnap.exists() ? Object.keys(refSnap.val()).length : 0;
 
   if (referralCount < 3) {
-    alert("You need at least 3 referrals to withdraw");
-    return;
+    return alert("🚫 Minimum 3 referrals required for withdrawal.");
   }
 
-  const withdrawRef = push(ref(db, 'withdrawals'));
-  await set(withdrawRef, {
-    uid: uid,
-    upi: upi,
-    amount: amount,
-    status: 'Pending',
-    time: Date.now()
+  if (amount > data.balance) return alert("❌ Insufficient balance.");
+
+  const withdrawalRef = push(ref(db, `withdrawals/${uid}`));
+  await set(withdrawalRef, {
+    amount,
+    status: "Pending",
+    timestamp: new Date().toISOString()
   });
 
-  await update(ref(db, 'users/' + uid), {
-    balance: (userData.balance || 0) - amount
+  // Deduct immediately
+  await update(userRef, {
+    balance: data.balance - amount
   });
 
-  alert("Withdrawal request submitted!");
-  await fetchUserData();
-});
+  document.getElementById("withdraw-msg").innerText = "✅ Withdrawal request submitted!";
+  document.getElementById("withdraw-amount").value = "";
+  balanceEl.innerText = data.balance - amount;
+};
 
-// ✅ Support Ticket Submit
-ticketForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = ticketForm.elements['message'].value.trim();
-  if (!msg) return alert("Enter a message");
+// 🧾 Submit Support Ticket
+window.submitTicket = async () => {
+  const subject = document.getElementById("ticket-subject").value;
+  const msg = document.getElementById("ticket-message").value;
+  if (!subject || !msg) return alert("Please fill both subject and message.");
 
-  const ticketRef = push(ref(db, 'supportTickets'));
-  await set(ticketRef, {
-    uid: uid,
+  const ticketRef = ref(db, `supportTickets/${uid}`);
+  await push(ticketRef, {
+    subject,
     message: msg,
-    status: 'Open',
-    time: Date.now()
+    status: "Open",
+    timestamp: new Date().toISOString()
   });
 
-  alert("Ticket submitted!");
-  ticketForm.reset();
-});
+  alert("📩 Ticket submitted!");
+  document.getElementById("ticket-subject").value = "";
+  document.getElementById("ticket-message").value = "";
+};
 
-// ✅ Notifications Listener
-function listenForNotifications() {
-  const notifRef = ref(db, 'notifications/' + uid);
+// 🔔 Real-Time Notifications
+function loadNotifications() {
+  const notifRef = ref(db, `users/${uid}/notifications`);
   onValue(notifRef, (snapshot) => {
     const data = snapshot.val();
-    if (data && data.message) {
-      notificationDiv.textContent = "🔔 " + data.message;
-      notificationDiv.classList.add("show");
-      setTimeout(() => {
-        notificationDiv.classList.remove("show");
-        set(ref(db, 'notifications/' + uid), {}); // Clear after display
-      }, 5000);
+    const container = document.getElementById("notifications");
+    container.innerHTML = "";
+
+    if (data) {
+      Object.values(data).forEach(msg => {
+        const p = document.createElement("p");
+        p.innerText = `🔔 ${msg}`;
+        container.appendChild(p);
+      });
+    } else {
+      container.innerText = "No messages yet.";
     }
   });
 }
-
-// ✅ Logout
-logoutBtn.addEventListener('click', async () => {
-  await signOut(auth);
-});
