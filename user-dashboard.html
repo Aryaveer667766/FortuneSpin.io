@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Fortune Realm</title>
   <link rel="stylesheet" href="style/user.css" />
+  <link rel="stylesheet" href="style/spin.css" />
   <link rel="icon" href="assets/logos/logo.png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
 </head>
@@ -49,6 +50,12 @@
       <button onclick="copyReferral()">Copy Referral Link</button>
     </section>
 
+    <!-- 🆕 Referral Entry -->
+    <section>
+      <h3>👥 Got a Referral?</h3>
+      <input type="text" id="referral-input" placeholder="Enter UID of the person who invited you" />
+    </section>
+
     <!-- 💸 WITHDRAW -->
     <section>
       <h3>💸 Withdraw Winnings</h3>
@@ -83,8 +90,15 @@
   <!-- 🎉 Confetti Canvas -->
   <canvas id="confetti-canvas"></canvas>
 
-  <!-- ✅ Script -->
+  <!-- 🔊 Sound Effects -->
+  <audio id="spin-sound" src="assets/sounds/spin.mp3"></audio>
+  <audio id="win-sound" src="assets/sounds/win.mp3"></audio>
+  <audio id="error-sound" src="assets/sounds/error.mp3"></audio>
+
+  <!-- ✅ Scripts -->
   <script type="module" src="js/user.js"></script>
+  <script src="js/spin.js"></script>
+
   <script>
     function openWhatsApp() {
       const uid = document.getElementById("user-uid").textContent.trim();
