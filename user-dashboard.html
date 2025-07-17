@@ -100,19 +100,20 @@
   <script src="js/spin.js"></script>
 
   <script>
-    function openWhatsApp() {
-      const uid = document.getElementById("user-uid").textContent.trim();
-      const message = Hi, my UID is ${uid};
-      const url = https://wa.me/6283194274244?text=${encodeURIComponent(message)};
-      window.open(url, "_blank");
-    }
+  function openWhatsApp() {
+    const uid = document.getElementById("user-uid").textContent.trim();
+    const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
+    const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
 
-    function copyReferral() {
-      const link = document.getElementById("referral-link");
-      link.select();
-      document.execCommand("copy");
-      alert("Link copied!");
-    }
-  </script>
+  function copyReferral() {
+    const link = document.getElementById("referral-link");
+    link.select();
+    document.execCommand("copy");
+    alert("Link copied!");
+  }
+</script>
+
 </body>
 </html>
