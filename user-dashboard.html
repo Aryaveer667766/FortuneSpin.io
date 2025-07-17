@@ -3,122 +3,80 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fortune Realm</title>
-  <link rel="stylesheet" href="style/user.css" />
-  <link rel="stylesheet" href="style/spin.css" />
-  <link rel="icon" href="assets/logos/logo.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
-  
+  <title>FortuneSpin.io – User Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="icon" href="assets/logo.png" />
 </head>
-<body>
+<body class="dashboard">
+  <div id="dashboard-wrapper">
+    <h1 class="glow-text">Welcome to FortuneSpin</h1>
+    <p id="username-display" class="user-id"></p>
+    <p>Balance: <span id="balance">0</span> Coins</p>
 
-  <!-- 🔱 Header -->
-  <header class="dashboard-header">
-    <img src="assets/logos/logo.png" />
-    <h1>FortuneSpin Dashboard</h1>
-    <p>Your UID: <span id="user-uid">Loading...</span></p>
-  </header>
-
-  <main>
-
-    <!-- 🔒 LOCKED SCREEN -->
-    <div id="locked-msg" style="display: none;">
-      <p>🔒 Your Lucky Draw is Locked</p>
-      <p>Send your UID on WhatsApp to unlock spins.</p>
-      <img src="assets/qr/whatsapp-qr.png" width="180" style="margin:10px 0;" />
-      <button onclick="openWhatsApp()" class="contact-btn">📱 Contact Admin via WhatsApp</button>
+    <!-- Spin Wheel Section -->
+    <div id="wheel-container">
+      <canvas id="wheel-canvas" width="300" height="300"></canvas>
+      <button id="spin-btn">SPIN</button>
     </div>
 
-    <!-- 🎡 SPIN WHEEL -->
-    <section id="spin-section" style="display: none;">
-      <h2>🎯 Try Your Luck!</h2>
-      <img src="assets/logo/spin-wheel.png" id="wheel" />
-      <br><br>
-      <button onclick="spinWheel()">SPIN</button>
-      <p id="spin-result">Tap SPIN to win!</p>
-    </section>
+    <!-- Referral Section -->
+    <div id="referral-section">
+      <h3>Refer & Earn</h3>
+      <p>Your UID: <span id="referral-code"></span></p>
+      <input type="text" id="referral-input" placeholder="Enter Referral Code"/>
+      <button id="submit-referral">Submit</button>
+      <p id="referral-message"></p>
+    </div>
 
-    <!-- 💰 BALANCE PANEL -->
-    <section class="balance-section">
-      <h3>💰 Your Balance</h3>
-      ₹<span id="user-balance">0</span>
-    </section>
+    <!-- Withdrawal Section -->
+    <div id="withdrawal-section">
+      <h3>Withdraw Coins</h3>
+      <form id="withdrawal-form">
+        <input type="text" id="mobile-number" placeholder="Mobile Number" required />
+        <input type="text" id="upi-id" placeholder="UPI ID (or leave blank)" />
+        <input type="text" id="account-number" placeholder="Account Number (or leave blank)" />
+        <input type="text" id="ifsc-code" placeholder="IFSC Code (if account used)" />
+        <input type="number" id="withdraw-amount" placeholder="Amount" required />
+        <button type="submit">Request Withdrawal</button>
+        <p id="withdrawal-message"></p>
+      </form>
+    </div>
 
-    <!-- 🧑‍🤝‍🧑 REFERRAL -->
-    <section>
-      <h3>👫 Invite & Earn ₹99</h3>
-      <input type="text" id="referral-link" readonly />
-      <button onclick="copyReferral()">Copy Referral Link</button>
-    </section>
+    <!-- Support Ticket Section -->
+    <div id="support-section">
+      <h3>Support Ticket</h3>
+      <textarea id="support-message" placeholder="Type your message here..."></textarea>
+      <button id="submit-ticket">Submit Ticket</button>
+      <p id="support-response"></p>
+    </div>
 
-    <!-- 🆕 Referral Entry -->
-    <section>
-      <h3>👥 Got a Referral?</h3>
-      <input type="text" id="referral-input" placeholder="Enter UID of the person who invited you" />
-      <button onclick="submitReferral()">Submit Referral</button>
-    </section>
+    <!-- Notifications -->
+    <div id="notification-section">
+      <h3>Live Notifications</h3>
+      <ul id="notification-list"></ul>
+    </div>
 
-    <!-- 💸 WITHDRAW -->
-    <section>
-      <h3>💸 Withdraw Winnings</h3>
-      <p style="color: #ff5;">*Minimum 3 referrals required to request withdrawal</p>
-      <input type="text" id="upi-id" placeholder="Enter your UPI ID" />
-      <input type="number" id="withdraw-amount" placeholder="Enter amount (₹)" />
-      <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <p id="withdraw-msg"></p>
-    </section>
+    <!-- Winner Feed -->
+    <div id="winner-feed">
+      <h3>Recent Winners</h3>
+      <ul id="winners-list"></ul>
+    </div>
 
-    <!-- 🧾 SUPPORT TICKET -->
-    <section>
-      <h3>🆘 Support Ticket</h3>
-      <input type="text" id="ticket-subject" placeholder="Subject" />
-      <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
-      <button onclick="submitTicket()">Submit Ticket</button>
-    </section>
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
 
-    <!-- 📢 NOTIFICATIONS -->
-    <section class="notification-section">
-      <h3>📢 Notifications</h3>
-      <div id="notifications">No messages yet.</div>
-    </section>
+    <!-- Logout -->
+    <button id="logout-btn">Logout</button>
+  </div>
 
-    <!-- 🏆 WINNER FEED -->
-    <section>
-      <h3>🏆 Live Winners</h3>
-      <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #FFD700; font-weight:bold;" id="winner-feed">
-        🎉 UID#X83KTR won ₹10,000 • 🎉 UID#M22BDX won ₹5,000 • 🎉 UID#A77ZZQ won ₹25,000
-      </marquee>
-    </section>
-  </main>
+  <!-- Sound Effects -->
+  <audio id="spin-sound" src="assets/sounds/spin.mp3" preload="auto"></audio>
+  <audio id="error-sound" src="assets/sounds/error.mp3" preload="auto"></audio>
+  <audio id="success-sound" src="assets/sounds/success.mp3" preload="auto"></audio>
 
-  <!-- 🎉 Confetti Canvas -->
-  <canvas id="confetti-canvas"></canvas>
-
-  <!-- 🔊 Sound Effects -->
-  <audio id="spin-sound" src="assets/spin.mp3"></audio>
-  <audio id="win-sound" src="assets/win.mp3"></audio>
-  <audio id="error-sound" src="assets/sounds/error.mp3"></audio>
-
-  <!-- ✅ Scripts -->
-  <script type="module" src="js/user.js"></script>
-  <script src="js/spin.js"></script>
-
-  <!-- 🔧 Helper Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-  <script>
-    function openWhatsApp() {
-      const uid = document.getElementById("user-uid").textContent.trim();
-      const message = `Hi, my UID is ${uid}`;
-      const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank");
-    }
-
-    function copyReferral() {
-      const link = document.getElementById("referral-link");
-      navigator.clipboard.writeText(link.value)
-        .then(() => alert("Referral link copied to clipboard!"))
-        .catch(() => alert("Copy failed. Please try again."));
-    }
-  </script>
+  <!-- Firebase SDKs -->
+  <script type="module" src="firebase.js"></script>
+  <!-- User JS Logic -->
+  <script type="module" src="user.js"></script>
 </body>
 </html>
