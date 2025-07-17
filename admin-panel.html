@@ -1,72 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>God Mode HQ – FortuneSpin Admin</title>
-  <link rel="stylesheet" href="style/admin.css" />
-  <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
+  <meta charset="UTF-8">
+  <title>🛰️ FortuneSpin God Mode HQ</title>
+  <link rel="stylesheet" href="style/admin.css">
+  <link rel="icon" href="assets/logos/logo.png">
+  <link href="https://fonts.googleapis.com/css22?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="admin-body">
 
+  <!-- 🔻 HEADER -->
+  <header>
+    <img src="assets/logos/logo.png" class="admin-logo" />
+    <h1>FORTUNESPIN | ADMIN HQ</h1>
+    <p class="live-indicator">🟢 SYSTEM ONLINE</p>
+  </header>
 
-  <!-- Admin Dashboard -->
-  <div id="admin-dashboard" style="display:none;">
-    <h1>🛰️ God Mode HQ</h1>
-
-    <button onclick="logoutAdmin()">🚪 Logout</button>
-
-    <section>
-      <h3>📋 All Users</h3>
-      <div id="user-list"></div>
+  <!-- ⚙️ CONTROL PANEL -->
+  <main>
+    <section class="panel" id="user-panel">
+      <h2>👤 User Control</h2>
+      <input type="text" placeholder="Search UID or username..." id="search-user" />
+      <button onclick="searchUser()">Search</button>
+      <div id="user-result">No user selected.</div>
     </section>
 
-    <section>
-      <h3>💰 Control Balance</h3>
-      <input type="text" id="balance-uid" placeholder="User UID" />
-      <input type="number" id="balance-amount" placeholder="Amount" />
-      <button onclick="updateUserBalance()">Update Balance</button>
+    <section class="panel">
+      <h2>🎡 Spin Control</h2>
+      <input type="text" id="spin-uid" placeholder="UID" />
+      <input type="number" id="spin-count" placeholder="Spins to Add" />
+      <input type="number" id="win-amount" placeholder="Set Win ₹ Amount (Optional)" />
+      <button onclick="assignSpin()">Assign Spin</button>
     </section>
 
-    <section>
-      <h3>💸 Withdrawal Requests</h3>
-      <div id="withdrawals"></div>
+    <section class="panel">
+      <h2>💸 Withdrawals</h2>
+      <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
+      <div id="withdraw-list">No pending requests.</div>
     </section>
 
-    <section>
-      <h3>📢 Send Notification</h3>
-      <input type="text" id="notify-uid" placeholder="User UID (or 'all')" />
-      <input type="text" id="notify-message" placeholder="Message" />
-      <button onclick="sendNotification()">Send</button>
+    <section class="panel">
+      <h2>🧾 Tickets</h2>
+      <button onclick="loadTickets()">🔁 Refresh Tickets</button>
+      <div id="ticket-list">No tickets loaded.</div>
     </section>
 
-    <section>
-      <h3>🌳 Referral Tree Viewer</h3>
-      <input type="text" id="ref-tree-uid" placeholder="User UID" />
+    <section class="panel">
+      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
+      <input type="text" id="ref-uid" placeholder="Enter UID" />
       <button onclick="viewReferralTree()">View Tree</button>
-      <pre id="referral-output"></pre>
+      <div id="ref-tree"></div>
     </section>
+  </main>
 
-    <section>
-      <h3>🎫 Support Tickets</h3>
-      <div id="support-tickets"></div>
-    </section>
+  <!-- 🔊 SOUNDS -->
+  <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
+  <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
+  <audio id="confetti-sound" src="assets/win.mp3" preload="auto"></audio>
 
-    <section>
-      <h3>🎡 Spin Control</h3>
-      <input type="text" id="spin-uid" placeholder="User UID" />
-      <input type="number" id="spin-reward" placeholder="Reward Amount" />
-      <button onclick="setSpinOutcome()">Force Spin Outcome</button>
-    </section>
-
-    <section>
-      <h3>🏆 Create Fake Winner</h3>
-      <input type="text" id="fake-name" placeholder="Name" />
-      <input type="number" id="fake-amount" placeholder="Amount" />
-      <button onclick="addFakeWinner()">Add</button>
-    </section>
-  </div>
-
+  <!-- 🎯 JS -->
   <script type="module" src="js/admin.js"></script>
+  <script>
+    // Sound Effects
+    const click = document.getElementById("click-sound");
+    document.querySelectorAll("button").forEach(btn =>
+      btn.addEventListener("click", () => click.play())
+    );
+  </script>
+
 </body>
 </html>
