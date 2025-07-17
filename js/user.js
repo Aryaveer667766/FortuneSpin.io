@@ -2,172 +2,156 @@ import { auth, db } from './firebase.js';
 import {
   onAuthStateChanged,
   signOut
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-
+} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {
   ref,
   get,
   set,
   update,
-  push,
-  onValue
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+  onValue,
+  push
+} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
 
-import confetti from 'https://cdn.skypack.dev/canvas-confetti';
+// Elements
+const spinBtn = document.getElementById('spinBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const withdrawBtn = document.getElementById('withdrawBtn');
+const confettiCanvas = document.getElementById('confettiCanvas');
+const notificationDiv = document.getElementById('notification');
+const balanceDisplay = document.getElementById('balance');
+const upiInput = document.getElementById('upiInput');
+const amountInput = document.getElementById('amountInput');
+const ticketForm = document.getElementById('ticketForm');
 
-let currentUser, uid;
+let currentUser, uid, userData;
 
-// 🎨 Canvas Setup
-const confettiCanvas = document.getElementById("confetti-canvas");
-if (confettiCanvas) {
-  confettiCanvas.width = window.innerWidth;
-  confettiCanvas.height = window.innerHeight;
-}
+// ✅ Confetti setup
+const confetti = new JSConfetti({ canvas: confettiCanvas });
 
-const balanceEl = document.getElementById("user-balance");
-const uidEl = document.getElementById("user-uid");
-const referralEl = document.getElementById("referral-link");
-
-// 🔊 Sounds
-const spinSound = new Audio('assets/spin.mp3');
-const winSound = new Audio('assets/win.mp3');
-const clickSound = new Audio('assets/sounds/click.mp3');
-
-// 🧠 Helper: Generate UID
-function generateUID(length = 6) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for(let i = 0; i < length; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `UID#${result}`;
-}
-
-// ✅ On Auth
+// ✅ Auth state check
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return window.location.href = "login.html";
-
-  currentUser = user;
-  uid = user.uid;
-
-  const userRef = ref(db, `users/${uid}`);
-  const snap = await get(userRef);
-
-  if (!snap.exists()) {
-    const newUID = generateUID();
-    await set(userRef, {
-      email: user.email,
-      balance: 0,
-      unlocked: false,
-      uidCode: newUID,
-      referralBy: "",
-      notifications: [],
-      spinsLeft: 1
-    });
-    uidEl.innerText = newUID;
-    referralEl.value = `${window.location.origin}/?ref=${newUID}`;
-    document.getElementById("locked-msg").style.display = "block";
-    return;
-  }
-
-  const data = snap.val();
-  uidEl.innerText = data.uidCode;
-  referralEl.value = `${window.location.origin}/?ref=${data.uidCode}`;
-  balanceEl.innerText = data.balance || 0;
-
-  if (data.unlocked) {
-    document.getElementById("spin-section").style.display = "block";
+  if (user) {
+    uid = user.uid;
+    currentUser = user;
+    await fetchUserData();
+    listenForNotifications();
   } else {
-    document.getElementById("locked-msg").style.display = "block";
+    window.location.href = 'login.html';
   }
-
-  loadNotifications();
 });
 
-// 🎡 SPIN
-window.spinWheel = async () => {
-  spinSound.play();
+// ✅ Fetch user data
+async function fetchUserData() {
+  const snapshot = await get(ref(db, 'users/' + uid));
+  userData = snapshot.val();
+  if (!userData) {
+    alert("User data not found!");
+    return;
+  }
+  balanceDisplay.textContent = userData.balance || 0;
+}
 
-  const userRef = ref(db, `users/${uid}`);
-  const snap = await get(userRef);
-  const data = snap.val();
+// ✅ Spin button logic
+spinBtn.addEventListener('click', async () => {
+  spinBtn.disabled = true;
 
-  if (data.spinsLeft <= 0) {
-    alert("❌ No spins left!");
+  // Play spin sound
+  const audio = new Audio('assets/spin.mp3');
+  audio.play();
+
+  const result = Math.random() < 0.5 ? 10 : 0; // 50% chance to win 10
+  setTimeout(async () => {
+    if (result > 0) {
+      await update(ref(db, 'users/' + uid), {
+        balance: (userData.balance || 0) + result
+      });
+      confetti.addConfetti();
+      alert('🎉 You won ₹' + result);
+    } else {
+      alert('Better luck next time!');
+    }
+    await fetchUserData();
+    spinBtn.disabled = false;
+  }, 3000);
+});
+
+// ✅ Withdraw logic
+withdrawBtn.addEventListener('click', async () => {
+  const upi = upiInput.value.trim();
+  const amount = parseInt(amountInput.value.trim());
+
+  if (!upi || isNaN(amount) || amount <= 0) {
+    alert("Enter valid UPI and amount");
     return;
   }
 
-  document.getElementById("spin-result").innerText = "Spinning...";
+  if ((userData.balance || 0) < amount) {
+    alert("Insufficient balance");
+    return;
+  }
 
-  setTimeout(async () => {
-    const outcome = data.assignedWin || Math.floor(Math.random() * 1000); // Admin override fallback
-    winSound.play();
-    confetti({ particleCount: 100, spread: 70 });
+  // ✅ Check referral count
+  const refSnapshot = await get(ref(db, 'referrals/' + uid));
+  const referralData = refSnapshot.val();
+  const referralCount = referralData ? Object.keys(referralData).length : 0;
 
-    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
+  if (referralCount < 3) {
+    alert("You need at least 3 referrals to withdraw");
+    return;
+  }
 
-    await update(userRef, {
-      balance: (data.balance || 0) + outcome,
-      spinsLeft: data.spinsLeft - 1
-    });
-
-    balanceEl.innerText = (data.balance || 0) + outcome;
-  }, 3000);
-};
-
-// 💸 Withdrawal
-window.requestWithdrawal = async () => {
-  const amount = parseInt(document.getElementById("withdraw-amount").value);
-  if (isNaN(amount) || amount <= 0) return alert("Enter a valid amount");
-
-  const userSnap = await get(ref(db, `users/${uid}`));
-  const data = userSnap.val();
-
-  if (amount > data.balance) return alert("Insufficient balance");
-
-  const withdrawalRef = ref(db, `withdrawals/${uid}`);
-  await push(withdrawalRef, {
-    amount,
-    status: "Pending",
-    date: new Date().toISOString()
+  const withdrawRef = push(ref(db, 'withdrawals'));
+  await set(withdrawRef, {
+    uid: uid,
+    upi: upi,
+    amount: amount,
+    status: 'Pending',
+    time: Date.now()
   });
 
-  document.getElementById("withdraw-msg").innerText = "✅ Withdrawal requested!";
-};
+  await update(ref(db, 'users/' + uid), {
+    balance: (userData.balance || 0) - amount
+  });
 
-// 🧾 Support Ticket
-window.submitTicket = async () => {
-  const subject = document.getElementById("ticket-subject").value;
-  const msg = document.getElementById("ticket-message").value;
-  if (!subject || !msg) return alert("Fill subject and message");
+  alert("Withdrawal request submitted!");
+  await fetchUserData();
+});
 
-  const ticketRef = ref(db, `tickets/${uid}`);
-  await push(ticketRef, {
-    subject,
+// ✅ Support Ticket Submit
+ticketForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = ticketForm.elements['message'].value.trim();
+  if (!msg) return alert("Enter a message");
+
+  const ticketRef = push(ref(db, 'supportTickets'));
+  await set(ticketRef, {
+    uid: uid,
     message: msg,
-    status: "Open",
-    timestamp: new Date().toISOString()
+    status: 'Open',
+    time: Date.now()
   });
 
-  alert("📨 Ticket submitted!");
-  document.getElementById("ticket-subject").value = "";
-  document.getElementById("ticket-message").value = "";
-};
+  alert("Ticket submitted!");
+  ticketForm.reset();
+});
 
-// 🔔 Notifications
-function loadNotifications() {
-  const notifRef = ref(db, `users/${uid}/notifications`);
+// ✅ Notifications Listener
+function listenForNotifications() {
+  const notifRef = ref(db, 'notifications/' + uid);
   onValue(notifRef, (snapshot) => {
-    const notifications = snapshot.val();
-    const div = document.getElementById("notifications");
-    div.innerHTML = "";
-
-    if (notifications) {
-      Object.values(notifications).forEach(n => {
-        const p = document.createElement("p");
-        p.innerText = `🔔 ${n}`;
-        div.appendChild(p);
-      });
-    } else {
-      div.innerText = "No messages yet.";
+    const data = snapshot.val();
+    if (data && data.message) {
+      notificationDiv.textContent = "🔔 " + data.message;
+      notificationDiv.classList.add("show");
+      setTimeout(() => {
+        notificationDiv.classList.remove("show");
+        set(ref(db, 'notifications/' + uid), {}); // Clear after display
+      }, 5000);
     }
   });
 }
+
+// ✅ Logout
+logoutBtn.addEventListener('click', async () => {
+  await signOut(auth);
+});
