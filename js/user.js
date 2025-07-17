@@ -15,7 +15,7 @@ import {
   child
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// Firebase config
+// 🔥 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCHh9XG4eK2IDYgaUzja8Lk6obU6zxIIwc",
   authDomain: "fortunespin-57b4f.firebaseapp.com",
@@ -27,32 +27,33 @@ const firebaseConfig = {
   measurementId: "G-VT1N70H3HK"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
+const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 🎯 On user state change
+// 🔒 Auth listener
 onAuthStateChanged(auth, (user) => {
   if (user) {
     const uid = user.uid;
     const userRef = ref(db, "users/" + uid);
 
-    // 💰 Fetch balance
+    // 💰 Balance + Notification
     onValue(userRef, (snapshot) => {
       const data = snapshot.val();
       document.getElementById("user-balance").textContent = data?.balance || 0;
 
-      // 🔔 Notifications (real-time)
+      // 🔔 Notification
       if (data?.notification) {
         document.getElementById("notification").textContent = data.notification;
       }
     });
   } else {
-    window.location.href = "index.html";
+    window.location.href = "index.html"; // Redirect if not logged in
   }
 });
 
-// 🎡 SPIN
+// 🎡 Spin logic
 document.getElementById("spin-btn").addEventListener("click", () => {
   const spinBtn = document.getElementById("spin-btn");
   const wheel = document.getElementById("wheel");
@@ -62,29 +63,29 @@ document.getElementById("spin-btn").addEventListener("click", () => {
   wheel.classList.add("spinning");
 
   const audio = new Audio("assets/spin.mp3");
-  audio.play().catch(() => {}); // silent fail if browser blocks autoplay
+  audio.play().catch(() => {}); // skip if blocked
 
   setTimeout(() => {
     wheel.classList.remove("spinning");
 
     const reward = Math.floor(Math.random() * 100) + 1;
-    result.textContent = `You won ₹${reward}!`;
+    result.textContent = `🎉 You won ₹${reward}!`;
 
     const user = auth.currentUser;
-    const userRef = ref(db, "users/" + user.uid);
+    if (!user) return;
 
+    const userRef = ref(db, "users/" + user.uid);
     get(userRef).then((snapshot) => {
       const currentBalance = snapshot.val()?.balance || 0;
       update(userRef, { balance: currentBalance + reward });
     });
 
-    // Confetti 🎉
-    confetti();
+    confetti(); // 🎉
     spinBtn.disabled = false;
   }, 3000);
 });
 
-// 📤 Support Ticket
+// 📤 Support Form
 document.getElementById("support-form").addEventListener("submit", function (e) {
   e.preventDefault();
   const message = document.getElementById("support-message").value.trim();
@@ -103,14 +104,9 @@ document.getElementById("support-form").addEventListener("submit", function (e) 
   });
 });
 
-// 🚪 Logout
-document.getElementById("logout-btn").addEventListener("click", () => {
-  signOut(auth).then(() => {
-    window.location.href = "index.html";
-  });
-});
+// 💸 Withdraw Handler
+document.getElementById("withdraw-submit").addEventListener("click", requestWithdrawal);
 
-// 💸 Withdrawal Handler
 function requestWithdrawal() {
   const mobile = document.getElementById("withdraw-mobile").value.trim();
   const upiOrAccount = document.getElementById("withdraw-upi").value.trim();
@@ -119,13 +115,13 @@ function requestWithdrawal() {
   const msgEl = document.getElementById("withdraw-msg");
 
   if (!mobile || !upiOrAccount || isNaN(amount) || amount <= 0) {
-    msgEl.textContent = "❌ Please fill all required fields correctly.";
+    msgEl.textContent = "❌ Fill all fields correctly.";
     return;
   }
 
   const user = auth.currentUser;
   if (!user) {
-    msgEl.textContent = "❌ You must be logged in to withdraw.";
+    msgEl.textContent = "❌ Please log in.";
     return;
   }
 
@@ -141,13 +137,13 @@ function requestWithdrawal() {
     }
 
     if (data.balance < amount) {
-      msgEl.textContent = "❌ Insufficient balance.";
+      msgEl.textContent = "❌ Not enough balance.";
       return;
     }
 
     const referrals = data.referrals ? Object.keys(data.referrals) : [];
     if (referrals.length < 3) {
-      msgEl.textContent = "⚠️ You must have at least 3 referrals to withdraw.";
+      msgEl.textContent = "⚠️ You need 3 referrals to withdraw.";
       return;
     }
 
@@ -168,12 +164,19 @@ function requestWithdrawal() {
 
     update(ref(db), updates)
       .then(() => {
-        msgEl.textContent = "✅ Withdrawal request submitted!";
+        msgEl.textContent = "✅ Withdrawal request sent!";
         document.getElementById("withdraw-form").reset();
       })
       .catch((err) => {
         console.error(err);
-        msgEl.textContent = "❌ Something went wrong. Try again.";
+        msgEl.textContent = "❌ Error! Try again.";
       });
   });
 }
+
+// 🚪 Logout
+document.getElementById("logout-btn").addEventListener("click", () => {
+  signOut(auth).then(() => {
+    window.location.href = "index.html";
+  });
+});
