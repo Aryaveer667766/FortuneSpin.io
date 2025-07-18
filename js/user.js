@@ -123,42 +123,67 @@ window.spinWheel = async () => {
     balanceEl.innerText = (data.balance || 0) + outcome;
   }, 3000);
 };
-
-// 💸 Withdrawal Request Logic
-window.requestWithdrawal = async () => {
+function requestWithdrawal() {
+  const uid = auth.currentUser?.uid;
+  const mobile = document.getElementById("withdraw-mobile").value.trim();
+  const upi = document.getElementById("withdraw-upi").value.trim();
+  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
   const amount = parseInt(document.getElementById("withdraw-amount").value);
-  if (isNaN(amount) || amount <= 0) return alert("⚠️ Enter a valid amount.");
+  const msgEl = document.getElementById("withdraw-msg");
 
-  const userRef = ref(db, `users/${uid}`);
-  const userSnap = await get(userRef);
-  const data = userSnap.val();
-
-  // Count referrals
-  const refSnap = await get(ref(db, `referrals/${data.uidCode}`));
-  const referralCount = refSnap.exists() ? Object.keys(refSnap.val()).length : 0;
-
-  if (referralCount < 3) {
-    return alert("🚫 Minimum 3 referrals required for withdrawal.");
+  if (!mobile || !upi || !amount || amount <= 0) {
+    msgEl.textContent = "❗ Please fill all required fields correctly.";
+    return;
   }
 
-  if (amount > data.balance) return alert("❌ Insufficient balance.");
+  if (!uid) {
+    msgEl.textContent = "❗ User not logged in.";
+    return;
+  }
 
-  const withdrawalRef = push(ref(db, `withdrawals/${uid}`));
-  await set(withdrawalRef, {
-    amount,
-    status: "Pending",
-    timestamp: new Date().toISOString()
+  const userRef = ref(database, `users/${uid}`);
+  get(userRef).then((snapshot) => {
+    const userData = snapshot.val();
+    const balance = userData?.balance || 0;
+    const referrals = userData?.referrals || [];
+
+    if (referrals.length < 3) {
+      msgEl.textContent = "❗ You must have at least 3 referrals to request withdrawal.";
+      return;
+    }
+
+    if (balance < amount) {
+      msgEl.textContent = "❗ Insufficient balance.";
+      return;
+    }
+
+    // Deduct balance and log withdrawal
+    const withdrawalId = push(child(ref(database), `withdrawals/${uid}`)).key;
+    const withdrawalData = {
+      mobile,
+      upi,
+      ifsc,
+      amount,
+      status: "Pending",
+      timestamp: Date.now()
+    };
+
+    const updates = {};
+    updates[`users/${uid}/balance`] = balance - amount;
+    updates[`withdrawals/${uid}/${withdrawalId}`] = withdrawalData;
+
+    update(ref(database), updates)
+      .then(() => {
+        msgEl.textContent = "✅ Withdrawal request submitted successfully!";
+        document.getElementById("withdraw-form").reset();
+      })
+      .catch((err) => {
+        msgEl.textContent = "❌ Error submitting request.";
+        console.error(err);
+      });
   });
+}
 
-  // Deduct immediately
-  await update(userRef, {
-    balance: data.balance - amount
-  });
-
-  document.getElementById("withdraw-msg").innerText = "✅ Withdrawal request submitted!";
-  document.getElementById("withdraw-amount").value = "";
-  balanceEl.innerText = data.balance - amount;
-};
 
 // 🧾 Submit Support Ticket
 window.submitTicket = async () => {
