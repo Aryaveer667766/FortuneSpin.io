@@ -141,13 +141,16 @@ function requestWithdrawal() {
     return;
   }
 
-  const userRef = ref(database, `users/${uid}`);
+  const userRef = ref(db, `users/${uid}`);
   get(userRef).then((snapshot) => {
     const userData = snapshot.val();
     const balance = userData?.balance || 0;
-    const referrals = userData?.referrals || [];
 
-    if (referrals.length < 3) {
+    // Count number of referrals (keys in referrals object)
+    const referralObj = userData?.referrals || {};
+    const referralCount = Object.keys(referralObj).length;
+
+    if (referralCount < 3) {
       msgEl.textContent = "❗ You must have at least 3 referrals to request withdrawal.";
       return;
     }
@@ -158,7 +161,7 @@ function requestWithdrawal() {
     }
 
     // Deduct balance and log withdrawal
-    const withdrawalId = push(child(ref(database), `withdrawals/${uid}`)).key;
+    const withdrawalId = push(ref(db, `withdrawals/${uid}`)).key;
     const withdrawalData = {
       mobile,
       upi,
@@ -172,7 +175,7 @@ function requestWithdrawal() {
     updates[`users/${uid}/balance`] = balance - amount;
     updates[`withdrawals/${uid}/${withdrawalId}`] = withdrawalData;
 
-    update(ref(database), updates)
+    update(ref(db), updates)
       .then(() => {
         msgEl.textContent = "✅ Withdrawal request submitted successfully!";
         document.getElementById("withdraw-form").reset();
