@@ -146,44 +146,47 @@ function requestWithdrawal() {
     const userData = snapshot.val();
     const balance = userData?.balance || 0;
 
-    // Count number of referrals (keys in referrals object)
-    const referralObj = userData?.referrals || {};
-    const referralCount = Object.keys(referralObj).length;
+    // COUNT REFERRALS
+    const referralRef = ref(db, `referrals/${userData.uidCode}`);
+    get(referralRef).then((refSnap) => {
+      const referralData = refSnap.val();
+      const referralCount = referralData ? Object.keys(referralData).length : 0;
 
-    if (referralCount < 3) {
-      msgEl.textContent = "❗ You must have at least 3 referrals to request withdrawal.";
-      return;
-    }
+      if (referralCount < 3) {
+        msgEl.textContent = "❗ You must have at least 3 referrals to request withdrawal.";
+        return;
+      }
 
-    if (balance < amount) {
-      msgEl.textContent = "❗ Insufficient balance.";
-      return;
-    }
+      if (balance < amount) {
+        msgEl.textContent = "❗ Insufficient balance.";
+        return;
+      }
 
-    // Deduct balance and log withdrawal
-    const withdrawalId = push(ref(db, `withdrawals/${uid}`)).key;
-    const withdrawalData = {
-      mobile,
-      upi,
-      ifsc,
-      amount,
-      status: "Pending",
-      timestamp: Date.now()
-    };
+      // Deduct balance and log withdrawal
+      const withdrawalId = push(ref(db, `withdrawals/${uid}`)).key;
+      const withdrawalData = {
+        mobile,
+        upi,
+        ifsc,
+        amount,
+        status: "Pending",
+        timestamp: Date.now()
+      };
 
-    const updates = {};
-    updates[`users/${uid}/balance`] = balance - amount;
-    updates[`withdrawals/${uid}/${withdrawalId}`] = withdrawalData;
+      const updates = {};
+      updates[`users/${uid}/balance`] = balance - amount;
+      updates[`withdrawals/${uid}/${withdrawalId}`] = withdrawalData;
 
-    update(ref(db), updates)
-      .then(() => {
-        msgEl.textContent = "✅ Withdrawal request submitted successfully!";
-        document.getElementById("withdraw-form").reset();
-      })
-      .catch((err) => {
-        msgEl.textContent = "❌ Error submitting request.";
-        console.error(err);
-      });
+      update(ref(db), updates)
+        .then(() => {
+          msgEl.textContent = "✅ Withdrawal request submitted successfully!";
+          document.getElementById("withdraw-form").reset();
+        })
+        .catch((err) => {
+          msgEl.textContent = "❌ Error submitting request.";
+          console.error(err);
+        });
+    });
   });
 }
 
