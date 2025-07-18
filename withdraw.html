@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Withdraw – FortuneSpin</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="withdraw.js" defer></script>
+</head>
+<body class="withdraw-body">
+
+  <div class="container">
+    <h1>💸 Request Withdrawal</h1>
+
+    <p><strong>Your Balance:</strong> ₹<span id="user-balance">Loading...</span></p>
+    <p><strong>Referrals:</strong> <span id="referral-count">Loading...</span> ✅ (Min 3 required)</p>
+
+    <form id="withdraw-form">
+      <label>Mobile Number:
+        <input type="text" id="withdraw-mobile" placeholder="e.g. 9876543210" required />
+      </label>
+
+      <label>Withdraw to:
+        <select id="payment-type">
+          <option value="upi">UPI</option>
+          <option value="bank">Bank Account</option>
+        </select>
+      </label>
+
+      <div id="upi-field">
+        <label>UPI ID:
+          <input type="text" id="withdraw-upi" placeholder="e.g. user@upi" required />
+        </label>
+      </div>
+
+      <div id="bank-fields" style="display: none;">
+        <label>Account Number:
+          <input type="text" id="withdraw-account" />
+        </label>
+        <label>IFSC Code:
+          <input type="text" id="withdraw-ifsc" />
+        </label>
+      </div>
+
+      <label>Amount (₹):
+        <input type="number" id="withdraw-amount" placeholder="Minimum ₹1" required />
+      </label>
+
+      <button type="submit" id="submit-withdraw">🚀 Submit Request</button>
+      <p id="withdraw-msg" class="status-msg"></p>
+    </form>
+
+    <hr />
+
+    <div id="withdraw-history">
+      <h2>📜 Withdrawal History</h2>
+      <ul id="history-list">Loading...</ul>
+    </div>
+
+    <footer>
+      <p>🔒 100% Secure | Need help? <a href="support.html">Contact Support</a></p>
+    </footer>
+  </div>
+</body>
+</html>
