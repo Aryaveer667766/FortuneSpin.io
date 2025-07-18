@@ -1,124 +1,139 @@
-import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {
-  getDatabase,
-  ref,
-  get,
-  onValue,
-  update,
-  push
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-import { app } from "./firebase.js"; // make sure firebase.js exports app
+// Import Firebase modules (assumes firebase-app, firebase-auth, firebase-database already loaded via script tags)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getDatabase, ref, get, push, set, child } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
+// 🔥 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyCHh9XG4eK2IDYgaUzja8Lk6obU6zxIIwc",
+  authDomain: "fortunespin-57b4f.firebaseapp.com",
+  databaseURL: "https://fortunespin-57b4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "fortunespin-57b4f",
+  storageBucket: "fortunespin-57b4f.appspot.com",
+  messagingSenderId: "204339176543",
+  appId: "1:204339176543:web:b417b7a2574a0e44fbe7ea",
+  measurementId: "G-VT1N70H3HK"
+};
+
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-const upiField = document.getElementById("upi-field");
-const bankFields = document.getElementById("bank-fields");
-const paymentType = document.getElementById("payment-type");
+let currentUID = null;
 
-// Toggle between UPI / Bank
-paymentType.addEventListener("change", () => {
-  if (paymentType.value === "upi") {
-    upiField.style.display = "block";
-    bankFields.style.display = "none";
+// 📥 On Page Load
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUID = user.uid;
+    fetchUserInfo(currentUID);
+    loadWithdrawals(currentUID);
   } else {
-    upiField.style.display = "none";
-    bankFields.style.display = "block";
+    window.location.href = "index.html"; // Redirect to login
   }
 });
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "index.html";
+// 🔎 Fetch User Info (balance, referral count)
+async function fetchUserInfo(uid) {
+  try {
+    const snap = await get(ref(db, `users/${uid}`));
+    if (snap.exists()) {
+      const data = snap.val();
+      document.getElementById("balance").textContent = `₹${data.balance || 0}`;
+      document.getElementById("referral-count").textContent = `${data.referrals ? Object.keys(data.referrals).length : 0}`;
+    }
+  } catch (err) {
+    console.error("Error fetching info:", err);
+  }
+}
+
+// 💸 Request Withdrawal
+window.requestWithdrawal = async function () {
+  const mobile = document.getElementById("withdraw-mobile").value.trim();
+  const upi = document.getElementById("withdraw-upi").value.trim();
+  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
+  const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
+  const msgEl = document.getElementById("withdraw-msg");
+
+  msgEl.textContent = "";
+
+  if (!mobile || !upi || isNaN(amount) || amount < 1) {
+    msgEl.textContent = "❌ Please fill all fields correctly.";
     return;
   }
 
-  const uid = user.uid;
-  const userRef = ref(db, "users/" + uid);
+  try {
+    const userSnap = await get(ref(db, `users/${currentUID}`));
+    if (!userSnap.exists()) throw new Error("User not found");
 
-  get(userRef).then((snapshot) => {
-    const data = snapshot.val();
-    const balance = data?.balance || 0;
-    const referrals = data?.referrals || {};
-    const referralCount = Object.keys(referrals).length;
+    const userData = userSnap.val();
+    const balance = parseInt(userData.balance || 0);
+    const referralCount = userData.referrals ? Object.keys(userData.referrals).length : 0;
 
-    document.getElementById("user-balance").textContent = balance;
-    document.getElementById("referral-count").textContent = referralCount;
-  });
-
-  // Show history
-  const historyRef = ref(db, "withdrawals");
-  onValue(historyRef, (snap) => {
-    const list = document.getElementById("history-list");
-    list.innerHTML = "";
-    const data = snap.val();
-    for (const key in data) {
-      if (data[key].uid === uid) {
-        const item = document.createElement("li");
-        item.textContent = `₹${data[key].amount} • ${data[key].status} • ${new Date(data[key].timestamp).toLocaleString()}`;
-        list.appendChild(item);
-      }
-    }
-  });
-
-  // Handle withdrawal submit
-  document.getElementById("withdraw-form").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const msgEl = document.getElementById("withdraw-msg");
-
-    const mobile = document.getElementById("withdraw-mobile").value.trim();
-    const amount = parseFloat(document.getElementById("withdraw-amount").value.trim());
-    const method = paymentType.value;
-
-    const upi = document.getElementById("withdraw-upi").value.trim();
-    const account = document.getElementById("withdraw-account").value.trim();
-    const ifsc = document.getElementById("withdraw-ifsc").value.trim();
-
-    if (!mobile || isNaN(amount) || amount <= 0 || (method === "upi" && !upi) || (method === "bank" && (!account || !ifsc))) {
-      msgEl.textContent = "❌ Please fill all fields correctly.";
+    if (referralCount < 3) {
+      msgEl.textContent = "❌ You need at least 3 referrals to withdraw.";
       return;
     }
 
-    get(userRef).then((snapshot) => {
-      const data = snapshot.val();
-      const balance = data?.balance || 0;
-      const referrals = data?.referrals || {};
+    if (amount > balance) {
+      msgEl.textContent = "❌ Insufficient balance.";
+      return;
+    }
 
-      if (balance < amount) {
-        msgEl.textContent = "❌ Not enough balance.";
-        return;
-      }
-
-      if (Object.keys(referrals).length < 3) {
-        msgEl.textContent = "⚠️ You need at least 3 referrals to withdraw.";
-        return;
-      }
-
-      const withdrawalData = {
-        uid,
-        name: data?.name || "User",
-        mobile,
-        upiOrAccount: method === "upi" ? upi : account,
-        ifsc: method === "bank" ? ifsc : "N/A",
-        method,
-        amount,
-        status: "Pending",
-        timestamp: new Date().toISOString()
-      };
-
-      const updates = {};
-      updates["users/" + uid + "/balance"] = balance - amount;
-      updates["withdrawals/" + uid + "_" + Date.now()] = withdrawalData;
-
-      update(ref(db), updates).then(() => {
-        msgEl.textContent = "✅ Withdrawal request submitted!";
-        document.getElementById("withdraw-form").reset();
-      }).catch(() => {
-        msgEl.textContent = "❌ Something went wrong. Try again.";
-      });
+    // Proceed with request
+    const withdrawalRef = push(ref(db, `withdrawals/${currentUID}`));
+    await set(withdrawalRef, {
+      mobile,
+      upi,
+      ifsc,
+      amount,
+      status: "Pending",
+      timestamp: new Date().toISOString()
     });
-  });
-});
+
+    // Deduct balance
+    await set(ref(db, `users/${currentUID}/balance`), balance - amount);
+
+    msgEl.textContent = "✅ Withdrawal requested successfully.";
+
+    // 🎉 Effects
+    document.getElementById("success-sound").play();
+    for (let i = 0; i < 10; i++) {
+      const bill = document.createElement("div");
+      bill.className = "money-fly";
+      bill.style.left = Math.random() * 90 + "%";
+      bill.style.top = "80%";
+      document.body.appendChild(bill);
+      setTimeout(() => bill.remove(), 2000);
+    }
+
+    // Refresh balance & history
+    fetchUserInfo(currentUID);
+    loadWithdrawals(currentUID);
+  } catch (err) {
+    console.error(err);
+    msgEl.textContent = "❌ Error submitting withdrawal.";
+  }
+};
+
+// 📜 Load Withdrawal History
+async function loadWithdrawals(uid) {
+  try {
+    const snap = await get(ref(db, `withdrawals/${uid}`));
+    const list = document.getElementById("history-list");
+    list.innerHTML = "";
+
+    if (snap.exists()) {
+      const data = snap.val();
+      const items = Object.values(data).reverse();
+      items.forEach(entry => {
+        const li = document.createElement("li");
+        li.innerHTML = `₹${entry.amount} - ${entry.status || "Pending"} <br><small>${entry.timestamp}</small>`;
+        list.appendChild(li);
+      });
+    } else {
+      list.innerHTML = "<li>No withdrawal history.</li>";
+    }
+  } catch (err) {
+    console.error("Error loading withdrawals:", err);
+  }
+}
