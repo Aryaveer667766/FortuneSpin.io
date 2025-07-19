@@ -38,9 +38,7 @@ function fetchUserInfo() {
       document.getElementById("balance").textContent = data.balance || 0;
       document.getElementById("referral-count").textContent = Object.keys(data.referrals || {}).length;
     }
-  }).catch((error) => {
-    console.error("Error fetching info:", error);
-  });
+  
 }
 
 window.requestWithdrawal = function () {
