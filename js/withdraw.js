@@ -104,7 +104,7 @@ async function requestWithdrawal() {
     const balance = parseInt(userData.balance || 0);
     const referralCount = userData.referrals ? Object.keys(userData.referrals).length : 0;
 
-    if (referralCount < 3) {
+    if (referralCount < 2) {
       msgEl.textContent = "❌ You need at least 3 referrals to withdraw.";
       return;
     }
