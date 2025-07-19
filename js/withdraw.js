@@ -1,8 +1,9 @@
+// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getDatabase, ref, set, push, get, child } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getDatabase, ref, get, set, push } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// Firebase Config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCHh9XG4eK2IDYgaUzja8Lk6obU6zxIIwc",
   authDomain: "fortunespin-57b4f.firebaseapp.com",
@@ -10,140 +11,155 @@ const firebaseConfig = {
   projectId: "fortunespin-57b4f",
   storageBucket: "fortunespin-57b4f.appspot.com",
   messagingSenderId: "204339176543",
-  appId: "1:204339176543:web:b417b7a2574a0e44fbe7ea",
-  measurementId: "G-VT1N70H3HK"
+  appId: "1:204339176543:web:b417b7a2574a0e44fbe7ea"
 };
 
-// Init Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
-let currentUID = null;
+const balanceEl = document.getElementById("user-balance");
+const form = document.getElementById("withdraw-form");
+const msg = document.getElementById("withdraw-msg");
+const methodSelect = document.getElementById("payment-method");
+const upiSection = document.getElementById("upi-section");
+const bankSection = document.getElementById("bank-section");
+const historyList = document.getElementById("withdrawal-history");
+const successSound = document.getElementById("success-sound");
 
-document.addEventListener("DOMContentLoaded", () => {
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUID = user.uid;
-      fetchBalance();
-      loadWithdrawals();
-    } else {
-      window.location.href = "index.html";
-    }
-  });
-
-  const methodSelect = document.getElementById("payment-method");
-  methodSelect.addEventListener("change", () => {
-    const upi = document.getElementById("upi-section");
-    const bank = document.getElementById("bank-section");
-
-    if (methodSelect.value === "upi") {
-      upi.style.display = "block";
-      bank.style.display = "none";
-    } else {
-      upi.style.display = "none";
-      bank.style.display = "block";
-    }
-  });
-
-  document.getElementById("withdraw-form").addEventListener("submit", handleWithdraw);
+// UI toggle for method
+methodSelect.addEventListener("change", () => {
+  const method = methodSelect.value;
+  upiSection.style.display = method === "upi" ? "block" : "none";
+  bankSection.style.display = method === "bank" ? "block" : "none";
 });
 
-async function fetchBalance() {
-  const snap = await get(ref(db, `users/${currentUID}/balance`));
-  if (snap.exists()) {
-    const bal = snap.val();
-    document.getElementById("user-balance").textContent = `₹${bal}`;
+let currentUID = null;
+let currentBalance = 0;
+
+// Auth check
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUID = user.uid;
+    fetchBalance();
+    loadWithdrawalHistory();
+  } else {
+    window.location.href = "index.html";
   }
+});
+
+// Get balance
+function fetchBalance() {
+  get(ref(db, `users/${currentUID}/balance`)).then(snapshot => {
+    currentBalance = snapshot.exists() ? snapshot.val() : 0;
+    balanceEl.textContent = `Balance: ₹${currentBalance}`;
+  });
 }
 
-async function handleWithdraw(e) {
+// Handle form
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const msg = document.getElementById("withdraw-msg");
-  msg.textContent = "";
 
-  const method = document.getElementById("payment-method").value;
+  const method = methodSelect.value;
   const mobile = document.getElementById("withdraw-mobile").value.trim();
   const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
+
   const upi = document.getElementById("withdraw-upi").value.trim();
   const account = document.getElementById("withdraw-account").value.trim();
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
 
   if (!mobile || isNaN(amount)) {
-    msg.textContent = "❌ Please enter all required fields.";
+    msg.textContent = "Please fill in all required fields.";
+    msg.style.color = "orange";
     return;
   }
 
   if (amount < 500) {
-    msg.textContent = "❌ Minimum withdrawal is ₹500.";
+    msg.textContent = "Minimum withdrawal amount is ₹500.";
+    msg.style.color = "red";
     return;
   }
 
-  if (method === "upi" && !upi) {
-    msg.textContent = "❌ Enter valid UPI ID.";
+  if (amount > currentBalance) {
+    msg.textContent = "Insufficient balance.";
+    msg.style.color = "red";
     return;
   }
 
-  if (method === "bank" && (!account || !ifsc)) {
-    msg.textContent = "❌ Enter valid account details.";
-    return;
-  }
-
-  const balanceSnap = await get(ref(db, `users/${currentUID}/balance`));
-  const balance = balanceSnap.exists() ? parseInt(balanceSnap.val()) : 0;
-
-  if (amount > balance) {
-    msg.textContent = "❌ Insufficient balance.";
-    return;
-  }
-
-  // Create withdrawal entry
-  const withdrawalRef = push(ref(db, `withdrawals/${currentUID}`));
-  await set(withdrawalRef, {
+  let data = {
     method,
     mobile,
-    upi: method === "upi" ? upi : null,
-    account: method === "bank" ? account : null,
-    ifsc: method === "bank" ? ifsc : null,
     amount,
     status: "Pending",
-    timestamp: new Date().toISOString()
-  });
+    timestamp: Date.now()
+  };
 
-  // Deduct balance
-  await set(ref(db, `users/${currentUID}/balance`), balance - amount);
-
-  msg.textContent = "✅ Withdrawal requested.";
-
-  // Sound + animation
-  const sound = document.getElementById("success-sound");
-  if (sound) sound.play();
-
-  for (let i = 0; i < 10; i++) {
-    const money = document.createElement("div");
-    money.className = "money-fly";
-    money.style.left = Math.random() * 90 + "%";
-    document.body.appendChild(money);
-    setTimeout(() => money.remove(), 2000);
+  if (method === "upi") {
+    if (!upi) {
+      msg.textContent = "Please enter UPI ID.";
+      msg.style.color = "red";
+      return;
+    }
+    data.upi = upi;
+  } else {
+    if (!account || !ifsc) {
+      msg.textContent = "Please enter bank details.";
+      msg.style.color = "red";
+      return;
+    }
+    data.account = account;
+    data.ifsc = ifsc;
   }
 
-  fetchBalance();
-  loadWithdrawals();
+  // Deduct and store
+  try {
+    const newRef = push(ref(db, `withdrawals/${currentUID}`));
+    await set(newRef, data);
+    await set(ref(db, `users/${currentUID}/balance`), currentBalance - amount);
+
+    msg.textContent = "Withdrawal request submitted!";
+    msg.style.color = "lime";
+    playEffects();
+    form.reset();
+    fetchBalance();
+    loadWithdrawalHistory();
+  } catch (error) {
+    console.error("Error submitting withdrawal:", error);
+    msg.textContent = "Error occurred. Try again.";
+    msg.style.color = "red";
+  }
+});
+
+// Load history
+function loadWithdrawalHistory() {
+  historyList.innerHTML = "";
+  get(ref(db, `withdrawals/${currentUID}`)).then(snapshot => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const entries = Object.values(data).reverse();
+      entries.forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = `${entry.method.toUpperCase()} ₹${entry.amount} - ${entry.status}`;
+        historyList.appendChild(li);
+      });
+    }
+  });
 }
 
-async function loadWithdrawals() {
-  const list = document.getElementById("withdrawal-history");
-  list.innerHTML = "";
-  const snap = await get(ref(db, `withdrawals/${currentUID}`));
+// Effects on success
+function playEffects() {
+  successSound.play();
 
-  if (snap.exists()) {
-    const data = Object.values(snap.val()).reverse();
-    data.forEach((item) => {
-      const li = document.createElement("li");
-      li.innerHTML = `₹${item.amount} - ${item.status}<br><small>${item.timestamp}</small>`;
-      list.appendChild(li);
-    });
-  } else {
-    list.innerHTML = "<li>No withdrawal history yet.</li>";
+  for (let i = 0; i < 20; i++) {
+    const money = document.createElement("div");
+    money.className = "money-fly";
+    money.style.left = Math.random() * window.innerWidth + "px";
+    money.style.top = window.innerHeight + "px";
+    document.body.appendChild(money);
+
+    setTimeout(() => {
+      money.remove();
+    }, 2000);
   }
 }
