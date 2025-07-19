@@ -147,7 +147,7 @@ window.approveWithdraw = async (uid, id, amount) => {
   const currentBal = balSnap.val() || 0;
 
   await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Approved" });
-  await update(ref(db, `users/${uid}`), { balance: currentBal - amount });
+
 
   alert("✅ Withdrawal approved & balance deducted");
   loadWithdrawals();
