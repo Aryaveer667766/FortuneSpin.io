@@ -13,8 +13,24 @@
 
   <div class="container">
     <h1>💸 Request Withdrawal</h1>
+<!-- UID & Balance Display -->
+<p>UID: <span id="user-uid"></span></p>
+<p>Balance: ₹<span id="user-balance">0</span></p>
 
-    <p><strong>Your Balance:</strong> ₹<span id="user-balance">Loading...</span></p>
+<!-- Withdrawal Form -->
+<form id="withdraw-form">
+  <label><input type="radio" name="withdraw-method" value="upi"> UPI</label>
+  <label><input type="radio" name="withdraw-method" value="bank"> Bank</label><br>
+
+  <input type="text" id="withdraw-mobile" placeholder="Mobile Number" required><br>
+  <input type="text" id="withdraw-upi" placeholder="UPI ID (if selected)" /><br>
+  <input type="text" id="withdraw-account" placeholder="Account Number (if selected)" /><br>
+  <input type="text" id="withdraw-ifsc" placeholder="IFSC Code (if selected)" /><br>
+  <input type="number" id="withdraw-amount" placeholder="Amount (min ₹500)" required><br>
+
+  <button type="submit">Submit Withdrawal</button>
+</form>
+
 
     <form id="withdraw-form">
       <label>Mobile Number:
