@@ -1,8 +1,9 @@
+// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getDatabase, ref, get, set, push, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// Your Firebase config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCHh9XG4eK2IDYgaUzja8Lk6obU6zxIIwc",
   authDomain: "fortunespin-57b4f.firebaseapp.com",
@@ -14,127 +15,140 @@ const firebaseConfig = {
   measurementId: "G-VT1N70H3HK"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
+const auth = getAuth(app);
 const db = getDatabase(app);
 
 let currentUID = null;
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUID = user.uid;
-    fetchUserInfo();
-    loadWithdrawalHistory();
-  } else {
-    window.location.href = "index.html"; // redirect to login
-  }
+// DOM Ready check to avoid null errors
+document.addEventListener("DOMContentLoaded", () => {
+  // Wait for auth state
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUID = user.uid;
+      fetchUserInfo(currentUID);
+      loadWithdrawals(currentUID);
+    } else {
+      window.location.href = "index.html"; // redirect if not logged in
+    }
+  });
 });
 
-function fetchUserInfo() {
-  const userRef = ref(db, "users/" + currentUID);
-  get(userRef).then(snapshot => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      document.getElementById("balance").textContent = data.balance || 0;
-      document.getElementById("referral-count").textContent = Object.keys(data.referrals || {}).length;
+// Fetch user balance and referral count
+async function fetchUserInfo(uid) {
+  try {
+    const snap = await get(ref(db, `users/${uid}`));
+    if (snap.exists()) {
+      const data = snap.val();
+      const balanceEl = document.getElementById("balance");
+      const referralEl = document.getElementById("referral-count");
+
+      if (balanceEl && referralEl) {
+        balanceEl.textContent = `₹${data.balance || 0}`;
+        referralEl.textContent = `${data.referrals ? Object.keys(data.referrals).length : 0}`;
+      } else {
+        console.warn("Missing DOM elements: #balance or #referral-count");
+      }
     }
-  
+  } catch (err) {
+    console.error("Error fetching info:", err);
+  }
 }
 
-window.requestWithdrawal = function () {
+// Handle withdrawal request
+window.requestWithdrawal = async function () {
   const mobile = document.getElementById("withdraw-mobile").value.trim();
   const upi = document.getElementById("withdraw-upi").value.trim();
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
   const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
-  const msg = document.getElementById("withdraw-msg");
+  const msgEl = document.getElementById("withdraw-msg");
 
-  if (!mobile || !upi || !amount || isNaN(amount)) {
-    msg.textContent = "❗ Please fill all required fields properly.";
+  msgEl.textContent = "";
+
+  if (!mobile || !upi || isNaN(amount) || amount < 1) {
+    msgEl.textContent = "❌ Please fill all fields correctly.";
     return;
   }
 
-  const userRef = ref(db, "users/" + currentUID);
-  get(userRef).then(snapshot => {
-    if (!snapshot.exists()) {
-      msg.textContent = "User not found.";
-      return;
-    }
+  try {
+    const userSnap = await get(ref(db, `users/${currentUID}`));
+    if (!userSnap.exists()) throw new Error("User not found");
 
-    const userData = snapshot.val();
-    const currentBalance = userData.balance || 0;
-    const referrals = userData.referrals || {};
-    const referralCount = Object.keys(referrals).length;
+    const userData = userSnap.val();
+    const balance = parseInt(userData.balance || 0);
+    const referralCount = userData.referrals ? Object.keys(userData.referrals).length : 0;
 
     if (referralCount < 3) {
-      msg.textContent = "⚠️ You need at least 3 referrals to withdraw.";
+      msgEl.textContent = "❌ You need at least 3 referrals to withdraw.";
       return;
     }
 
-    if (amount > currentBalance) {
-      msg.textContent = "❌ Insufficient balance.";
+    if (amount > balance) {
+      msgEl.textContent = "❌ Insufficient balance.";
       return;
     }
 
-    // Deduct balance and store request
-    const newBalance = currentBalance - amount;
-    const withdrawData = {
-      uid: currentUID,
+    // Save withdrawal request
+    const withdrawalRef = push(ref(db, `withdrawals/${currentUID}`));
+    await set(withdrawalRef, {
       mobile,
       upi,
       ifsc,
       amount,
       status: "Pending",
       timestamp: new Date().toISOString()
-    };
-
-    const withdrawalRef = push(ref(db, "withdrawals"));
-    const updates = {};
-    updates["users/" + currentUID + "/balance"] = newBalance;
-    updates["users/" + currentUID + "/withdrawals/" + withdrawalRef.key] = withdrawData;
-    updates["withdrawals/" + withdrawalRef.key] = withdrawData;
-
-    set(ref(db), null); // Optional: clean state
-
-    set(ref(db), updates).then(() => {
-      msg.style.color = "lime";
-      msg.textContent = "✅ Withdrawal request submitted!";
-      document.getElementById("withdraw-form").reset();
-      document.getElementById("balance").textContent = newBalance;
-
-      playSuccess();
-      loadWithdrawalHistory();
     });
-  });
-}
 
-function loadWithdrawalHistory() {
-  const list = document.getElementById("history-list");
-  const refUserWithdrawals = ref(db, "users/" + currentUID + "/withdrawals");
-  onValue(refUserWithdrawals, snapshot => {
+    // Update balance
+    await set(ref(db, `users/${currentUID}/balance`), balance - amount);
+
+    msgEl.textContent = "✅ Withdrawal requested successfully.";
+
+    // Play sound
+    const sound = document.getElementById("success-sound");
+    if (sound) sound.play();
+
+    // Visual effect
+    for (let i = 0; i < 10; i++) {
+      const bill = document.createElement("div");
+      bill.className = "money-fly";
+      bill.style.left = Math.random() * 90 + "%";
+      bill.style.top = "80%";
+      document.body.appendChild(bill);
+      setTimeout(() => bill.remove(), 2000);
+    }
+
+    // Reload data
+    fetchUserInfo(currentUID);
+    loadWithdrawals(currentUID);
+
+  } catch (err) {
+    console.error("Withdrawal error:", err);
+    msgEl.textContent = "❌ Error submitting withdrawal.";
+  }
+};
+
+// Load past withdrawal history
+async function loadWithdrawals(uid) {
+  try {
+    const snap = await get(ref(db, `withdrawals/${uid}`));
+    const list = document.getElementById("history-list");
     list.innerHTML = "";
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      Object.values(data).reverse().forEach(entry => {
+
+    if (snap.exists()) {
+      const data = snap.val();
+      const items = Object.values(data).reverse();
+      items.forEach(entry => {
         const li = document.createElement("li");
-        li.textContent = `₹${entry.amount} - ${entry.status}`;
+        li.innerHTML = `₹${entry.amount} - ${entry.status || "Pending"} <br><small>${entry.timestamp}</small>`;
         list.appendChild(li);
       });
     } else {
-      list.innerHTML = "<li>No history yet.</li>";
+      list.innerHTML = "<li>No withdrawal history.</li>";
     }
-  });
-}
-
-function playSuccess() {
-  const audio = document.getElementById("success-sound");
-  audio.play();
-
-  for (let i = 0; i < 15; i++) {
-    const money = document.createElement("div");
-    money.className = "money-fly";
-    money.style.left = Math.random() * 100 + "vw";
-    money.style.top = "100vh";
-    document.body.appendChild(money);
-    setTimeout(() => money.remove(), 2000);
+  } catch (err) {
+    console.error("Error loading withdrawals:", err);
   }
 }
