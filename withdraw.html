@@ -37,12 +37,30 @@
         <input type="text" id="withdraw-mobile" placeholder="e.g. 9876543210" required />
       </label>
 
-      <label>Withdraw to:
-        <select id="payment-type">
-          <option value="upi">UPI</option>
-          <option value="bank">Bank Account</option>
-        </select>
-      </label>
+      <select id="payment-method">
+  <option value="upi">UPI</option>
+  <option value="bank">Bank Transfer</option>
+</select>
+
+<div id="upi-section">
+  <input type="text" id="withdraw-upi" placeholder="Enter UPI ID">
+</div>
+
+<div id="bank-section" style="display:none;">
+  <input type="text" id="withdraw-account" placeholder="Account Number">
+  <input type="text" id="withdraw-ifsc" placeholder="IFSC Code">
+</div>
+
+<input type="text" id="withdraw-mobile" placeholder="Mobile Number">
+<input type="number" id="withdraw-amount" placeholder="Amount (min ₹500)">
+<button type="submit">Submit</button>
+
+<p id="withdraw-msg"></p>
+<span id="user-balance"></span>
+<ul id="withdrawal-history"></ul>
+
+<audio id="success-sound" src="assets/sounds/success.mp3" preload="auto"></audio>
+
 
       <div id="upi-field">
         <label>UPI ID:
