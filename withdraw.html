@@ -1,100 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Withdraw – FortuneSpin</title>
-  <link rel="stylesheet" href="style/withdraw.css" />
-  <script type="module" src="js/withdraw.js" defer></script>
+  <meta charset="UTF-8">
+  <title>Withdraw | FortuneSpin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Orbitron', sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at center, #0a0a23, #000000);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .withdraw-container {
+      width: 95%;
+      max-width: 500px;
+      background: #111927;
+      border: 2px solid #1f2937;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,255,255,0.2);
+      position: relative;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #00ffc3;
+      text-align: center;
+      font-size: 1.6rem;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-size: 14px;
+      color: #c0f2ff;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #1e293b;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      background: linear-gradient(to right, #00ffc3, #00b8ff);
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(to right, #00b8ff, #00ffc3);
+    }
+
+    #withdraw-msg {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    #user-balance {
+      font-size: 18px;
+      margin-bottom: 20px;
+      text-align: center;
+      display: block;
+      color: #9efff8;
+    }
+
+    #withdrawal-history {
+      margin-top: 20px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    #withdrawal-history li {
+      background: #1e2a3f;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #ffffffdd;
+    }
+
+    .money-fly {
+      position: absolute;
+      width: 40px;
+      height: 25px;
+      background: url('assets/money.png') no-repeat center;
+      background-size: contain;
+      animation: fly 2s ease-out;
+      z-index: 9999;
+    }
+
+    @keyframes fly {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-300px) rotate(720deg); opacity: 0; }
+    }
+
+    .footer {
+      margin-top: 40px;
+      font-size: 13px;
+      opacity: 0.5;
+    }
+
+  </style>
 </head>
-<body class="withdraw-body">
-  <audio id="success-sound" src="assets/cash.mp3" preload="auto"></audio>
+<body>
+  <div class="withdraw-container">
+    <h2>Request Withdrawal</h2>
 
-
-  <div class="container">
-    <h1>💸 Request Withdrawal</h1>
-<!-- UID & Balance Display -->
-<p>UID: <span id="user-uid"></span></p>
-<p>Balance: ₹<span id="user-balance">0</span></p>
-
-<!-- Withdrawal Form -->
-<form id="withdraw-form">
-  <label><input type="radio" name="withdraw-method" value="upi"> UPI</label>
-  <label><input type="radio" name="withdraw-method" value="bank"> Bank</label><br>
-
-  <input type="text" id="withdraw-mobile" placeholder="Mobile Number" required><br>
-  <input type="text" id="withdraw-upi" placeholder="UPI ID (if selected)" /><br>
-  <input type="text" id="withdraw-account" placeholder="Account Number (if selected)" /><br>
-  <input type="text" id="withdraw-ifsc" placeholder="IFSC Code (if selected)" /><br>
-  <input type="number" id="withdraw-amount" placeholder="Amount (min ₹500)" required><br>
-
-  <button type="submit">Submit Withdrawal</button>
-</form>
-
+    <span id="user-balance">Balance: ₹0</span>
 
     <form id="withdraw-form">
-      <label>Mobile Number:
-        <input type="text" id="withdraw-mobile" placeholder="e.g. 9876543210" required />
-      </label>
+      <label for="payment-method">Payment Method</label>
+      <select id="payment-method" required>
+        <option value="upi">UPI</option>
+        <option value="bank">Bank Transfer</option>
+      </select>
 
-      <select id="payment-method">
-  <option value="upi">UPI</option>
-  <option value="bank">Bank Transfer</option>
-</select>
-
-<div id="upi-section">
-  <input type="text" id="withdraw-upi" placeholder="Enter UPI ID">
-</div>
-
-<div id="bank-section" style="display:none;">
-  <input type="text" id="withdraw-account" placeholder="Account Number">
-  <input type="text" id="withdraw-ifsc" placeholder="IFSC Code">
-</div>
-
-<input type="text" id="withdraw-mobile" placeholder="Mobile Number">
-<input type="number" id="withdraw-amount" placeholder="Amount (min ₹500)">
-<button type="submit">Submit</button>
-
-<p id="withdraw-msg"></p>
-<span id="user-balance"></span>
-<ul id="withdrawal-history"></ul>
-
-<audio id="success-sound" src="assets/sounds/success.mp3" preload="auto"></audio>
-
-
-      <div id="upi-field">
-        <label>UPI ID:
-          <input type="text" id="withdraw-upi" placeholder="e.g. user@upi" required />
-        </label>
+      <div id="upi-section">
+        <label for="withdraw-upi">UPI ID</label>
+        <input type="text" id="withdraw-upi" placeholder="Enter UPI ID">
       </div>
 
-      <div id="bank-fields" style="display: none;">
-        <label>Account Number:
-          <input type="text" id="withdraw-account" />
-        </label>
-        <label>IFSC Code:
-          <input type="text" id="withdraw-ifsc" />
-        </label>
+      <div id="bank-section" style="display:none;">
+        <label for="withdraw-account">Account Number</label>
+        <input type="text" id="withdraw-account" placeholder="Enter Account Number">
+
+        <label for="withdraw-ifsc">IFSC Code</label>
+        <input type="text" id="withdraw-ifsc" placeholder="Enter IFSC Code">
       </div>
 
-      <label>Amount (₹):
-        <input type="number" id="withdraw-amount" placeholder="Minimum ₹1" required />
-      </label>
+      <label for="withdraw-mobile">Mobile Number</label>
+      <input type="text" id="withdraw-mobile" placeholder="Enter your mobile">
 
-      <button type="submit" id="submit-withdraw">🚀 Submit Request</button>
-      <p id="withdraw-msg" class="status-msg"></p>
+      <label for="withdraw-amount">Amount (Minimum ₹500)</label>
+      <input type="number" id="withdraw-amount" placeholder="Amount">
+
+      <button type="submit">Submit Request</button>
     </form>
 
-    <hr />
+    <p id="withdraw-msg"></p>
 
-    <div id="withdraw-history">
-      <h2>📜 Withdrawal History</h2>
-      <ul id="history-list">Loading...</ul>
-    </div>
-
-    <footer>
-      <p>🔒 100% Secure | Need help? <a href="support.html">Contact Support</a></p>
-    </footer>
+    <h3 style="margin-top:30px; color:#00ffc3; font-size: 1.1rem;">Withdrawal History</h3>
+    <ul id="withdrawal-history"></ul>
   </div>
+
+  <audio id="success-sound" src="assets/sounds/success.mp3" preload="auto"></audio>
+
+  <div class="footer">Powered by FortuneSpin.io</div>
+
+  <script type="module" src="withdrawal.js"></script>
 </body>
 </html>
