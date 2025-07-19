@@ -1,4 +1,3 @@
-// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import { getDatabase, ref, get, push, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
@@ -15,41 +14,55 @@ const firebaseConfig = {
   measurementId: "G-VT1N70H3HK"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
 let currentUID = null;
 
-// DOM Ready check to avoid null errors
+// Wait for DOM
 document.addEventListener("DOMContentLoaded", () => {
-  // Wait for auth state
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUID = user.uid;
       fetchUserInfo(currentUID);
       loadWithdrawals(currentUID);
     } else {
-      window.location.href = "index.html"; // redirect if not logged in
+      window.location.href = "index.html";
     }
+  });
+
+  // Toggle between UPI and Bank
+  document.getElementById("payment-type").addEventListener("change", (e) => {
+    const upiField = document.getElementById("upi-field");
+    const bankFields = document.getElementById("bank-fields");
+    if (e.target.value === "upi") {
+      upiField.style.display = "block";
+      bankFields.style.display = "none";
+    } else {
+      upiField.style.display = "none";
+      bankFields.style.display = "block";
+    }
+  });
+
+  // Submit form
+  document.getElementById("withdraw-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await requestWithdrawal();
   });
 });
 
-// Fetch user balance and referral count
 async function fetchUserInfo(uid) {
   try {
     const snap = await get(ref(db, `users/${uid}`));
     if (snap.exists()) {
       const data = snap.val();
-      const balanceEl = document.getElementById("balance");
+      const balanceEl = document.getElementById("user-balance"); // FIXED
       const referralEl = document.getElementById("referral-count");
 
       if (balanceEl && referralEl) {
-        balanceEl.textContent = `₹${data.balance || 0}`;
+        balanceEl.textContent = `${data.balance || 0}`;
         referralEl.textContent = `${data.referrals ? Object.keys(data.referrals).length : 0}`;
-      } else {
-        console.warn("Missing DOM elements: #balance or #referral-count");
       }
     }
   } catch (err) {
@@ -57,18 +70,29 @@ async function fetchUserInfo(uid) {
   }
 }
 
-// Handle withdrawal request
-window.requestWithdrawal = async function () {
+async function requestWithdrawal() {
   const mobile = document.getElementById("withdraw-mobile").value.trim();
   const upi = document.getElementById("withdraw-upi").value.trim();
+  const account = document.getElementById("withdraw-account").value.trim();
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
   const amount = parseInt(document.getElementById("withdraw-amount").value.trim());
+  const paymentType = document.getElementById("payment-type").value;
   const msgEl = document.getElementById("withdraw-msg");
 
   msgEl.textContent = "";
 
-  if (!mobile || !upi || isNaN(amount) || amount < 1) {
+  if (!mobile || isNaN(amount) || amount < 1) {
     msgEl.textContent = "❌ Please fill all fields correctly.";
+    return;
+  }
+
+  if (paymentType === "upi" && !upi) {
+    msgEl.textContent = "❌ Please enter UPI ID.";
+    return;
+  }
+
+  if (paymentType === "bank" && (!account || !ifsc)) {
+    msgEl.textContent = "❌ Please enter bank account & IFSC.";
     return;
   }
 
@@ -90,27 +114,25 @@ window.requestWithdrawal = async function () {
       return;
     }
 
-    // Save withdrawal request
     const withdrawalRef = push(ref(db, `withdrawals/${currentUID}`));
     await set(withdrawalRef, {
       mobile,
-      upi,
-      ifsc,
+      upi: paymentType === "upi" ? upi : null,
+      account: paymentType === "bank" ? account : null,
+      ifsc: paymentType === "bank" ? ifsc : null,
       amount,
       status: "Pending",
       timestamp: new Date().toISOString()
     });
 
-    // Update balance
     await set(ref(db, `users/${currentUID}/balance`), balance - amount);
 
     msgEl.textContent = "✅ Withdrawal requested successfully.";
 
-    // Play sound
     const sound = document.getElementById("success-sound");
     if (sound) sound.play();
 
-    // Visual effect
+    // Cash animation
     for (let i = 0; i < 10; i++) {
       const bill = document.createElement("div");
       bill.className = "money-fly";
@@ -120,7 +142,6 @@ window.requestWithdrawal = async function () {
       setTimeout(() => bill.remove(), 2000);
     }
 
-    // Reload data
     fetchUserInfo(currentUID);
     loadWithdrawals(currentUID);
 
@@ -128,9 +149,8 @@ window.requestWithdrawal = async function () {
     console.error("Withdrawal error:", err);
     msgEl.textContent = "❌ Error submitting withdrawal.";
   }
-};
+}
 
-// Load past withdrawal history
 async function loadWithdrawals(uid) {
   try {
     const snap = await get(ref(db, `withdrawals/${uid}`));
