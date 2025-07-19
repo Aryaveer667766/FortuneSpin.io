@@ -123,72 +123,7 @@ window.spinWheel = async () => {
     balanceEl.innerText = (data.balance || 0) + outcome;
   }, 3000);
 };
-function requestWithdrawal() {
-  const uid = auth.currentUser?.uid;
-  const mobile = document.getElementById("withdraw-mobile").value.trim();
-  const upi = document.getElementById("withdraw-upi").value.trim();
-  const ifsc = document.getElementById("withdraw-ifsc").value.trim();
-  const amount = parseInt(document.getElementById("withdraw-amount").value);
-  const msgEl = document.getElementById("withdraw-msg");
 
-  if (!mobile || !upi || !amount || amount <= 0) {
-    msgEl.textContent = "❗ Please fill all required fields correctly.";
-    return;
-  }
-
-  if (!uid) {
-    msgEl.textContent = "❗ User not logged in.";
-    return;
-  }
-
-  const userRef = ref(db, `users/${uid}`);
-  get(userRef).then((snapshot) => {
-    const userData = snapshot.val();
-    const balance = userData?.balance || 0;
-
-    // COUNT REFERRALS
-    const referralRef = ref(db, `referrals/${userData.uidCode}`);
-    get(referralRef).then((refSnap) => {
-      const referralData = refSnap.val();
-      const referralCount = referralData ? Object.keys(referralData).length : 0;
-
-      if (referralCount < 3) {
-        msgEl.textContent = "❗ You must have at least 3 referrals to request withdrawal.";
-        return;
-      }
-
-      if (balance < amount) {
-        msgEl.textContent = "❗ Insufficient balance.";
-        return;
-      }
-
-      // Deduct balance and log withdrawal
-      const withdrawalId = push(ref(db, `withdrawals/${uid}`)).key;
-      const withdrawalData = {
-        mobile,
-        upi,
-        ifsc,
-        amount,
-        status: "Pending",
-        timestamp: Date.now()
-      };
-
-      const updates = {};
-      updates[`users/${uid}/balance`] = balance - amount;
-      updates[`withdrawals/${uid}/${withdrawalId}`] = withdrawalData;
-
-      update(ref(db), updates)
-        .then(() => {
-          msgEl.textContent = "✅ Withdrawal request submitted successfully!";
-          document.getElementById("withdraw-form").reset();
-        })
-        .catch((err) => {
-          msgEl.textContent = "❌ Error submitting request.";
-          console.error(err);
-        });
-    });
-  });
-}
 
 
 // 🧾 Submit Support Ticket
