@@ -113,6 +113,28 @@
       animation: fly 2s ease-out;
       z-index: 9999;
     }
+    /* Flying Money Animation */
+.money-fly {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-image: url('https://cdn-icons-png.flaticon.com/512/3135/3135706.png'); /* money icon */
+  background-size: cover;
+  animation: fly 2s ease-out forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@keyframes fly {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-300px) rotate(720deg);
+  }
+}
 
     @keyframes fly {
       0% { transform: translateY(0); opacity: 1; }
