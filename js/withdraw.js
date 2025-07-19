@@ -149,7 +149,7 @@ function loadWithdrawalHistory() {
 
 // Effects on success
 function playEffects() {
-  successSound.play();
+  withdrawSound.play();
 
   for (let i = 0; i < 20; i++) {
     const money = document.createElement("div");
