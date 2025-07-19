@@ -22,14 +22,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// Admin credentials
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin121";
 
-// DOM Elements
-const loginSection = document.getElementById("admin-login");
-const dashboardSection = document.getElementById("admin-dashboard");
-const loginForm = document.getElementById("admin-login-form");
 const userList = document.getElementById("user-list");
 const withdrawalList = document.getElementById("withdrawal-list");
 const ticketList = document.getElementById("ticket-list");
@@ -39,19 +32,6 @@ const updateSpinBtn = document.getElementById("update-spin-btn");
 const treeViewer = document.getElementById("referral-tree");
 const treeForm = document.getElementById("tree-form");
 
-// Admin Login
-loginForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const username = document.getElementById("admin-username").value.trim();
-  const password = document.getElementById("admin-password").value.trim();
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    loginSection.style.display = "none";
-    dashboardSection.style.display = "block";
-    loadAllData();
-  } else {
-    alert("Invalid admin credentials");
-  }
-});
 
 // Load everything
 function loadAllData() {
