@@ -102,11 +102,7 @@ async function requestWithdrawal() {
 
     const userData = userSnap.val();
     const balance = parseInt(userData.balance || 0);
-    const referralCount = userData.referrals ? Object.keys(userData.referrals).length : 0;
-
-    if (referralCount < 2) {
-      msgEl.textContent = "❌ You need at least 3 referrals to withdraw.";
-      return;
+   
     }
 
     if (amount > balance) {
