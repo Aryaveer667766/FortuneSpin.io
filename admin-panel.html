@@ -3,89 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Panel – FortuneSpin</title>
+  <title>God Mode HQ - FortuneSpin Admin Panel</title>
   <style>
     body {
       background-color: #111;
       color: #eee;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 20px;
     }
-    h2, h3 {
-      color: #00ffcc;
+    h1, h2 {
+      color: #ffcc00;
     }
     section {
       margin-bottom: 40px;
     }
-    input, select, button {
-      margin: 5px;
-      padding: 8px;
-      border: none;
-      border-radius: 5px;
+    ul {
+      list-style: none;
+      padding: 0;
     }
-    input, select {
-      background-color: #222;
-      color: #eee;
+    li {
+      background: #1e1e1e;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    input[type="number"] {
+      width: 80px;
+      padding: 5px;
+      margin: 5px 0;
     }
     button {
-      background-color: #00ffcc;
+      background-color: #ffcc00;
       color: #000;
+      border: none;
+      padding: 6px 10px;
+      margin-left: 8px;
+      border-radius: 4px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #00ccaa;
+      background-color: #ffd633;
     }
-    .card {
-      background: #222;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-    }
-    .flex {
+    .rate-inputs {
       display: flex;
-      flex-wrap: wrap;
       gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .rate-inputs input {
+      width: 60px;
     }
   </style>
 </head>
 <body>
 
-  <h2>👨‍💻 FortuneSpin Admin Panel</h2>
+  <h1>God Mode HQ – Admin Panel</h1>
 
-  <!-- User Management -->
   <section>
-    <h3>🧑‍💼 User List & Balance Edit</h3>
-    <div id="user-list" class="flex"></div>
+    <h2>👥 All Users</h2>
+    <ul id="users-list">
+      <!-- Users populated here -->
+    </ul>
   </section>
 
-  <!-- Withdrawal Requests -->
   <section>
-    <h3>💸 Withdrawal Requests</h3>
-    <div id="withdrawal-list" class="flex"></div>
+    <h2>💸 Withdrawal Requests</h2>
+    <ul id="withdrawal-list">
+      <!-- Withdrawal requests populated here -->
+    </ul>
   </section>
 
-  <!-- Spin Control -->
   <section>
-    <h3>🎯 Spin Controls</h3>
-    <input type="number" id="win-rate" placeholder="Win %" />
-    <input type="number" id="lose-rate" placeholder="Lose %" />
-    <button id="update-spin-btn">Update Spin Rate</button>
-    <p id="spin-msg"></p>
+    <h2>🎛️ Spin Control</h2>
+    <div class="rate-inputs">
+      <label>Win Rate (%): <input type="number" id="win-rate" value="50" min="0" max="100" /></label>
+      <label>Loss Rate (%): <input type="number" id="loss-rate" value="50" min="0" max="100" /></label>
+      <button id="save-spin-btn">Save</button>
+    </div>
   </section>
 
-  <!-- Support Tickets -->
   <section>
-    <h3>🎫 Support Tickets</h3>
-    <div id="support-list" class="flex"></div>
+    <h2>📩 Support Tickets</h2>
+    <ul id="support-list">
+      <!-- Support tickets populated here -->
+    </ul>
   </section>
 
-  <!-- Referral Tree -->
   <section>
-    <h3>🌳 Referral Tree</h3>
-    <input type="text" id="referral-uid" placeholder="Enter UID" />
-    <button onclick="loadReferralTree()">View Tree</button>
-    <ul id="referral-tree"></ul>
+    <h2>🌱 Referral Tree</h2>
+    <ul id="referral-list">
+      <!-- Referral tree populated here -->
+    </ul>
   </section>
 
   <script type="module" src="js/admin.js"></script>
