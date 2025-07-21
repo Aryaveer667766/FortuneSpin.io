@@ -1,102 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>God Mode HQ - FortuneSpin Admin Panel</title>
-  <style>
-    body {
-      background-color: #111;
-      color: #eee;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    h1, h2 {
-      color: #ffcc00;
-    }
-    section {
-      margin-bottom: 40px;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      background: #1e1e1e;
-      margin-bottom: 10px;
-      padding: 15px;
-      border-radius: 8px;
-    }
-    input[type="number"] {
-      width: 80px;
-      padding: 5px;
-      margin: 5px 0;
-    }
-    button {
-      background-color: #ffcc00;
-      color: #000;
-      border: none;
-      padding: 6px 10px;
-      margin-left: 8px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #ffd633;
-    }
-    .rate-inputs {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .rate-inputs input {
-      width: 60px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>🛰️ FortuneSpin God Mode HQ</title>
+  <link rel="stylesheet" href="style/admin.css">
+  <link rel="icon" href="assets/logos/logo.png">
+  <link href="https://fonts.googleapis.com/css22?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="admin-body">
 
-  <h1>God Mode HQ – Admin Panel</h1>
+  <!-- 🔻 HEADER -->
+  <header>
+    <img src="assets/logos/logo.png" class="admin-logo" />
+    <h1>FORTUNESPIN | ADMIN HQ</h1>
+    <p class="live-indicator">🟢 SYSTEM ONLINE</p>
+  </header>
 
-  <section>
-    <h2>👥 All Users</h2>
-    <ul id="users-list">
-      <!-- Users populated here -->
-    </ul>
-  </section>
+  <!-- ⚙️ CONTROL PANEL -->
+  <main>
+    <section class="panel" id="user-panel">
+      <h2>👤 User Control</h2>
+      <input type="text" placeholder="Search UID or username..." id="search-user" />
+      <button onclick="searchUser()">Search</button>
+      <div id="user-result">No user selected.</div>
+    </section>
 
-  <section>
-    <h2>💸 Withdrawal Requests</h2>
-    <ul id="withdrawal-list">
-      <!-- Withdrawal requests populated here -->
-    </ul>
-  </section>
+    <section class="panel">
+      <h2>🎡 Spin Control</h2>
+      <input type="text" id="spin-uid" placeholder="UID" />
+      <input type="number" id="spin-count" placeholder="Spins to Add" />
+      <input type="number" id="win-amount" placeholder="Set Win ₹ Amount (Optional)" />
+      <button onclick="assignSpin()">Assign Spin</button>
+    </section>
 
-  <section>
-    <h2>🎛️ Spin Control</h2>
-    <div class="rate-inputs">
-      <label>Win Rate (%): <input type="number" id="win-rate" value="50" min="0" max="100" /></label>
-      <label>Loss Rate (%): <input type="number" id="loss-rate" value="50" min="0" max="100" /></label>
-      <button id="save-spin-btn">Save</button>
-    </div>
-  </section>
+    <section class="panel">
+      <h2>💸 Withdrawals</h2>
+      <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
+      <div id="withdraw-list">No pending requests.</div>
+    </section>
 
-  <section>
-    <h2>📩 Support Tickets</h2>
-    <ul id="support-list">
-      <!-- Support tickets populated here -->
-    </ul>
-  </section>
+    <section class="panel">
+      <h2>🧾 Tickets</h2>
+      <button onclick="loadTickets()">🔁 Refresh Tickets</button>
+      <div id="ticket-list">No tickets loaded.</div>
+    </section>
 
-  <section>
-    <h2>🌱 Referral Tree</h2>
-    <ul id="referral-list">
-      <!-- Referral tree populated here -->
-    </ul>
-  </section>
+    <section class="panel">
+      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
+      <input type="text" id="ref-uid" placeholder="Enter UID" />
+      <button onclick="viewReferralTree()">View Tree</button>
+      <div id="ref-tree"></div>
+    </section>
+  </main>
 
+  <!-- 🔊 SOUNDS -->
+  <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
+  <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
+  <audio id="confetti-sound" src="assets/sounds/confetti.mp3" preload="auto"></audio>
+
+  <!-- 🎯 JS -->
   <script type="module" src="js/admin.js"></script>
+  <script>
+    // Sound Effects
+    const click = document.getElementById("click-sound");
+    document.querySelectorAll("button").forEach(btn =>
+      btn.addEventListener("click", () => click.play())
+    );
+  </script>
+
 </body>
 </html>
