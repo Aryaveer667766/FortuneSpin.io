@@ -1,151 +1,173 @@
-import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-import { db } from './firebase.js'; // ✅ Using your export name
+import { app, auth, db } from './firebase.js';
+import {
+  ref,
+  onValue,
+  update,
+  remove,
+  set,
+  get,
+  child,
+} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
 
-// Wait for DOM to fully load
 document.addEventListener('DOMContentLoaded', () => {
-  loadUsers();
-  loadWithdrawals();
-  loadSupportTickets();
-  loadWinRate();
+  const userList = document.getElementById('user-list');
+  const withdrawalList = document.getElementById('withdrawal-list');
+  const ticketList = document.getElementById('ticket-list');
+  const spinControlForm = document.getElementById('spin-control-form');
+  const searchInput = document.getElementById('search-input');
+
+  const usersRef = ref(db, 'users');
+  const withdrawalsRef = ref(db, 'withdrawals');
+  const ticketsRef = ref(db, 'supportTickets');
+
+  // Real-time User List
+  onValue(usersRef, (snapshot) => {
+    userList.innerHTML = '';
+    snapshot.forEach((childSnap) => {
+      const uid = childSnap.key;
+      const user = childSnap.val();
+      const shortUID = 'UID#' + uid.slice(-6);
+      const isLocked = user.locked || false;
+
+      const div = document.createElement('div');
+      div.className = 'user-card';
+      div.innerHTML = `
+        <h4>${user.name || 'Unnamed'} <span class="uid">${shortUID}</span></h4>
+        <p>Balance: ₹${user.balance || 0}</p>
+        <p>Spins: ${user.spins || 0}</p>
+        <p>Status: <strong style="color:${isLocked ? 'red' : 'green'}">${isLocked ? 'Locked' : 'Active'}</strong></p>
+        <input type="number" placeholder="New Balance" id="bal-${uid}" />
+        <button onclick="updateBalance('${uid}')">Update Balance</button>
+        <input type="number" placeholder="Add Spins" id="spin-${uid}" />
+        <button onclick="addSpins('${uid}')">Add Spins</button>
+        <button onclick="toggleLock('${uid}', ${isLocked})">${isLocked ? 'Unlock' : 'Lock'}</button>
+        <button onclick="deleteUser('${uid}')">Delete User</button>
+        <button onclick="viewReferralTree('${uid}')">View Referral Tree</button>
+      `;
+      userList.appendChild(div);
+    });
+  });
+
+  // Real-time Withdrawals
+  onValue(withdrawalsRef, (snapshot) => {
+    withdrawalList.innerHTML = '';
+    snapshot.forEach((childSnap) => {
+      const id = childSnap.key;
+      const data = childSnap.val();
+      const div = document.createElement('div');
+      div.className = 'withdrawal-card';
+      div.innerHTML = `
+        <h4>${data.name || 'User'} - ₹${data.amount}</h4>
+        <p>Method: ${data.method}</p>
+        <p>Phone: ${data.phone}</p>
+        <p>UPI/Account: ${data.upi || data.account || ''}</p>
+        <p>IFSC: ${data.ifsc || '-'}</p>
+        <button onclick="approveWithdrawal('${id}')">Approve</button>
+        <button onclick="rejectWithdrawal('${id}')">Reject</button>
+      `;
+      withdrawalList.appendChild(div);
+    });
+  });
+
+  // Real-time Support Tickets
+  onValue(ticketsRef, (snapshot) => {
+    ticketList.innerHTML = '';
+    snapshot.forEach((childSnap) => {
+      const ticket = childSnap.val();
+      const div = document.createElement('div');
+      div.className = 'ticket-card';
+      div.innerHTML = `
+        <h4>${ticket.subject}</h4>
+        <p>${ticket.message}</p>
+        <p><em>From UID: ${childSnap.key}</em></p>
+      `;
+      ticketList.appendChild(div);
+    });
+  });
+
+  // Spin Control Form
+  if (spinControlForm) {
+    spinControlForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const winRate = document.getElementById('win-rate').value;
+      const loseRate = document.getElementById('lose-rate').value;
+      set(ref(db, 'settings/spinControl'), {
+        winRate: parseFloat(winRate),
+        loseRate: parseFloat(loseRate),
+      });
+      alert('Spin control updated!');
+    });
+  }
+
+  // Search
+  searchInput?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    const users = document.querySelectorAll('.user-card');
+    users.forEach((card) => {
+      const name = card.querySelector('h4')?.textContent.toLowerCase();
+      const uidText = card.querySelector('.uid')?.textContent.toLowerCase();
+      if (name.includes(query) || uidText.includes(query)) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
 });
 
-// Load Users
-function loadUsers() {
-  const usersRef = ref(db, 'users');
-  onValue(usersRef, (snapshot) => {
-    const userList = document.getElementById('user-list');
-    userList.innerHTML = '';
-    snapshot.forEach((childSnapshot) => {
-      const uid = childSnapshot.key;
-      const data = childSnapshot.val();
-      const card = document.createElement('div');
-      card.className = 'col';
-      card.innerHTML = `
-        <div class="card p-3">
-          <h5>UID: ${uid}</h5>
-          <p><strong>Name:</strong> ${data.name || 'N/A'}</p>
-          <p><strong>Balance:</strong> ₹${data.balance || 0}</p>
-          <input class="form-control mb-2" type="number" placeholder="New Balance" id="bal-${uid}">
-          <button class="btn btn-sm btn-primary" onclick="updateBalance('${uid}')">Update Balance</button>
-          <button class="btn btn-sm btn-warning" onclick="addSpin('${uid}')">+1 Spin</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteUser('${uid}')">Delete User</button>
-        </div>
-      `;
-      userList.appendChild(card);
-    });
-  });
-}
-
-window.updateBalance = function(uid) {
-  const newBal = parseInt(document.getElementById(`bal-${uid}`).value);
+// Global Functions
+window.updateBalance = async (uid) => {
+  const input = document.getElementById(`bal-${uid}`);
+  const newBal = parseFloat(input.value);
   if (!isNaN(newBal)) {
-    update(ref(db, `users/${uid}`), { balance: newBal });
-    alert('Balance updated!');
+    await update(ref(db, 'users/' + uid), { balance: newBal });
+    alert('Balance updated');
   }
 };
 
-window.addSpin = function(uid) {
-  const userRef = ref(db, `users/${uid}/spins`);
-  onValue(userRef, (snapshot) => {
-    const current = snapshot.val() || 0;
-    update(ref(db, `users/${uid}`), { spins: current + 1 });
-    alert('Spin added!');
-  }, { onlyOnce: true });
-};
-
-window.deleteUser = function(uid) {
-  if (confirm(`Are you sure you want to delete user ${uid}?`)) {
-    remove(ref(db, `users/${uid}`));
-    remove(ref(db, `referrals/${uid}`));
-    alert('User deleted.');
+window.addSpins = async (uid) => {
+  const input = document.getElementById(`spin-${uid}`);
+  const spinCount = parseInt(input.value);
+  if (!isNaN(spinCount)) {
+    const userRef = ref(db, 'users/' + uid);
+    const snap = await get(userRef);
+    const currentSpins = snap.val().spins || 0;
+    await update(userRef, { spins: currentSpins + spinCount });
+    alert('Spins added');
   }
 };
 
-// Load Withdrawals
-function loadWithdrawals() {
-  const withdrawRef = ref(db, 'withdrawals');
-  onValue(withdrawRef, (snapshot) => {
-    const withdrawalList = document.getElementById('withdrawal-list');
-    withdrawalList.innerHTML = '';
-    snapshot.forEach((childSnapshot) => {
-      const wid = childSnapshot.key;
-      const data = childSnapshot.val();
-      const card = document.createElement('div');
-      card.className = 'col';
-      card.innerHTML = `
-        <div class="card p-3">
-          <h5>UID: ${data.uid}</h5>
-          <p><strong>Amount:</strong> ₹${data.amount}</p>
-          <p><strong>Method:</strong> ${data.method}</p>
-          <p><strong>Mobile:</strong> ${data.mobile}</p>
-          <p><strong>UPI/Account:</strong> ${data.upiOrAccount}</p>
-          ${data.ifsc ? `<p><strong>IFSC:</strong> ${data.ifsc}</p>` : ''}
-          <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${wid}')">Approve</button>
-          <button class="btn btn-danger btn-sm" onclick="rejectWithdrawal('${wid}', ${data.amount}, '${data.uid}')">Reject</button>
-        </div>
-      `;
-      withdrawalList.appendChild(card);
-    });
-  });
-}
-
-window.approveWithdrawal = function(wid) {
-  remove(ref(db, `withdrawals/${wid}`));
-  alert("✅ Withdrawal approved and removed from queue.");
+window.toggleLock = async (uid, currentlyLocked) => {
+  await update(ref(db, 'users/' + uid), { locked: !currentlyLocked });
+  alert(currentlyLocked ? 'User unlocked' : 'User locked');
 };
 
-window.rejectWithdrawal = function(wid, amount, uid) {
-  const userRef = ref(db, `users/${uid}/balance`);
-  onValue(userRef, (snapshot) => {
-    const currBal = snapshot.val() || 0;
-    update(ref(db, `users/${uid}`), { balance: currBal + amount });
-    remove(ref(db, `withdrawals/${wid}`));
-    alert("❌ Withdrawal rejected and amount refunded.");
-  }, { onlyOnce: true });
-};
-
-// Load Support Tickets
-function loadSupportTickets() {
-  const supportRef = ref(db, 'supportTickets');
-  onValue(supportRef, (snapshot) => {
-    const supportList = document.getElementById('support-list');
-    supportList.innerHTML = '';
-    snapshot.forEach((childSnapshot) => {
-      const tid = childSnapshot.key;
-      const data = childSnapshot.val();
-      const card = document.createElement('div');
-      card.className = 'col';
-      card.innerHTML = `
-        <div class="card p-3">
-          <h5>UID: ${data.uid}</h5>
-          <p><strong>Issue:</strong> ${data.issue}</p>
-          <button class="btn btn-danger btn-sm" onclick="deleteTicket('${tid}')">Delete Ticket</button>
-        </div>
-      `;
-      supportList.appendChild(card);
-    });
-  });
-}
-
-window.deleteTicket = function(tid) {
-  remove(ref(db, `supportTickets/${tid}`));
-  alert('Ticket deleted.');
-};
-
-// Load and Update Win Rate
-function loadWinRate() {
-  const winRef = ref(db, 'config/winRate');
-  onValue(winRef, (snapshot) => {
-    document.getElementById('winRate').value = snapshot.val() || 50;
-  });
-}
-
-window.updateWinRate = function() {
-  const rate = parseInt(document.getElementById('winRate').value);
-  if (!isNaN(rate) && rate >= 0 && rate <= 100) {
-    set(ref(db, 'config/winRate'), rate);
-    alert('Win rate updated!');
-  } else {
-    alert('Enter a valid win rate between 0 and 100.');
+window.deleteUser = async (uid) => {
+  if (confirm('Are you sure you want to delete this user?')) {
+    await remove(ref(db, 'users/' + uid));
+    alert('User deleted');
   }
+};
+
+window.approveWithdrawal = async (id) => {
+  await update(ref(db, 'withdrawals/' + id), { status: 'Approved' });
+  setTimeout(() => remove(ref(db, 'withdrawals/' + id)), 1000);
+  alert('Withdrawal approved');
+};
+
+window.rejectWithdrawal = async (id) => {
+  await update(ref(db, 'withdrawals/' + id), { status: 'Rejected' });
+  setTimeout(() => remove(ref(db, 'withdrawals/' + id)), 1000);
+  alert('Withdrawal rejected');
+};
+
+window.viewReferralTree = async (uid) => {
+  const treeRef = ref(db, `referrals/${uid}`);
+  const snap = await get(treeRef);
+  if (!snap.exists()) {
+    alert('No referrals found');
+    return;
+  }
+  const referred = Object.keys(snap.val());
+  alert(`Direct referrals (${referred.length}):\n` + referred.map(id => '• ' + id).join('\n'));
 };
