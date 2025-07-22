@@ -1,173 +1,104 @@
-import {  auth, db } from './firebase.js';
+import { db } from "./firebase.js";
 import {
   ref,
   onValue,
+  set,
   update,
   remove,
-  set,
-  get,
+  push,
   child,
-} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-document.addEventListener('DOMContentLoaded', () => {
-  const userList = document.getElementById('user-list');
-  const withdrawalList = document.getElementById('withdrawal-list');
-  const ticketList = document.getElementById('ticket-list');
-  const spinControlForm = document.getElementById('spin-control-form');
-  const searchInput = document.getElementById('search-input');
+// DOM Loaded
+document.addEventListener("DOMContentLoaded", () => {
+  const userList = document.getElementById("user-list");
+  const searchInput = document.getElementById("search");
+  const fakeUserBtn = document.getElementById("generate-fake-user");
 
-  const usersRef = ref(db, 'users');
-  const withdrawalsRef = ref(db, 'withdrawals');
-  const ticketsRef = ref(db, 'supportTickets');
+  const renderUID = (uid) => `UID#${uid.slice(-6)}`;
 
-  // Real-time User List
-  onValue(usersRef, (snapshot) => {
-    userList.innerHTML = '';
-    snapshot.forEach((childSnap) => {
-      const uid = childSnap.key;
-      const user = childSnap.val();
-      const shortUID = 'UID#' + uid.slice(-6);
-      const isLocked = user.locked || false;
+  function loadUsers() {
+    onValue(ref(db, "users"), (snapshot) => {
+      userList.innerHTML = "";
+      const users = snapshot.val();
+      if (!users) return;
 
-      const div = document.createElement('div');
-      div.className = 'user-card';
-      div.innerHTML = `
-        <h4>${user.name || 'Unnamed'} <span class="uid">${shortUID}</span></h4>
-        <p>Balance: ₹${user.balance || 0}</p>
-        <p>Spins: ${user.spins || 0}</p>
-        <p>Status: <strong style="color:${isLocked ? 'red' : 'green'}">${isLocked ? 'Locked' : 'Active'}</strong></p>
-        <input type="number" placeholder="New Balance" id="bal-${uid}" />
-        <button onclick="updateBalance('${uid}')">Update Balance</button>
-        <input type="number" placeholder="Add Spins" id="spin-${uid}" />
-        <button onclick="addSpins('${uid}')">Add Spins</button>
-        <button onclick="toggleLock('${uid}', ${isLocked})">${isLocked ? 'Unlock' : 'Lock'}</button>
-        <button onclick="deleteUser('${uid}')">Delete User</button>
-        <button onclick="viewReferralTree('${uid}')">View Referral Tree</button>
-      `;
-      userList.appendChild(div);
-    });
-  });
-
-  // Real-time Withdrawals
-  onValue(withdrawalsRef, (snapshot) => {
-    withdrawalList.innerHTML = '';
-    snapshot.forEach((childSnap) => {
-      const id = childSnap.key;
-      const data = childSnap.val();
-      const div = document.createElement('div');
-      div.className = 'withdrawal-card';
-      div.innerHTML = `
-        <h4>${data.name || 'User'} - ₹${data.amount}</h4>
-        <p>Method: ${data.method}</p>
-        <p>Phone: ${data.phone}</p>
-        <p>UPI/Account: ${data.upi || data.account || ''}</p>
-        <p>IFSC: ${data.ifsc || '-'}</p>
-        <button onclick="approveWithdrawal('${id}')">Approve</button>
-        <button onclick="rejectWithdrawal('${id}')">Reject</button>
-      `;
-      withdrawalList.appendChild(div);
-    });
-  });
-
-  // Real-time Support Tickets
-  onValue(ticketsRef, (snapshot) => {
-    ticketList.innerHTML = '';
-    snapshot.forEach((childSnap) => {
-      const ticket = childSnap.val();
-      const div = document.createElement('div');
-      div.className = 'ticket-card';
-      div.innerHTML = `
-        <h4>${ticket.subject}</h4>
-        <p>${ticket.message}</p>
-        <p><em>From UID: ${childSnap.key}</em></p>
-      `;
-      ticketList.appendChild(div);
-    });
-  });
-
-  // Spin Control Form
-  if (spinControlForm) {
-    spinControlForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const winRate = document.getElementById('win-rate').value;
-      const loseRate = document.getElementById('lose-rate').value;
-      set(ref(db, 'settings/spinControl'), {
-        winRate: parseFloat(winRate),
-        loseRate: parseFloat(loseRate),
+      Object.entries(users).forEach(([uid, data]) => {
+        const visibleUID = renderUID(uid);
+        const isLocked = data.accountLocked === true;
+        const div = document.createElement("div");
+        div.className = "user-card";
+        div.innerHTML = `
+          <p><strong>${data.name || "No Name"}</strong> (${visibleUID})</p>
+          <p>📞 ${data.phone || "N/A"}</p>
+          <p>💰 Balance: ₹${data.balance || 0}</p>
+          <p>🎯 Spins: ${data.spins || 0}</p>
+          <p>Status: ${isLocked ? "🔒 Locked" : "🔓 Active"}</p>
+          <button onclick="editBalance('${uid}')">Edit Balance</button>
+          <button onclick="addSpins('${uid}')">Add Spins</button>
+          <button onclick="toggleLock('${uid}', ${isLocked})">
+            ${isLocked ? "Unlock" : "Lock"}
+          </button>
+          <button onclick="deleteUser('${uid}')">❌ Delete</button>
+        `;
+        userList.appendChild(div);
       });
-      alert('Spin control updated!');
     });
   }
 
-  // Search
-  searchInput?.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    const users = document.querySelectorAll('.user-card');
-    users.forEach((card) => {
-      const name = card.querySelector('h4')?.textContent.toLowerCase();
-      const uidText = card.querySelector('.uid')?.textContent.toLowerCase();
-      if (name.includes(query) || uidText.includes(query)) {
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-      }
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase();
+    const cards = document.querySelectorAll(".user-card");
+    cards.forEach((card) => {
+      card.style.display = card.textContent.toLowerCase().includes(query)
+        ? "block"
+        : "none";
     });
   });
+
+  window.editBalance = (uid) => {
+    const newBalance = prompt("Enter new balance:");
+    if (newBalance !== null) {
+      update(ref(db, "users/" + uid), {
+        balance: parseInt(newBalance),
+      });
+    }
+  };
+
+  window.addSpins = (uid) => {
+    const moreSpins = prompt("Add how many spins?");
+    if (moreSpins !== null) {
+      const spinRef = ref(db, "users/" + uid + "/spins");
+      onValue(spinRef, (snap) => {
+        const current = snap.val() || 0;
+        set(spinRef, current + parseInt(moreSpins));
+      }, { onlyOnce: true });
+    }
+  };
+
+  window.toggleLock = (uid, isCurrentlyLocked) => {
+    update(ref(db, "users/" + uid), {
+      accountLocked: !isCurrentlyLocked,
+    });
+  };
+
+  window.deleteUser = (uid) => {
+    if (confirm("Are you sure you want to delete this user?")) {
+      remove(ref(db, "users/" + uid));
+    }
+  };
+
+  fakeUserBtn.addEventListener("click", () => {
+    const newUID = push(child(ref(db), "users")).key;
+    const fakeData = {
+      name: "FakeUser" + Math.floor(Math.random() * 1000),
+      phone: "+91" + Math.floor(1000000000 + Math.random() * 8999999999),
+      balance: Math.floor(Math.random() * 1000),
+      spins: Math.floor(Math.random() * 10),
+      fake: true,
+    };
+    set(ref(db, "users/" + newUID), fakeData);
+  });
+
+  loadUsers();
 });
-
-// Global Functions
-window.updateBalance = async (uid) => {
-  const input = document.getElementById(`bal-${uid}`);
-  const newBal = parseFloat(input.value);
-  if (!isNaN(newBal)) {
-    await update(ref(db, 'users/' + uid), { balance: newBal });
-    alert('Balance updated');
-  }
-};
-
-window.addSpins = async (uid) => {
-  const input = document.getElementById(`spin-${uid}`);
-  const spinCount = parseInt(input.value);
-  if (!isNaN(spinCount)) {
-    const userRef = ref(db, 'users/' + uid);
-    const snap = await get(userRef);
-    const currentSpins = snap.val().spins || 0;
-    await update(userRef, { spins: currentSpins + spinCount });
-    alert('Spins added');
-  }
-};
-
-window.toggleLock = async (uid, currentlyLocked) => {
-  await update(ref(db, 'users/' + uid), { locked: !currentlyLocked });
-  alert(currentlyLocked ? 'User unlocked' : 'User locked');
-};
-
-window.deleteUser = async (uid) => {
-  if (confirm('Are you sure you want to delete this user?')) {
-    await remove(ref(db, 'users/' + uid));
-    alert('User deleted');
-  }
-};
-
-window.approveWithdrawal = async (id) => {
-  await update(ref(db, 'withdrawals/' + id), { status: 'Approved' });
-  setTimeout(() => remove(ref(db, 'withdrawals/' + id)), 1000);
-  alert('Withdrawal approved');
-};
-
-window.rejectWithdrawal = async (id) => {
-  await update(ref(db, 'withdrawals/' + id), { status: 'Rejected' });
-  setTimeout(() => remove(ref(db, 'withdrawals/' + id)), 1000);
-  alert('Withdrawal rejected');
-};
-
-window.viewReferralTree = async (uid) => {
-  const treeRef = ref(db, `referrals/${uid}`);
-  const snap = await get(treeRef);
-  if (!snap.exists()) {
-    alert('No referrals found');
-    return;
-  }
-  const referred = Object.keys(snap.val());
-  alert(`Direct referrals (${referred.length}):\n` + referred.map(id => '• ' + id).join('\n'));
-};
