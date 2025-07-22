@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FortuneSpin God Mode HQ</title>
+  <title>FortuneSpin – God Mode HQ</title>
   <style>
     body {
       background-color: #121212;
@@ -14,17 +14,16 @@
     h1 {
       color: #00ffff;
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 5px;
       border: none;
       border-radius: 8px;
       font-size: 14px;
     }
-    input {
-      width: 300px;
+    input, select {
       background: #1e1e1e;
       color: #f0f0f0;
     }
@@ -32,28 +31,27 @@
       background: #00bcd4;
       color: black;
       cursor: pointer;
-      transition: background 0.2s ease;
     }
     button:hover {
       background: #00ffff;
     }
-    .user-card {
-      background: #1a1a1a;
+    section {
+      margin-bottom: 40px;
       border: 1px solid #2e2e2e;
-      padding: 15px;
+      padding: 20px;
       border-radius: 12px;
+      background: #1a1a1a;
+      box-shadow: 0 0 10px rgba(0,255,255,0.05);
+    }
+    .user-card, .ticket-card, .withdrawal-card {
+      background: #191919;
+      padding: 15px;
       margin: 10px 0;
-      box-shadow: 0 0 10px rgba(0,255,255,0.1);
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,255,255,0.1);
     }
-    .user-card p {
+    .user-card p, .ticket-card p, .withdrawal-card p {
       margin: 4px 0;
-    }
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-      justify-content: center;
     }
   </style>
 </head>
@@ -61,22 +59,45 @@
 
   <h1>💠 FortuneSpin Admin Panel – God Mode HQ 💠</h1>
 
-  <div class="controls">
-    <input type="text" id="search" placeholder="🔍 Search users by name, phone or UID" />
+  <section id="controls">
+    <h2>🧰 User Controls</h2>
+    <input type="text" id="search" placeholder="Search users by name, phone or UID" />
     <button id="generate-fake-user">🎭 Generate Fake User</button>
-  </div>
+    <div id="user-list"></div>
+  </section>
 
-  <div id="user-list"></div>
+  <section id="withdrawals">
+    <h2>✅ Withdrawal Management</h2>
+    <div id="withdrawal-list"></div>
+  </section>
+
+  <section id="support">
+    <h2>🧵 Support Tickets</h2>
+    <div id="ticket-list"></div>
+  </section>
+
+  <section id="referrals">
+    <h2>🌳 Referral Tree Viewer</h2>
+    <input type="text" id="referral-uid" placeholder="Enter UID to view tree">
+    <button onclick="viewReferralTree()">View Tree</button>
+    <pre id="referral-output"></pre>
+  </section>
+
+  <section id="notify">
+    <h2>🎯 Push Notification</h2>
+    <input type="text" id="notify-message" placeholder="Enter message">
+    <button id="send-notification">Send to All</button>
+  </section>
 
   <!-- Firebase SDK -->
   <script type="module" src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js"></script>
 
-  <!-- Your Firebase Config -->
+  <!-- Firebase config -->
   <script type="module" src="./firebase.js"></script>
 
-  <!-- Admin Logic -->
-  <script type="module" src="./js/admin.js"></script>
+  <!-- Main Admin Script -->
+  <script type="module" src="./admin.js"></script>
 
 </body>
 </html>
