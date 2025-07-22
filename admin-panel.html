@@ -3,121 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FortuneSpin Admin Panel</title>
+  <title>God Mode Admin Panel - FortuneSpin</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      color: #333;
+      font-family: 'Segoe UI', sans-serif;
+      background: #121212;
+      color: #e0e0e0;
       margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #007bff;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-    }
-    main {
       padding: 20px;
     }
-    section {
-      margin-bottom: 30px;
-      background: white;
+
+    h1, h2 {
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .section {
+      background: #1e1e1e;
+      border: 1px solid #333;
       padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
     }
-    h2 {
-      margin-top: 0;
+
+    input, select, button {
+      background: #2c2c2c;
+      color: #ffffff;
+      border: 1px solid #555;
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
     }
-    label, input, button, select {
-      display: block;
-      margin: 10px 0;
+
+    input::placeholder {
+      color: #888;
     }
-    input, select {
-      padding: 5px;
-      width: 100%;
-      max-width: 300px;
-    }
-    button {
-      padding: 6px 12px;
-      background: #007bff;
-      color: white;
-      border: none;
+
+    button:hover {
+      background: #333;
       cursor: pointer;
     }
-    button.danger {
-      background: crimson;
-    }
-    .user-entry {
+
+    .user-card {
+      background: #252525;
+      border: 1px solid #444;
       padding: 10px;
-      border-bottom: 1px solid #ccc;
+      margin: 5px 0;
+      border-radius: 6px;
     }
-    .uid {
-      font-weight: bold;
-      color: #555;
-    }
+
     .locked {
-      color: red;
+      background-color: #3b1f1f !important;
     }
-    .admin-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+
+    .highlight {
+      color: #4fc3f7;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #ffca28;
+    }
+
+    .approved {
+      color: #66bb6a;
+    }
+
+    .rejected {
+      color: #ef5350;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>FortuneSpin - Admin Panel</h1>
-  </header>
+  <h1>🛰️ FortuneSpin – Admin God Mode</h1>
 
-  <main>
-    <section>
-      <h2>🔍 Search User</h2>
-      <input type="text" id="search-user" placeholder="Search by name, phone or UID...">
-      <div id="user-list"></div>
-    </section>
+  <!-- 🔍 Search -->
+  <div class="section">
+    <h2>🔍 Search Users</h2>
+    <input type="text" id="search-input" placeholder="Search by name or phone..." />
+    <div id="user-list"></div>
+  </div>
 
-    <section>
-      <h2>🛠 Edit User</h2>
-      <input type="text" id="edit-uid" placeholder="Enter UID..." />
-      <label>New Balance</label>
-      <input type="number" id="new-balance" />
-      <button onclick="updateBalance()">Update Balance</button>
-      <button class="danger" onclick="deleteUser()">Delete User</button>
-      <button onclick="toggleLock()">Lock/Unlock Account</button>
-      <button onclick="addSpins()">Add Spins</button>
-    </section>
+  <!-- 🔒 Lock/Unlock, ⚙️ Balance & Spin Control -->
+  <div class="section">
+    <h2>⚙️ User Controls</h2>
+    <div id="selected-user"></div>
+  </div>
 
-    <section>
-      <h2>💸 Withdrawal Requests</h2>
-      <div id="withdrawals"></div>
-    </section>
+  <!-- 💸 Withdrawal Requests -->
+  <div class="section">
+    <h2>💸 Withdrawal Requests</h2>
+    <div id="withdrawals"></div>
+  </div>
 
-    <section>
-      <h2>🎛 Spin Control</h2>
-      <label>Win Rate (%)</label>
-      <input type="number" id="win-rate" min="0" max="100" />
-      <button onclick="updateWinRate()">Set Win Rate</button>
-    </section>
+  <!-- 🎫 Support Tickets -->
+  <div class="section">
+    <h2>🎫 Support Tickets</h2>
+    <div id="support-tickets"></div>
+  </div>
 
-    <section>
-      <h2>🧾 Support Tickets</h2>
-      <div id="tickets"></div>
-    </section>
+  <!-- 🌳 Referral Tree -->
+  <div class="section">
+    <h2>🌳 Referral Tree Viewer</h2>
+    <input type="text" id="tree-uid-input" placeholder="Enter UID to view referral tree">
+    <button onclick="viewReferralTree()">View Tree</button>
+    <div id="referral-tree"></div>
+  </div>
 
-    <section>
-      <h2>🌳 Referral Tree Viewer</h2>
-      <input type="text" id="referral-uid" placeholder="Enter UID to view tree..." />
-      <button onclick="viewReferralTree()">View Tree</button>
-      <div id="referral-tree"></div>
-    </section>
-  </main>
+  <!-- 🧪 Fake User Generator -->
+  <div class="section">
+    <h2>🧪 Fake User Generator</h2>
+    <button onclick="generateFakeUser()">Generate Fake User</button>
+    <div id="fake-user-status"></div>
+  </div>
 
-  <!-- JS -->
-  <script type="module" src="./firebase.js"></script>
-  <script type="module" src="./js/admin.js"></script>
+  <!-- 📣 Push Notifications -->
+  <div class="section">
+    <h2>📣 Push Notifications</h2>
+    <input type="text" id="notif-title" placeholder="Notification title">
+    <input type="text" id="notif-message" placeholder="Notification message">
+    <button onclick="sendNotification()">Send</button>
+    <div id="notif-status"></div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
 </body>
 </html>
