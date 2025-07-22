@@ -1,7 +1,7 @@
 import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-import { database } from 'firebase.js';
+import { db } from 'firebase.js'; // ✅ Using your export name
 
-// Wait for DOM to load
+// Wait for DOM to fully load
 document.addEventListener('DOMContentLoaded', () => {
   loadUsers();
   loadWithdrawals();
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Load Users
 function loadUsers() {
-  const usersRef = ref(database, 'users');
+  const usersRef = ref(db, 'users');
   onValue(usersRef, (snapshot) => {
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
@@ -39,31 +39,31 @@ function loadUsers() {
 window.updateBalance = function(uid) {
   const newBal = parseInt(document.getElementById(`bal-${uid}`).value);
   if (!isNaN(newBal)) {
-    update(ref(database, `users/${uid}`), { balance: newBal });
+    update(ref(db, `users/${uid}`), { balance: newBal });
     alert('Balance updated!');
   }
 };
 
 window.addSpin = function(uid) {
-  const userRef = ref(database, `users/${uid}/spins`);
+  const userRef = ref(db, `users/${uid}/spins`);
   onValue(userRef, (snapshot) => {
     const current = snapshot.val() || 0;
-    update(ref(database, `users/${uid}`), { spins: current + 1 });
+    update(ref(db, `users/${uid}`), { spins: current + 1 });
     alert('Spin added!');
   }, { onlyOnce: true });
 };
 
 window.deleteUser = function(uid) {
   if (confirm(`Are you sure you want to delete user ${uid}?`)) {
-    remove(ref(database, `users/${uid}`));
-    remove(ref(database, `referrals/${uid}`));
+    remove(ref(db, `users/${uid}`));
+    remove(ref(db, `referrals/${uid}`));
     alert('User deleted.');
   }
 };
 
 // Load Withdrawals
 function loadWithdrawals() {
-  const withdrawRef = ref(database, 'withdrawals');
+  const withdrawRef = ref(db, 'withdrawals');
   onValue(withdrawRef, (snapshot) => {
     const withdrawalList = document.getElementById('withdrawal-list');
     withdrawalList.innerHTML = '';
@@ -90,24 +90,23 @@ function loadWithdrawals() {
 }
 
 window.approveWithdrawal = function(wid) {
-  remove(ref(database, `withdrawals/${wid}`));
+  remove(ref(db, `withdrawals/${wid}`));
   alert("✅ Withdrawal approved and removed from queue.");
 };
 
 window.rejectWithdrawal = function(wid, amount, uid) {
-  // refund amount
-  const userRef = ref(database, `users/${uid}/balance`);
+  const userRef = ref(db, `users/${uid}/balance`);
   onValue(userRef, (snapshot) => {
     const currBal = snapshot.val() || 0;
-    update(ref(database, `users/${uid}`), { balance: currBal + amount });
-    remove(ref(database, `withdrawals/${wid}`));
+    update(ref(db, `users/${uid}`), { balance: currBal + amount });
+    remove(ref(db, `withdrawals/${wid}`));
     alert("❌ Withdrawal rejected and amount refunded.");
   }, { onlyOnce: true });
 };
 
 // Load Support Tickets
 function loadSupportTickets() {
-  const supportRef = ref(database, 'supportTickets');
+  const supportRef = ref(db, 'supportTickets');
   onValue(supportRef, (snapshot) => {
     const supportList = document.getElementById('support-list');
     supportList.innerHTML = '';
@@ -129,13 +128,13 @@ function loadSupportTickets() {
 }
 
 window.deleteTicket = function(tid) {
-  remove(ref(database, `supportTickets/${tid}`));
+  remove(ref(db, `supportTickets/${tid}`));
   alert('Ticket deleted.');
 };
 
-// Load and Update Spin Win Rate
+// Load and Update Win Rate
 function loadWinRate() {
-  const winRef = ref(database, 'config/winRate');
+  const winRef = ref(db, 'config/winRate');
   onValue(winRef, (snapshot) => {
     document.getElementById('winRate').value = snapshot.val() || 50;
   });
@@ -144,7 +143,7 @@ function loadWinRate() {
 window.updateWinRate = function() {
   const rate = parseInt(document.getElementById('winRate').value);
   if (!isNaN(rate) && rate >= 0 && rate <= 100) {
-    set(ref(database, 'config/winRate'), rate);
+    set(ref(db, 'config/winRate'), rate);
     alert('Win rate updated!');
   } else {
     alert('Enter a valid win rate between 0 and 100.');
