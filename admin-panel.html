@@ -3,130 +3,80 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>God Mode Admin Panel - FortuneSpin</title>
+  <title>FortuneSpin God Mode HQ</title>
   <style>
     body {
+      background-color: #121212;
+      color: #f0f0f0;
       font-family: 'Segoe UI', sans-serif;
-      background: #121212;
-      color: #e0e0e0;
-      margin: 0;
       padding: 20px;
     }
-
-    h1, h2 {
+    h1 {
+      color: #00ffff;
       text-align: center;
-      color: #ffffff;
+      margin-bottom: 30px;
     }
-
-    .section {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-    }
-
-    input, select, button {
-      background: #2c2c2c;
-      color: #ffffff;
-      border: 1px solid #555;
-      padding: 8px;
-      margin: 5px;
-      border-radius: 5px;
-    }
-
-    input::placeholder {
-      color: #888;
-    }
-
-    button:hover {
-      background: #333;
-      cursor: pointer;
-    }
-
-    .user-card {
-      background: #252525;
-      border: 1px solid #444;
+    input, button {
       padding: 10px;
-      margin: 5px 0;
-      border-radius: 6px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
     }
-
-    .locked {
-      background-color: #3b1f1f !important;
+    input {
+      width: 300px;
+      background: #1e1e1e;
+      color: #f0f0f0;
     }
-
-    .highlight {
-      color: #4fc3f7;
+    button {
+      background: #00bcd4;
+      color: black;
+      cursor: pointer;
+      transition: background 0.2s ease;
     }
-
-    .status {
-      font-weight: bold;
-      color: #ffca28;
+    button:hover {
+      background: #00ffff;
     }
-
-    .approved {
-      color: #66bb6a;
+    .user-card {
+      background: #1a1a1a;
+      border: 1px solid #2e2e2e;
+      padding: 15px;
+      border-radius: 12px;
+      margin: 10px 0;
+      box-shadow: 0 0 10px rgba(0,255,255,0.1);
     }
-
-    .rejected {
-      color: #ef5350;
+    .user-card p {
+      margin: 4px 0;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      justify-content: center;
     }
   </style>
 </head>
 <body>
-  <h1>🛰️ FortuneSpin – Admin God Mode</h1>
 
-  <!-- 🔍 Search -->
-  <div class="section">
-    <h2>🔍 Search Users</h2>
-    <input type="text" id="search-input" placeholder="Search by name or phone..." />
-    <div id="user-list"></div>
+  <h1>💠 FortuneSpin Admin Panel – God Mode HQ 💠</h1>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="🔍 Search users by name, phone or UID" />
+    <button id="generate-fake-user">🎭 Generate Fake User</button>
   </div>
 
-  <!-- 🔒 Lock/Unlock, ⚙️ Balance & Spin Control -->
-  <div class="section">
-    <h2>⚙️ User Controls</h2>
-    <div id="selected-user"></div>
-  </div>
+  <div id="user-list"></div>
 
-  <!-- 💸 Withdrawal Requests -->
-  <div class="section">
-    <h2>💸 Withdrawal Requests</h2>
-    <div id="withdrawals"></div>
-  </div>
+  <!-- Firebase SDK -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js"></script>
 
-  <!-- 🎫 Support Tickets -->
-  <div class="section">
-    <h2>🎫 Support Tickets</h2>
-    <div id="support-tickets"></div>
-  </div>
+  <!-- Your Firebase Config -->
+  <script type="module" src="./firebase.js"></script>
 
-  <!-- 🌳 Referral Tree -->
-  <div class="section">
-    <h2>🌳 Referral Tree Viewer</h2>
-    <input type="text" id="tree-uid-input" placeholder="Enter UID to view referral tree">
-    <button onclick="viewReferralTree()">View Tree</button>
-    <div id="referral-tree"></div>
-  </div>
+  <!-- Admin Logic -->
+  <script type="module" src="./js/admin.js"></script>
 
-  <!-- 🧪 Fake User Generator -->
-  <div class="section">
-    <h2>🧪 Fake User Generator</h2>
-    <button onclick="generateFakeUser()">Generate Fake User</button>
-    <div id="fake-user-status"></div>
-  </div>
-
-  <!-- 📣 Push Notifications -->
-  <div class="section">
-    <h2>📣 Push Notifications</h2>
-    <input type="text" id="notif-title" placeholder="Notification title">
-    <input type="text" id="notif-message" placeholder="Notification message">
-    <button onclick="sendNotification()">Send</button>
-    <div id="notif-status"></div>
-  </div>
-
-  <script type="module" src="js/admin.js"></script>
 </body>
 </html>
