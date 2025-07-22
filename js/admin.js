@@ -1,5 +1,5 @@
 import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-import { database } from './firebase.js';
+import { database } from 'firebase.js';
 
 // Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
