@@ -1,238 +1,152 @@
-import { auth, db } from './firebase.js';
-import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+import { database } from './firebase.js';
 
-import {
-  ref,
-  get,
-  set,
-  update,
-  child,
-  onValue,
-  push,
-  remove
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-
-
-  }
+// Wait for DOM to load
+document.addEventListener('DOMContentLoaded', () => {
+  loadUsers();
+  loadWithdrawals();
+  loadSupportTickets();
+  loadWinRate();
 });
 
-// 🔍 SEARCH USER
-window.searchUser = async () => {
-  const q = document.getElementById("search-user").value.trim().toLowerCase();
-  const usersRef = ref(db, "users");
-
-  const snap = await get(usersRef);
-  let found = false;
-  const div = document.getElementById("user-result");
-  div.innerHTML = "";
-
-  snap.forEach(child => {
-    const user = child.val();
-    if (
-      user.uidCode?.toLowerCase() === q ||
-      user.username?.toLowerCase() === q
-    ) {
-      found = true;
-      div.innerHTML = `
-        <p>🔹 UID: ${user.uidCode}</p>
-        <p>👤 Email: ${user.email}</p>
-        <p>💰 Balance: ₹${user.balance || 0}</p>
-        <p>🎡 Unlocked: ${user.unlocked}</p>
-        <button onclick="unlockUser('${child.key}')">Unlock</button>
-        <button onclick="lockUser('${child.key}')">Lock</button>
-        <button onclick="deleteUser('${child.key}')">❌ Delete</button>
-        <button onclick="resetPassword('${child.key}')">🔄 Reset Password</button>
+// Load Users
+function loadUsers() {
+  const usersRef = ref(database, 'users');
+  onValue(usersRef, (snapshot) => {
+    const userList = document.getElementById('user-list');
+    userList.innerHTML = '';
+    snapshot.forEach((childSnapshot) => {
+      const uid = childSnapshot.key;
+      const data = childSnapshot.val();
+      const card = document.createElement('div');
+      card.className = 'col';
+      card.innerHTML = `
+        <div class="card p-3">
+          <h5>UID: ${uid}</h5>
+          <p><strong>Name:</strong> ${data.name || 'N/A'}</p>
+          <p><strong>Balance:</strong> ₹${data.balance || 0}</p>
+          <input class="form-control mb-2" type="number" placeholder="New Balance" id="bal-${uid}">
+          <button class="btn btn-sm btn-primary" onclick="updateBalance('${uid}')">Update Balance</button>
+          <button class="btn btn-sm btn-warning" onclick="addSpin('${uid}')">+1 Spin</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteUser('${uid}')">Delete User</button>
+        </div>
       `;
-    }
-  });
-
-  if (!found) div.innerHTML = `<div class="alert">User not found.</div>`;
-};
-
-// 🔓 Unlock user
-window.unlockUser = async (uid) => {
-  await update(ref(db, `users/${uid}`), { unlocked: true });
-  alert("✅ User Unlocked");
-};
-
-// 🔒 Lock user
-window.lockUser = async (uid) => {
-  await update(ref(db, `users/${uid}`), { unlocked: false });
-  alert("🔒 User Locked");
-};
-
-// 🗑️ Delete user
-window.deleteUser = async (uid) => {
-  if (confirm("Are you sure?")) {
-    await remove(ref(db, `users/${uid}`));
-    alert("User deleted.");
-  }
-};
-
-// 🔄 Reset password
-window.resetPassword = async (uid) => {
-  // You can implement password field logic or use Firebase admin SDK (external)
-  alert("Manual reset required via Firebase console.");
-};
-
-// 🎡 ASSIGN SPINS + WIN AMOUNT
-window.assignSpin = async () => {
-  const uid = document.getElementById("spin-uid").value.trim();
-  const spins = parseInt(document.getElementById("spin-count").value);
-  const winAmt = parseInt(document.getElementById("win-amount").value);
-
-  if (!uid || isNaN(spins)) return alert("Invalid UID or spin count");
-
-  const userRef = ref(db, `users`);
-  const snap = await get(userRef);
-  let foundUID = null;
-
-  snap.forEach(child => {
-    if (child.val().uidCode === uid) {
-      foundUID = child.key;
-    }
-  });
-
-  if (!foundUID) return alert("UID not found.");
-
-  await update(ref(db, `users/${foundUID}`), {
-    spinsLeft: spins,
-    assignedWin: isNaN(winAmt) ? null : winAmt
-  });
-
-  document.getElementById("spin-uid").value = "";
-  document.getElementById("spin-count").value = "";
-  document.getElementById("win-amount").value = "";
-  alert("🎯 Spin assigned successfully!");
-};
-
-// 💸 LOAD WITHDRAWALS
-window.loadWithdrawals = async () => {
-  const list = document.getElementById("withdraw-list");
-  list.innerHTML = "Loading...";
-
-  const snap = await get(ref(db, `withdrawals`));
-  list.innerHTML = "";
-
-  snap.forEach(user => {
-    const uid = user.key;
-    Object.entries(user.val()).forEach(([id, w]) => {
-      const div = document.createElement("div");
-      div.classList.add("panel");
-
-      div.innerHTML = `
-        <p>🔹 UID: ${uid}</p>
-        <p>💰 Amount: ₹${w.amount}</p>
-        <p>Status: ${w.status}</p>
-        <button onclick="approveWithdraw('${uid}', '${id}', ${w.amount})">✅ Approve</button>
-        <button onclick="rejectWithdraw('${uid}', '${id}')">❌ Reject</button>
-      `;
-
-      list.appendChild(div);
+      userList.appendChild(card);
     });
   });
+}
+
+window.updateBalance = function(uid) {
+  const newBal = parseInt(document.getElementById(`bal-${uid}`).value);
+  if (!isNaN(newBal)) {
+    update(ref(database, `users/${uid}`), { balance: newBal });
+    alert('Balance updated!');
+  }
 };
 
-// ✅ Approve withdrawal
-window.approveWithdraw = async (uid, id, amount) => {
-  const balSnap = await get(ref(db, `users/${uid}/balance`));
-  const currentBal = balSnap.val() || 0;
-
-  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Approved" });
-  await update(ref(db, `users/${uid}`), { balance: currentBal - amount });
-
-  alert("✅ Withdrawal approved & balance deducted");
-  loadWithdrawals();
+window.addSpin = function(uid) {
+  const userRef = ref(database, `users/${uid}/spins`);
+  onValue(userRef, (snapshot) => {
+    const current = snapshot.val() || 0;
+    update(ref(database, `users/${uid}`), { spins: current + 1 });
+    alert('Spin added!');
+  }, { onlyOnce: true });
 };
 
-// ❌ Reject withdrawal
-window.rejectWithdraw = async (uid, id) => {
-  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Rejected" });
-  alert("❌ Withdrawal rejected");
-  loadWithdrawals();
+window.deleteUser = function(uid) {
+  if (confirm(`Are you sure you want to delete user ${uid}?`)) {
+    remove(ref(database, `users/${uid}`));
+    remove(ref(database, `referrals/${uid}`));
+    alert('User deleted.');
+  }
 };
 
-// 🧾 LOAD TICKETS
-window.loadTickets = async () => {
-  const list = document.getElementById("ticket-list");
-  list.innerHTML = "Loading...";
-
-  const snap = await get(ref(db, `tickets`));
-  list.innerHTML = "";
-
-  snap.forEach(user => {
-    const uid = user.key;
-    Object.entries(user.val()).forEach(([id, t]) => {
-      const div = document.createElement("div");
-      div.classList.add("panel");
-
-      div.innerHTML = `
-        <p>📨 UID: ${uid}</p>
-        <p>📄 ${t.subject}</p>
-        <p>${t.message}</p>
-        <button onclick="replyTicket('${uid}', '${id}')">💬 Reply</button>
-        <button onclick="resolveTicket('${uid}', '${id}')">✅ Mark Resolved</button>
+// Load Withdrawals
+function loadWithdrawals() {
+  const withdrawRef = ref(database, 'withdrawals');
+  onValue(withdrawRef, (snapshot) => {
+    const withdrawalList = document.getElementById('withdrawal-list');
+    withdrawalList.innerHTML = '';
+    snapshot.forEach((childSnapshot) => {
+      const wid = childSnapshot.key;
+      const data = childSnapshot.val();
+      const card = document.createElement('div');
+      card.className = 'col';
+      card.innerHTML = `
+        <div class="card p-3">
+          <h5>UID: ${data.uid}</h5>
+          <p><strong>Amount:</strong> ₹${data.amount}</p>
+          <p><strong>Method:</strong> ${data.method}</p>
+          <p><strong>Mobile:</strong> ${data.mobile}</p>
+          <p><strong>UPI/Account:</strong> ${data.upiOrAccount}</p>
+          ${data.ifsc ? `<p><strong>IFSC:</strong> ${data.ifsc}</p>` : ''}
+          <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${wid}')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectWithdrawal('${wid}', ${data.amount}, '${data.uid}')">Reject</button>
+        </div>
       `;
-
-      list.appendChild(div);
+      withdrawalList.appendChild(card);
     });
   });
+}
+
+window.approveWithdrawal = function(wid) {
+  remove(ref(database, `withdrawals/${wid}`));
+  alert("✅ Withdrawal approved and removed from queue.");
 };
 
-// 💬 REPLY TICKET
-window.replyTicket = async (uid, id) => {
-  const msg = prompt("Enter your reply:");
-  if (!msg) return;
-
-  const notifRef = ref(db, `users/${uid}/notifications`);
-  await push(notifRef, msg);
-
-  alert("Reply sent.");
+window.rejectWithdrawal = function(wid, amount, uid) {
+  // refund amount
+  const userRef = ref(database, `users/${uid}/balance`);
+  onValue(userRef, (snapshot) => {
+    const currBal = snapshot.val() || 0;
+    update(ref(database, `users/${uid}`), { balance: currBal + amount });
+    remove(ref(database, `withdrawals/${wid}`));
+    alert("❌ Withdrawal rejected and amount refunded.");
+  }, { onlyOnce: true });
 };
 
-// ✅ RESOLVE
-window.resolveTicket = async (uid, id) => {
-  await update(ref(db, `tickets/${uid}/${id}`), { status: "Resolved" });
-  alert("Marked resolved.");
-  loadTickets();
-};
-
-// 👥 REFERRAL TREE
-window.viewReferralTree = async () => {
-  const uidText = document.getElementById("ref-uid").value.trim();
-  if (!uidText.startsWith("UID#")) return alert("Enter valid UID#...");
-
-  const usersSnap = await get(ref(db, `users`));
-  const treeDiv = document.getElementById("ref-tree");
-  treeDiv.innerHTML = "Loading...";
-
-  let rootUID = null;
-
-  usersSnap.forEach(child => {
-    if (child.val().uidCode === uidText) {
-      rootUID = child.key;
-    }
+// Load Support Tickets
+function loadSupportTickets() {
+  const supportRef = ref(database, 'supportTickets');
+  onValue(supportRef, (snapshot) => {
+    const supportList = document.getElementById('support-list');
+    supportList.innerHTML = '';
+    snapshot.forEach((childSnapshot) => {
+      const tid = childSnapshot.key;
+      const data = childSnapshot.val();
+      const card = document.createElement('div');
+      card.className = 'col';
+      card.innerHTML = `
+        <div class="card p-3">
+          <h5>UID: ${data.uid}</h5>
+          <p><strong>Issue:</strong> ${data.issue}</p>
+          <button class="btn btn-danger btn-sm" onclick="deleteTicket('${tid}')">Delete Ticket</button>
+        </div>
+      `;
+      supportList.appendChild(card);
+    });
   });
+}
 
-  if (!rootUID) {
-    treeDiv.innerHTML = `<div class="alert">User not found.</div>`;
-    return;
-  }
+window.deleteTicket = function(tid) {
+  remove(ref(database, `supportTickets/${tid}`));
+  alert('Ticket deleted.');
+};
 
-  const refs = [];
-  usersSnap.forEach(child => {
-    const u = child.val();
-    if (u.referralBy === uidText) {
-      refs.push(u.uidCode);
-    }
+// Load and Update Spin Win Rate
+function loadWinRate() {
+  const winRef = ref(database, 'config/winRate');
+  onValue(winRef, (snapshot) => {
+    document.getElementById('winRate').value = snapshot.val() || 50;
   });
+}
 
-  if (refs.length === 0) {
-    treeDiv.innerHTML = `<div>No referrals found.</div>`;
-    return;
+window.updateWinRate = function() {
+  const rate = parseInt(document.getElementById('winRate').value);
+  if (!isNaN(rate) && rate >= 0 && rate <= 100) {
+    set(ref(database, 'config/winRate'), rate);
+    alert('Win rate updated!');
+  } else {
+    alert('Enter a valid win rate between 0 and 100.');
   }
-
-  treeDiv.innerHTML = `<p>Referrals by ${uidText}:</p><ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>`;
 };
