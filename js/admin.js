@@ -14,16 +14,7 @@ import {
   remove
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// 🔐 Only allow admin
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = "login.html");
 
-  const snap = await get(ref(db, `users/${user.uid}`));
-  if (!snap.exists() || user.email !== "admin@fortunespin.io") {
-    alert("Access Denied: Not Admin");
-    window.location.href = "login.html";
-  }
-});
 
 // 🔍 SEARCH USER
 window.searchUser = async () => {
