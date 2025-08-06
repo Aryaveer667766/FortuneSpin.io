@@ -156,13 +156,18 @@ window.approveWithdraw = async (uid, id, amount) => {
   loadWithdrawals();
 };
 
-// ❌ Reject withdrawal
-window.rejectWithdraw = async (uid, id) => {
-  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Rejected" });
+// ❌ Reject withdrawal (fix balance restore)
+window.rejectWithdraw = async (uid, id, amount) => {
+  const balSnap = await get(ref(db, `users/${uid}/balance`));
+  const currentBal = balSnap.val() || 0;
+
   await update(ref(db, `users/${uid}`), { balance: currentBal + amount });
+  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Rejected" });
+
   alert("❌ Withdrawal rejected");
   loadWithdrawals();
 };
+
 
 // 🧾 LOAD TICKETS
 window.loadTickets = async () => {
