@@ -107,25 +107,36 @@ window.assignSpin = async () => {
 };
 
 // 💸 LOAD WITHDRAWALS
+// 💸 LOAD WITHDRAWALS (Updated with UID, Name, and Mobile)
 window.loadWithdrawals = async () => {
   const list = document.getElementById("withdraw-list");
   list.innerHTML = "Loading...";
 
-  const snap = await get(ref(db, `withdrawals`));
+  const withdrawalsSnap = await get(ref(db, `withdrawals`));
+  const usersSnap = await get(ref(db, `users`));
+
   list.innerHTML = "";
 
-  snap.forEach(user => {
+  withdrawalsSnap.forEach(user => {
     const uid = user.key;
+    const userData = usersSnap.child(uid).val();
+
+    const userName = userData?.username || "Unknown";
+    const userMobile = userData?.phone || "Not Provided";
+    const uidCode = userData?.uidCode || "N/A";
+
     Object.entries(user.val()).forEach(([id, w]) => {
       const div = document.createElement("div");
       div.classList.add("panel");
-   
+
       div.innerHTML = `
-        <p>🔹 UID: ${user.uidCode}</p></p>
+        <p>🔹 UID: ${uidCode}</p>
+        <p>👤 Name: ${userName}</p>
+        <p>📱 Phone: ${userMobile}</p>
         <p>💰 Amount: ₹${w.amount}</p>
         <p>Status: ${w.status}</p>
         <button onclick="approveWithdraw('${uid}', '${id}', ${w.amount})">✅ Approve</button>
-        <button onclick="rejectWithdraw('${uid}', '${id}')">❌ Reject</button>
+        <button onclick="rejectWithdraw('${uid}', '${id}', ${w.amount})">❌ Reject</button>
       `;
 
       list.appendChild(div);
