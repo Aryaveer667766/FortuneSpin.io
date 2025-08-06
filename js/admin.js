@@ -121,7 +121,7 @@ window.loadWithdrawals = async () => {
       div.classList.add("panel");
 
       div.innerHTML = `
-        <p>🔹 UID: ${uid}</p>
+        <p>🔹 UID: ${user.uidCode}</p></p>
         <p>💰 Amount: ₹${w.amount}</p>
         <p>Status: ${w.status}</p>
         <button onclick="approveWithdraw('${uid}', '${id}', ${w.amount})">✅ Approve</button>
