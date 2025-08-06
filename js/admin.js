@@ -144,29 +144,45 @@ window.loadWithdrawals = async () => {
   });
 };
 
-// ✅ Approve withdrawal
+// ✅ Approve withdrawal and delete from DB
 window.approveWithdraw = async (uid, id, amount) => {
-  const balSnap = await get(ref(db, `users/${uid}/balance`));
-  const currentBal = balSnap.val() || 0;
+  try {
+    await update(ref(db, `withdrawals/${uid}/${id}`), {
+      status: "Approved"
+    });
 
-  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Approved" });
-  
+    // Delete the request from DB after approval
+    await remove(ref(db, `withdrawals/${uid}/${id}`));
 
-  alert("✅ Withdrawal approved ");
-  loadWithdrawals();
+    alert("✅ Withdrawal approved");
+    loadWithdrawals();
+  } catch (error) {
+    console.error("Approval error:", error);
+    alert("Error approving withdrawal");
+  }
 };
 
-// ❌ Reject withdrawal (fix balance restore)
+// ❌ Reject withdrawal, refund balance, and delete from DB
 window.rejectWithdraw = async (uid, id, amount) => {
-  const balSnap = await get(ref(db, `users/${uid}/balance`));
-  const currentBal = balSnap.val() || 0;
+  try {
+    const balSnap = await get(ref(db, `users/${uid}/balance`));
+    const currentBal = balSnap.val() || 0;
 
-  await update(ref(db, `users/${uid}`), { balance: currentBal + amount });
-  await update(ref(db, `withdrawals/${uid}/${id}`), { status: "Rejected" });
+    await update(ref(db, `users/${uid}`), {
+      balance: currentBal + amount
+    });
 
-  alert("❌ Withdrawal rejected");
-  loadWithdrawals();
+    // Delete the request from DB after rejection
+    await remove(ref(db, `withdrawals/${uid}/${id}`));
+
+    alert("❌ Withdrawal rejected & amount refunded");
+    loadWithdrawals();
+  } catch (error) {
+    console.error("Rejection error:", error);
+    alert("Error rejecting withdrawal");
+  }
 };
+
 
 
 // 🧾 LOAD TICKETS
