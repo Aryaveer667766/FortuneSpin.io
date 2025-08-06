@@ -119,6 +119,12 @@ window.loadWithdrawals = async () => {
     Object.entries(user.val()).forEach(([id, w]) => {
       const div = document.createElement("div");
       div.classList.add("panel");
+       snap.forEach(child => {
+    const user = child.val();
+    if (
+      user.uidCode?.toLowerCase() === q ||
+      user.username?.toLowerCase() === q
+    ) {
 
       div.innerHTML = `
         <p>🔹 UID: ${user.uidCode}</p></p>
