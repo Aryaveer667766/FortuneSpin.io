@@ -215,3 +215,27 @@ canvas#confetti-canvas {
     font-size: 22px;
   }
 }
+.switch-text {
+  text-align: center;
+  font-size: 1rem;
+  color: #ccc;
+  margin-top: 20px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.switch-link {
+  color: #00bcd4;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.switch-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.switch-link:hover {
+  color: #ffffff;
+  text-shadow: 0 0 8px #00bcd4;
+}
+
