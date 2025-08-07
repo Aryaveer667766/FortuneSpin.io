@@ -17,6 +17,8 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
+
+
 // 🎨 Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 if (confettiCanvas) {
@@ -107,7 +109,7 @@ window.spinWheel = async () => {
   document.getElementById("spin-result").innerText = "Spinning...";
 
   setTimeout(async () => {
-    const outcome = data.assignedWin || Math.floor(Math.random() * 2000 + 100); // ₹100–₹2100
+    const outcome = data.assignedWin || Math.floor(Math.random() * 2000 + 100); // ₹10–₹210
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
@@ -121,6 +123,8 @@ window.spinWheel = async () => {
     balanceEl.innerText = (data.balance || 0) + outcome;
   }, 3000);
 };
+
+
 
 // 🧾 Submit Support Ticket
 window.submitTicket = async () => {
