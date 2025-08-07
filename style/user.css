@@ -35,7 +35,7 @@ body.login-body {
 input[type="email"],
 input[type="password"],
 input[type="text"],
-input[type="number"] {
+input[type="tel"] {
   width: 100%;
   padding: 12px;
   margin: 10px 0;
