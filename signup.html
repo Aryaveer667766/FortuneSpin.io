@@ -46,6 +46,14 @@
       ref,
       set
     } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+document.addEventListener('DOMContentLoaded', () => {
+  const referralInput = document.getElementById('referral');
+  const storedRef = localStorage.getItem('referral_uid');
+
+  if (referralInput && storedRef) {
+    referralInput.value = storedRef;
+  }
+});
 
     window.signup = async function () {
       const name = document.getElementById("name").value.trim();
