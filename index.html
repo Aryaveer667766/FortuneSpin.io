@@ -64,6 +64,18 @@
         // 🔊 Sound
         document.getElementById("success-sound").play();
     };
+    
   </script>
+  <script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const ref = urlParams.get('ref');
+  if (ref) {
+    // Store referral code temporarily
+    localStorage.setItem('referral_uid', ref);
+    // Redirect to signup page
+    window.location.href = 'signup.html';
+  }
+</script>
+
 </body>
 </html>
