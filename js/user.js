@@ -47,7 +47,7 @@ function generateUID(length = 6) {
 
 // ✅ On Auth Login
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return window.location.href = "login.html";
+  if (!user) return window.location.href = "index.html";
 
   currentUser = user;
   uid = user.uid;
