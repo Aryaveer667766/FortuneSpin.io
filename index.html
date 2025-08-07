@@ -67,14 +67,29 @@
     
   </script>
   <script>
+  document.addEventListener('DOMContentLoaded', () => {
+  const referralInput = document.getElementById('referral');
+
+  // Step 1: Get ref from URL
   const urlParams = new URLSearchParams(window.location.search);
   const ref = urlParams.get('ref');
+
+  // Step 2: If referral found in URL, store it in localStorage and redirect to signup
   if (ref) {
-    // Store referral code temporarily
     localStorage.setItem('referral_uid', ref);
-    // Redirect to signup page
-    window.location.href = 'signup.html';
+    if (!window.location.pathname.includes('signup.html')) {
+      window.location.href = 'signup.html';
+      return;
+    }
   }
+
+  // Step 3: If on signup page and referral exists, prefill it
+  const storedRef = localStorage.getItem('referral_uid');
+  if (referralInput && storedRef && window.location.pathname.includes('signup.html')) {
+    referralInput.value = storedRef;
+  }
+});
+
 </script>
 
 </body>
