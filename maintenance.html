@@ -1,58 +1,106 @@
-<!-- maintenance.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Under Maintenance</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>We Know It isnt Good</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      background-color: #111;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       height: 100vh;
-      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      text-align: center;
+      padding: 20px;
     }
+
+    .spinner {
+      border: 8px solid rgba(255, 255, 255, 0.1);
+      border-top: 8px solid #00ffd9;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      animation: spin 1.2s linear infinite;
+      margin-bottom: 30px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     h1 {
-      font-size: 2em;
-      margin-bottom: 10px;
+      font-size: 2.5rem;
+      margin-bottom: 15px;
     }
+
     p {
-      font-size: 1.2em;
+      font-size: 1.2rem;
+      max-width: 600px;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .highlight {
+      color: #00ffd9;
+      font-weight: bold;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 15px;
+      font-size: 0.9rem;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
-  <h1>🛠️ We're under maintenance</h1>
-  <p>Please check back soon!</p>
+
+  <div class="spinner"></div>
+  <h1>We’ll Be Back Soon!</h1>
+  <p>FortuneSpin is currently undergoing some <span class="highlight">important updates</span> to serve you better.</p>
+  <p>Your <span class="highlight">spins, money, and referral data</span> are completely safe and secure. 💸🔒</p>
+  <p>We appreciate your patience. Please check back shortly.</p>
+<p>We know how it feels so we will give you <span class="highlight">1 FREE SPIN </span> for making you wait .</p>
+  <footer>© 2025 FortuneSpin </footer>
+
+  <!-- Maintenance redirect script -->
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCV-IaM81xjRSE1gYZZDp-qBd2Afv3c-Tg",
-    authDomain: "fortunespin-57b4f.firebaseapp.com",
-    databaseURL: "https://fortunespin-57b4f-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "fortunespin-57b4f",
-    storageBucket: "fortunespin-57b4f.appspot.com",
-    messagingSenderId: "891616391847",
-    appId: "1:891616391847:web:9f51e02accc7b3d17b4082"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyCV-IaM81xjRSE1gYZZDp-qBd2Afv3c-Tg",
+      authDomain: "fortunespin-57b4f.firebaseapp.com",
+      databaseURL: "https://fortunespin-57b4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fortunespin-57b4f",
+      storageBucket: "fortunespin-57b4f.appspot.com",
+      messagingSenderId: "891616391847",
+      appId: "1:891616391847:web:9f51e02accc7b3d17b4082"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  get(child(ref(db), 'siteStatus/maintenance')).then((snapshot) => {
-    if (!snapshot.exists() || snapshot.val() === false) {
-      window.location.href = "index.html"; // Redirect if maintenance is OFF
-    }
-  }).catch((error) => {
-    console.error("Error checking maintenance status:", error);
-    window.location.href = "index.html"; // Fail-safe redirect
-  });
-</script>
+    get(child(ref(db), 'siteStatus/maintenance')).then((snapshot) => {
+      if (!snapshot.exists() || snapshot.val() === false) {
+        window.location.href = "index.html"; // Redirect if maintenance is OFF
+      }
+    }).catch((error) => {
+      console.error("Error checking maintenance status:", error);
+      window.location.href = "index.html"; // Fail-safe redirect
+    });
+  </script>
 
 </body>
 </html>
