@@ -194,17 +194,6 @@
   <canvas id="whatsappQR"></canvas>
 
   <script>
-    <script type="module">
-    
-  import { db } from './js/firebase.js';
-  import { ref, get } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
-
-  const statusRef = ref(db, 'siteStatus/maintenance');
-  get(statusRef).then(snapshot => {
-    if (snapshot.exists() && snapshot.val() === true && !location.href.includes('maintenance.html')) {
-      location.href = 'maintenance.html';
-    }
-  });
   function openWhatsApp() {
     const uid = document.getElementById("user-uid").textContent.trim();
     const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
@@ -219,6 +208,5 @@
     alert("Link copied!");
   }
 </script>
-
 </body>
 </html>
