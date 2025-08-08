@@ -38,6 +38,18 @@
   <audio id="success-sound" src="assets/success.mp3" preload="auto"></audio>
 
   <script type="module">
+    
+  import { db } from './js/firebase.js';
+  import { ref, get } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
+
+  const statusRef = ref(db, 'siteStatus/maintenance');
+  get(statusRef).then(snapshot => {
+    if (snapshot.exists() && snapshot.val() === true && !location.href.includes('maintenance.html')) {
+      location.href = 'maintenance.html';
+    }
+  });
+
+
     import { auth, db } from './js/firebase.js';
     import {
       createUserWithEmailAndPassword
