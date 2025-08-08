@@ -7,8 +7,6 @@
   <link rel="stylesheet" href="style/user.css" />
   <link rel="icon" href="assets/logo/logo2.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
-
-  <!-- 🎉 Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body class="login-body">
@@ -22,36 +20,29 @@
     <input type="tel" id="phone" placeholder="Phone Number" />  
     <input type="password" id="password" placeholder="Password" />
 
-    <!-- 🧑‍🤝‍🧑 Referral input -->
     <input type="text" id="referral" placeholder="Referral UID (optional) Enter in UID#ABC123 format" />
 
     <button onclick="signup()">Create Account</button>
     <p id="error-msg" class="error"></p>
 
     <p class="switch-text">
-  Already have an account? <a href="index.html" class="switch-link">login here</a>
-</p>
-
+      Already have an account? <a href="index.html" class="switch-link">login here</a>
+    </p>
   </div>
 
-  <!-- 🔊 Success Sound -->
   <audio id="success-sound" src="assets/success.mp3" preload="auto"></audio>
 
   <script type="module">
-    
-  
-
-
     import { auth, db } from './js/firebase.js';
-    import {
-      createUserWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-    import {
-      ref,
-      set
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+    import { ref, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-});
+    // Auto-fill referral from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralCode = urlParams.get('ref');
+    if (referralCode) {
+      document.getElementById("referral").value = referralCode;
+    }
 
     window.signup = async function () {
       const name = document.getElementById("name").value.trim();
@@ -86,17 +77,14 @@
           assignedWin: null
         });
 
-        // 🎉 Confetti
         confetti({
           particleCount: 100,
           spread: 90,
           origin: { y: 0.6 }
         });
 
-        // 🔊 Sound
         document.getElementById("success-sound").play();
 
-        // ✅ Delay redirect
         setTimeout(() => {
           alert("✅ Account created! Please contact admin to unlock your spins.");
           window.location.href = "index.html";
