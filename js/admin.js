@@ -134,6 +134,7 @@ window.loadWithdrawals = async () => {
         <p>👤 Name: ${userName}</p>
         <p>📱 Phone: ${userMobile}</p>
         <p>💰 Amount: ₹${w.amount}</p>
+        <p>UPI🏦: ₹${w.upi}</p>
         <p>Status: ${w.status}</p>
         <button onclick="approveWithdraw('${uid}', '${id}', ${w.amount})">✅ Approve</button>
         <button onclick="rejectWithdraw('${uid}', '${id}', ${w.amount})">❌ Reject</button>
