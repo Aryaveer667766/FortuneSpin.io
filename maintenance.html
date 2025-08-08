@@ -93,7 +93,7 @@
     const db = getDatabase(app);
 
     get(child(ref(db), 'siteStatus/maintenance')).then((snapshot) => {
-      if (!snapshot.exists() || snapshot.val() === false) {
+      if (!snapshot.exists() || snapshot.val() === true) {
         window.location.href = "index.html"; // Redirect if maintenance is OFF
       }
     }).catch((error) => {
