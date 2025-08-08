@@ -73,7 +73,33 @@
   <p>We appreciate your patience. Please check back shortly.</p>
 <p>We know how it feels so we will give you <span class="highlight">1 FREE SPIN </span> for making you wait .</p>
   <footer>© 2025 FortuneSpin </footer>
+  
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyCV-IaM81xjRSE1gYZZDp-qBd2Afv3c-Tg",
+    authDomain: "fortunespin-57b4f.firebaseapp.com",
+    databaseURL: "https://fortunespin-57b4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "fortunespin-57b4f",
+    storageBucket: "fortunespin-57b4f.appspot.com",
+    messagingSenderId: "891616391847",
+    appId: "1:891616391847:web:9f51e02accc7b3d17b4082"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  get(child(ref(db), 'siteStatus/maintenance')).then((snapshot) => {
+    if (!snapshot.exists() || snapshot.val() === false) {
+      window.location.href = "index.html"; // Redirect if maintenance is OFF
+    }
+  }).catch((error) => {
+    console.error("Error checking maintenance status:", error);
+    window.location.href = "index.html"; // Fail-safe redirect
+  });
+</script>
  
 
 </body>
