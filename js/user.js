@@ -109,7 +109,7 @@ window.spinWheel = async () => {
   document.getElementById("spin-result").innerText = "Spinning...";
 
   setTimeout(async () => {
-    const outcome = data.assignedWin || Math.floor(Math.random() * 240 + 0); // ₹10–₹210
+    const outcome = data.assignedWin || Math.floor(Math.random() * 220 + 0); // ₹10–₹210
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
