@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            background: #1c1c1c;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+        img {
+            width: 200px;
+            height: 200px;
+            margin: 15px 0;
+        }
+        .upi-id {
+            font-size: 18px;
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            word-break: break-all;
+        }
+        input {
+            padding: 10px;
+            width: 100%;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Make UPI Payment</h2>
+        <p>Scan the QR code below or use the UPI ID to make payment.</p>
+        <img src="upi-qr.png" alt="UPI QR Code"> <!-- Replace with your QR code image -->
+        <div class="upi-id">UPI ID: yourupiid@upi</div>
+        <p>After completing the payment, please enter your UTR number below.</p>
+        <input type="text" id="utr" placeholder="Enter your UTR number">
+        <button onclick="sendToWhatsApp()">Submit & Contact Admin</button>
+    </div>
+
+    <script>
+        function sendToWhatsApp() {
+            const utr = document.getElementById("utr").value.trim();
+            if (!utr) {
+                alert("Please enter your UTR number.");
+                return;
+            }
+            const adminNumber = "6283194274244"; // without +
+            const message = `Hello Admin,%0A%0AI have completed my UPI payment.%0A%0ADetails:%0AUTR Number: ${utr}%0APlease verify my payment and update my account.%0AThank you!`;
+            const url = `https://wa.me/${adminNumber}?text=${message}`;
+            window.open(url, "_blank");
+        }
+    </script>
+</body>
+</html>
