@@ -96,6 +96,10 @@ onAuthStateChanged(auth, async (user) => {
   loadNotifications();
 });
 
+// Track spins & total win for the session
+let spinCount = 0;
+let totalWin = 0;
+
 // 🎡 SPIN Wheel Logic
 window.spinWheel = async () => {
   const userRef = ref(db, `users/${uid}`);
@@ -105,11 +109,36 @@ window.spinWheel = async () => {
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
   if (data.spinsLeft <= 0) return alert("😢 No spins left!");
 
+  spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
 
   setTimeout(async () => {
-    const outcome = data.assignedWin || Math.floor(Math.random() * 220 + 0); // ₹10–₹210
+    let outcome;
+
+    if (spinCount < 3) {
+      // First two spins: keep room for 500 target
+      const min = 10;
+      const max = 200;
+      const remainingSpins = 3 - spinCount;
+      const remainingTarget = 500 - totalWin - (remainingSpins * 10); // Reserve min possible later
+
+      outcome = Math.min(
+        Math.floor(Math.random() * (max - min + 1) + min),
+        remainingTarget > 0 ? remainingTarget : max
+      );
+    } else {
+      // Last spin: close to 500 but not exactly
+      let diff = 500 - totalWin;
+      if (diff <= 0) {
+        outcome = Math.floor(Math.random() * 100 + 10); // If overshot already
+      } else {
+        outcome = diff - 1; // Avoid exactly 500
+      }
+    }
+
+    totalWin += outcome;
+
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
@@ -121,6 +150,7 @@ window.spinWheel = async () => {
     });
 
     balanceEl.innerText = (data.balance || 0) + outcome;
+    console.log(`Spin ${spinCount}: ₹${outcome} | Total: ₹${totalWin}`);
   }, 3000);
 };
 
