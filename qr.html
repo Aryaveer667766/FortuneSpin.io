@@ -86,6 +86,53 @@
         margin: 10px auto 0;
         max-width: 50px;
     }
+    .help-link {
+        display: block;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #4da6ff;
+        cursor: pointer;
+    }
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 10;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-content {
+        background: #1c1c1c;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 350px;
+        text-align: center;
+        color: white;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from {opacity: 0; transform: scale(0.9);}
+        to {opacity: 1; transform: scale(1);}
+    }
+    .modal-content img {
+        width: 100%;
+        border-radius: 8px;
+        margin-top: 10px;
+        border: 2px solid gold;
+    }
+    .close-btn {
+        background: gold;
+        color: black;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+        font-weight: bold;
+    }
 </style>
 </head>
 <body>
@@ -104,12 +151,25 @@
     <input type="text" id="utr" maxlength="12" placeholder="Enter 12-digit UTR number">
     <button class="icon-btn" onclick="pasteUTR()">📥 Paste</button>
 
+    <!-- Help link -->
+    <span class="help-link" onclick="openModal()">Where can I find my UTR?</span>
+
     <button class="pay-btn" onclick="confirmPayment()">✅ Confirm Payment</button>
 
     <div class="trust">
         🔒 Secure Payments — Powered by <b>FortuneSpin</b>
     </div>
     <img src="https://media.tenor.com/5saoXsXivjYAAAAj/verification.gif" class="trust-badge">
+</div>
+
+<!-- Modal -->
+<div class="modal" id="utrModal">
+    <div class="modal-content">
+        <h3>Finding Your UTR</h3>
+        <p>Check your bank app or SMS after payment. Look for a 12-digit number called "UTR" or "Reference Number".</p>
+        <img src="https://i.imgur.com/3YcQ8tO.png" alt="Example UTR">
+        <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
 </div>
 
 <script>
@@ -121,7 +181,7 @@
     }
     function pasteUTR() {
         navigator.clipboard.readText().then(text => {
-            document.getElementById('utr').value = text;
+            document.getElementById('utr').value = text.replace(/\D/g, '').substring(0, 12);
         });
     }
     function confirmPayment() {
@@ -130,9 +190,14 @@
             alert("Please enter a valid 12-digit UTR number.");
             return;
         }
-        const upi = document.getElementById('upiId').innerText;
-        const message = `Hello, I have made a payment to FortuneSpin.\nUTR Number: ${utr}\nPlease verify and update`;
-        window.open(`https://wa.me/6283194274244?text=${encodeURIComponent(message)}`, "_blank");
+        const message = `Hello, I have made a payment to FortuneSpin.%0AUTR Number: ${utr}%0APlease verify and update`;
+        window.open(`https://wa.me/6283194274244?text=${message}`, "_blank");
+    }
+    function openModal() {
+        document.getElementById("utrModal").style.display = "flex";
+    }
+    function closeModal() {
+        document.getElementById("utrModal").style.display = "none";
     }
 </script>
 
