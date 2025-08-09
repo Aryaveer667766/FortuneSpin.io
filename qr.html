@@ -3,144 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FortuneSpin Payments</title>
+<title>FortuneSpin UPI Recharge</title>
 <style>
     body {
-        font-family: Arial, sans-serif;
-        background: linear-gradient(135deg, #1f1c2c, #928dab);
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #0e0e0e, #1c1c1c);
         color: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        min-height: 100vh;
+        text-align: center;
     }
     .container {
-        background: rgba(0,0,0,0.6);
+        max-width: 400px;
+        margin: 40px auto;
         padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 350px;
-        width: 100%;
-        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
     }
-    img.qr {
-        width: 200px;
-        height: 200px;
+    h1 {
+        color: gold;
+        margin-bottom: 10px;
+    }
+    .qr-container img {
+        width: 230px;
+        margin: 20px auto;
+        border: 3px solid gold;
         border-radius: 10px;
-        margin: 15px 0;
-        border: 2px solid #fff;
     }
-    .upi-id {
-        background: #333;
-        padding: 8px;
-        border-radius: 8px;
+    .upi-section {
         display: flex;
         justify-content: center;
         align-items: center;
+        background: rgba(255,255,255,0.08);
+        padding: 10px;
+        border-radius: 8px;
         margin: 10px 0;
     }
-    .upi-id span {
+    .upi-text {
         font-size: 16px;
+        font-weight: bold;
+        color: gold;
         margin-right: 10px;
     }
     .icon-btn {
-        background: #ff9800;
+        background: gold;
         border: none;
-        padding: 5px 8px;
+        color: black;
+        padding: 6px 8px;
         border-radius: 5px;
         cursor: pointer;
-        color: black;
         font-weight: bold;
     }
     input {
         width: calc(100% - 50px);
         padding: 10px;
-        margin-top: 15px;
         border-radius: 8px;
         border: none;
-        outline: none;
+        margin-top: 10px;
         font-size: 16px;
         text-align: center;
     }
-    .utr-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #333;
-        border-radius: 8px;
-        padding: 5px;
-        margin: 15px 0;
-    }
-    button.send-btn {
-        background: #4CAF50;
-        color: white;
-        padding: 12px;
+    .pay-btn {
+        background: gold;
+        color: black;
+        font-weight: bold;
         border: none;
+        padding: 12px;
+        margin-top: 15px;
+        width: 100%;
         border-radius: 8px;
-        cursor: pointer;
         font-size: 16px;
-        margin-top: 10px;
+        cursor: pointer;
     }
-    .footer {
-        margin-top: 20px;
-        font-size: 13px;
+    .trust {
+        margin-top: 15px;
+        font-size: 12px;
         opacity: 0.8;
+    }
+    .trust-badge {
+        display: block;
+        margin: 15px auto 0;
+        max-width: 140px;
     }
 </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Complete Your Payment</h2>
-    <p>Scan the QR or pay using UPI ID</p>
-    <img src="upi-qr.png" alt="UPI QR" class="qr">
+    <h1>Recharge via UPI</h1>
+    <div class="qr-container">
+        <img src="qr.jpeg" alt="UPI QR Code">
+    </div>
 
-    <div class="upi-id">
-        <span id="upiId">yourupi@bank</span>
+    <div class="upi-section">
+        <span class="upi-text" id="upiId">yourupi@upi</span>
         <button class="icon-btn" onclick="copyUPI()">📋</button>
     </div>
 
-    <div class="utr-box">
-        <input type="number" id="utrNumber" maxlength="12" placeholder="Enter 12-digit UTR Number">
-        <button class="icon-btn" onclick="pasteUTR()">📥</button>
-    </div>
+    <input type="text" id="utr" maxlength="12" placeholder="Enter 12-digit UTR number">
+    <button class="icon-btn" onclick="pasteUTR()">📥 Paste</button>
 
-    <button class="send-btn" onclick="sendWhatsApp()">Send Payment Details on WhatsApp</button>
+    <button class="pay-btn" onclick="confirmPayment()">✅ Confirm Payment</button>
 
-    <div class="footer">
-        🔒 Powered by FortuneSpin Secure Payments
+    <div class="trust">
+        🔒 Secure Payments — Powered by <b>FortuneSpin</b>
+         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Secure_payment_icon.svg/1200px-Secure_payment_icon.svg.png" alt="Trusted Payment" class="trust-badge">
     </div>
 </div>
 
 <script>
-function copyUPI() {
-    const upiId = document.getElementById("upiId").textContent;
-    navigator.clipboard.writeText(upiId).then(() => {
-        alert("UPI ID copied to clipboard!");
-    });
-}
-
-async function pasteUTR() {
-    try {
-        const text = await navigator.clipboard.readText();
-        document.getElementById("utrNumber").value = text.replace(/\D/g, "").slice(0, 12);
-    } catch (err) {
-        alert("Clipboard access denied. Please paste manually.");
+    function copyUPI() {
+        const upi = document.getElementById('upiId').innerText;
+        navigator.clipboard.writeText(upi).then(() => {
+            alert("UPI ID copied!");
+        });
     }
-}
-
-function sendWhatsApp() {
-    const utr = document.getElementById("utrNumber").value.trim();
-    const upiId = document.getElementById("upiId").textContent;
-    if (utr.length !== 12 || isNaN(utr)) {
-        alert("Please enter a valid 12-digit UTR number.");
-        return;
+    function pasteUTR() {
+        navigator.clipboard.readText().then(text => {
+            document.getElementById('utr').value = text;
+        });
     }
-    const message = `Hello Admin, I have completed my payment.\n\nUTR Number: ${utr}\nUPI ID Paid To: ${upiId}\nPlatform: FortuneSpin.io\nPurpose: Account credit.\nPlease verify and confirm my payment.`;
-    const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
-}
+    function confirmPayment() {
+        const utr = document.getElementById('utr').value.trim();
+        if (utr.length !== 12 || isNaN(utr)) {
+            alert("Please enter a valid 12-digit UTR number.");
+            return;
+        }
+        const upi = document.getElementById('upiId').innerText;
+        const message = `Hello, I have made a payment to FortuneSpin.\n\nUPI ID: ${upi}\nUTR Number: ${utr}\nDate: [Enter Date]\n\nPlease verify and credit my account.`;
+        window.open(`https://wa.me/918319427424?text=${encodeURIComponent(message)}`, "_blank");
+    }
 </script>
 
 </body>
