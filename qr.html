@@ -84,7 +84,7 @@
     .trust-badge {
         display: block;
         margin: 10px auto 0;
-        max-width: 60px;
+        max-width: 50px;
     }
 </style>
 </head>
@@ -131,7 +131,7 @@
             return;
         }
         const upi = document.getElementById('upiId').innerText;
-        const message = `Hello, I have made a payment to FortuneSpin.\n\nUPI ID: ${upi}\nUTR Number: ${utr}\nDate: [Enter Date]\n\nPlease verify and credit my account.`;
+        const message = `Hello, I have made a payment to FortuneSpin.\nUTR Number: ${utr}\nPlease verify and update`;
         window.open(`https://wa.me/6283194274244?text=${encodeURIComponent(message)}`, "_blank");
     }
 </script>
