@@ -95,8 +95,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadNotifications();
 });
-
-// Track spins & total win for the session
+// Track spins & total win for the current 3-spin cycle
 let spinCount = 0;
 let totalWin = 0;
 
@@ -117,24 +116,29 @@ window.spinWheel = async () => {
     let outcome;
 
     if (spinCount < 3) {
-      // First two spins: keep room for 500 target
+      // First two spins: random between ₹10–₹210 but keep space for target
       const min = 10;
-      const max = 200;
+      const max = 210;
       const remainingSpins = 3 - spinCount;
-      const remainingTarget = 500 - totalWin - (remainingSpins * 10); // Reserve min possible later
+      const remainingTarget = 500 - totalWin - (remainingSpins * min);
 
       outcome = Math.min(
         Math.floor(Math.random() * (max - min + 1) + min),
-        remainingTarget > 0 ? remainingTarget : max
+        remainingTarget > min ? remainingTarget : max
       );
     } else {
-      // Last spin: close to 500 but not exactly
-      let diff = 500 - totalWin;
-      if (diff <= 0) {
-        outcome = Math.floor(Math.random() * 100 + 10); // If overshot already
-      } else {
-        outcome = diff - 1; // Avoid exactly 500
+      // Third spin: aim for total ~480–510 but avoid exactly 500
+      let targetTotal = 480 + Math.floor(Math.random() * 31); // 480–510
+      outcome = targetTotal - totalWin;
+
+      // Avoid exactly 500 total
+      if (totalWin + outcome === 500) {
+        outcome += (Math.random() < 0.5 ? -1 : 1);
       }
+
+      // Reset cycle tracking
+      spinCount = 0;
+      totalWin = 0;
     }
 
     totalWin += outcome;
@@ -144,15 +148,17 @@ window.spinWheel = async () => {
 
     document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
 
+    const newBalance = (data.balance || 0) + outcome;
     await update(userRef, {
-      balance: (data.balance || 0) + outcome,
+      balance: newBalance,
       spinsLeft: data.spinsLeft - 1
     });
 
-    balanceEl.innerText = (data.balance || 0) + outcome;
-    console.log(`Spin ${spinCount}: ₹${outcome} | Total: ₹${totalWin}`);
+    balanceEl.innerText = newBalance;
+    console.log(`Spin ${spinCount || 3}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
   }, 3000);
 };
+
 
 
 
