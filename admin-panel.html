@@ -243,10 +243,12 @@
 
   <!-- Referral Tree -->
   <section class="panel">
-    <h2>🌳 Referral Tree</h2>
-    <input type="text" id="ref-uid" placeholder="Enter UID" />
-    <button onclick="viewReferralTree()">View Tree</button>
-    <div id="ref-tree"></div>
+    <div class="referral-header">
+  <input type="text" id="tree-search" placeholder="Search UID..." oninput="searchReferralTree()" />
+  <button id="toggle-tree" onclick="toggleExpandAll()">Expand All</button>
+</div>
+<ul id="referral-tree"></ul>
+
   </section>
 
 </main>
