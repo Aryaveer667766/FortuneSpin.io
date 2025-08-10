@@ -2,177 +2,197 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🛰️ FortuneSpin God Mode HQ</title>
-  <link rel="stylesheet" href="style/admin.css" />
+  <title>🛰️ FortuneSpin | Admin HQ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="assets/logo/logo.png" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet" />
   <style>
-    body.admin-body {
-      background: #000;
+    :root {
+      --bg: #0b0b0b;
+      --panel: #151515;
+      --border: #333;
+      --accent: #00ff88;
+      --danger: #ff3c3c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
       color: #fff;
       font-family: 'Rajdhani', sans-serif;
-      padding: 0;
       margin: 0;
+      padding: 0;
     }
     header {
-      background: #111;
-      padding: 15px;
+      background: var(--panel);
+      padding: 12px;
       display: flex;
       align-items: center;
-      gap: 15px;
-      border-bottom: 2px solid #444;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
     }
+    header img { height: 40px; }
     header h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 22px;
-      margin: 0;
       flex: 1;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      margin: 0;
     }
-    .live-indicator {
-      color: #0f0;
-      font-weight: bold;
-    }
-    .admin-logo {
-      height: 40px;
-    }
+    .live-indicator { color: var(--accent); font-weight: bold; }
     main {
       padding: 15px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 20px;
     }
     .panel {
-      background: #111;
-      border: 1px solid #333;
-      padding: 15px;
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 8px;
+      padding: 15px;
     }
     .panel h2 {
-      margin-top: 0;
+      margin: 0 0 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
       font-size: 18px;
-      border-bottom: 1px solid #333;
-      padding-bottom: 5px;
     }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    input, button, select {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #000;
+      color: #fff;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: var(--accent);
+      color: #000;
+    }
+    button.danger { border-color: var(--danger); color: var(--danger); }
+    button.danger:hover { background: var(--danger); color: #000; }
     #user-list {
       max-height: 400px;
       overflow-y: auto;
-      margin-top: 10px;
-      border: 1px solid #555;
-      padding: 10px;
-      background: #000;
-      color: #eee;
-      font-family: monospace;
     }
     .user-row {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #333;
+      flex-direction: column;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
       padding: 6px 0;
-      gap: 8px;
     }
-    .user-info {
-      flex: 1 1 150px;
+    .user-header {
+      display: flex;
+      justify-content: space-between;
       font-size: 14px;
     }
     .user-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
     }
-    .user-actions input {
-      width: 60px;
-      padding: 3px;
-      font-size: 13px;
-    }
-    .user-actions button {
-      cursor: pointer;
-      background: transparent;
-      border: 1px solid #0f0;
-      color: #0f0;
-      font-size: 12px;
-      padding: 3px 6px;
-      border-radius: 4px;
-      transition: all 0.3s;
-    }
-    .user-actions button:hover {
-      background: #0f0;
-      color: #000;
-    }
-    /* Scrollbar */
     #user-list::-webkit-scrollbar { width: 6px; }
-    #user-list::-webkit-scrollbar-thumb {
-      background: #666;
-      border-radius: 3px;
+    #user-list::-webkit-scrollbar-thumb { background: #666; border-radius: 3px; }
+    @media (max-width: 600px) {
+      header h1 { font-size: 16px; }
     }
   </style>
 </head>
-<body class="admin-body">
+<body>
 
-  <!-- 🔻 HEADER -->
-  <header>
-    <img src="assets/logo/logo.png" class="admin-logo" />
-    <h1>FORTUNESPIN | ADMIN HQ</h1>
-    <p class="live-indicator">🟢 SYSTEM ONLINE</p>
-  </header>
+<header>
+  <img src="assets/logo/logo.png" alt="Logo" />
+  <h1>FORTUNESPIN | ADMIN HQ</h1>
+  <span class="live-indicator">🟢 SYSTEM ONLINE</span>
+</header>
 
-  <!-- ⚙️ CONTROL PANEL -->
-  <main>
+<main>
 
-    <!-- 👥 USER LIST & SEARCH -->
-    <section class="panel" id="user-panel">
-      <h2>👥 User List & Search</h2>
-      <input type="text" id="search-user" placeholder="Search by Name, Email, Phone or UID" style="width: 100%; padding: 8px; font-size: 16px;" />
-      <div id="user-list">Loading users...</div>
-    </section>
+  <!-- User Search -->
+  <section class="panel">
+    <h2>👥 User List & Search</h2>
+    <input type="text" id="search-user" placeholder="Search by Name, Email, Phone or UID" style="width: 100%;" />
+    <div id="user-list">Loading users...</div>
+  </section>
 
-    <!-- 💸 Withdrawals -->
-    <section class="panel">
-      <h2>💸 Withdrawals</h2>
-      <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
-      <div id="withdraw-list">No pending requests.</div>
-    </section>
+  <!-- Quick UID Actions -->
+  <section class="panel">
+    <h2>🎯 Quick User Actions</h2>
+    <div class="input-group">
+      <input type="text" id="uid-input" placeholder="Enter UID" style="flex: 1;" />
+    </div>
+    <div class="input-group">
+      <input type="number" id="spins-input" placeholder="Assign Spins" min="0" max="999" />
+      <button onclick="assignSpinsDirect()">Assign Spins</button>
+    </div>
+    <div class="input-group">
+      <input type="number" id="maxwin-input" placeholder="Set MaxWin" min="0" max="499" />
+      <button onclick="setMaxWinDirect()">Set MaxWin</button>
+    </div>
+    <div class="input-group">
+      <input type="number" id="balance-input" placeholder="Adjust Balance" />
+      <button onclick="adjustBalanceDirect()">Adjust</button>
+    </div>
+    <div class="input-group">
+      <button class="danger" onclick="lockUserDirect()">Lock</button>
+      <button onclick="unlockUserDirect()">Unlock</button>
+    </div>
+  </section>
 
-    <!-- 🧾 Tickets -->
-    <section class="panel">
-      <h2>🧾 Tickets</h2>
-      <button onclick="loadTickets()">🔁 Refresh Tickets</button>
-      <div id="ticket-list">No tickets loaded.</div>
-    </section>
+  <!-- Withdrawals -->
+  <section class="panel">
+    <h2>💸 Withdrawals</h2>
+    <button onclick="loadWithdrawals()">🔁 Refresh</button>
+    <div id="withdraw-list">No pending requests.</div>
+  </section>
 
-    <!-- 🧑‍🤝‍🧑 Referral Tree -->
-    <section class="panel">
-      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
-      <input type="text" id="ref-uid" placeholder="Enter UID" />
-      <button onclick="viewReferralTree()">View Tree</button>
-      <div id="ref-tree"></div>
-    </section>
+  <!-- Tickets -->
+  <section class="panel">
+    <h2>🧾 Tickets</h2>
+    <button onclick="loadTickets()">🔁 Refresh</button>
+    <div id="ticket-list">No tickets loaded.</div>
+  </section>
 
-  </main>
+  <!-- Referral Tree -->
+  <section class="panel">
+    <h2>🌳 Referral Tree</h2>
+    <input type="text" id="ref-uid" placeholder="Enter UID" />
+    <button onclick="viewReferralTree()">View Tree</button>
+    <div id="ref-tree"></div>
+  </section>
 
-  <!-- 🔊 SOUNDS -->
-  <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
-  <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
-  <audio id="confetti-sound" src="assets/sounds/confetti.mp3" preload="auto"></audio>
+</main>
 
-  <!-- 🎯 JS -->
-  <script type="module" src="js/admin.js"></script>
-  <script>
-    // Sound Effects
-    const click = document.getElementById("click-sound");
-    document.querySelectorAll("button").forEach(btn =>
-      btn.addEventListener("click", () => click.play())
-    );
+<!-- Sounds -->
+<audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
+<audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
+<audio id="confetti-sound" src="assets/sounds/confetti.mp3" preload="auto"></audio>
 
-    // Search filter listener
-    const searchInput = document.getElementById('search-user');
-    searchInput.addEventListener('input', () => {
-      if (typeof window.filterUsers === 'function') {
-        window.filterUsers(searchInput.value);
-      }
-    });
-  </script>
+<!-- JS -->
+<script type="module" src="js/admin.js"></script>
+<script>
+  const click = document.getElementById("click-sound");
+  document.querySelectorAll("button").forEach(btn =>
+    btn.addEventListener("click", () => click.play())
+  );
+  document.getElementById('search-user').addEventListener('input', e => {
+    if (typeof window.filterUsers === 'function') window.filterUsers(e.target.value);
+  });
+</script>
 
 </body>
 </html>
