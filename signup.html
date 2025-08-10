@@ -20,7 +20,8 @@
     <input type="tel" id="phone" placeholder="Phone Number" />  
     <input type="password" id="password" placeholder="Password" />
 
-    <input type="text" id="referral" placeholder="Referral Code (optional) Enter code like ABC123" />
+    <!-- Referral field is readonly and auto-filled if ?ref= is present -->
+    <input type="text" id="referral" placeholder="Referral Code (optional) Enter code like ABC123" readonly />
 
     <button onclick="signup()">Create Account</button>
     <p id="error-msg" class="error"></p>
@@ -38,11 +39,13 @@
     import { ref, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
     // Auto-fill referral from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const referralCode = urlParams.get('ref');
-    if (referralCode) {
-      document.getElementById("referral").value = referralCode;
-    }
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const referralCode = urlParams.get('ref');
+      if (referralCode) {
+        document.getElementById("referral").value = referralCode;
+      }
+    });
 
     window.signup = async function () {
       const name = document.getElementById("name").value.trim();
@@ -91,7 +94,7 @@
           window.location.href = "index.html";
         }, 1800);
       } catch (error) {
-        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
+        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "").trim();
       }
     };
   </script>
