@@ -26,51 +26,8 @@ const methodSelect = document.getElementById("payment-method");
 const upiSection = document.getElementById("upi-section");
 const bankSection = document.getElementById("bank-section");
 const historyList = document.getElementById("withdrawal-history");
-const successSound = document.getElementById("withdraw-sound"); // 🔊 Correct ID here
+const successSound = document.getElementById("withdraw-sound");
 
-// Toast container for notifications
-const toastContainer = document.createElement("div");
-toastContainer.style.position = "fixed";
-toastContainer.style.top = "20px";
-toastContainer.style.right = "20px";
-toastContainer.style.zIndex = "9999";
-document.body.appendChild(toastContainer);
-
-// Show toast function
-function showToast(message, type = "info") {
-  const toast = document.createElement("div");
-  toast.textContent = message;
-  toast.style.minWidth = "250px";
-  toast.style.marginBottom = "10px";
-  toast.style.padding = "12px 20px";
-  toast.style.borderRadius = "8px";
-  toast.style.color = "#fff";
-  toast.style.fontWeight = "600";
-  toast.style.boxShadow = "0 0 12px rgba(0,0,0,0.3)";
-  toast.style.display = "flex";
-  toast.style.alignItems = "center";
-  toast.style.gap = "10px";
-  toast.style.fontFamily = "'Orbitron', sans-serif";
-
-  if (type === "warning") {
-    toast.style.backgroundColor = "#ff9800";
-  } else if (type === "error") {
-    toast.style.backgroundColor = "#f44336";
-  } else if (type === "success") {
-    toast.style.backgroundColor = "#4caf50";
-  } else {
-    toast.style.backgroundColor = "#2196f3";
-  }
-
-  toastContainer.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    setTimeout(() => toast.remove(), 500);
-  }, 3500);
-}
-
-// UI toggle for method
 methodSelect.addEventListener("change", () => {
   const method = methodSelect.value;
   upiSection.style.display = method === "upi" ? "block" : "none";
@@ -80,7 +37,6 @@ methodSelect.addEventListener("change", () => {
 let currentUID = null;
 let currentBalance = 0;
 
-// Auth check
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUID = user.uid;
@@ -91,7 +47,6 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// Get balance
 function fetchBalance() {
   get(ref(db, `users/${currentUID}/balance`)).then(snapshot => {
     currentBalance = snapshot.exists() ? snapshot.val() : 0;
@@ -99,31 +54,6 @@ function fetchBalance() {
   });
 }
 
-// Check unlocked referrals count
-async function checkUnlockedReferrals(userUID) {
-  const referralsRef = ref(db, `referrals/${userUID}`);
-  const referralsSnap = await get(referralsRef);
-
-  if (!referralsSnap.exists()) return 0;
-
-  const referrals = referralsSnap.val();
-  let unlockedCount = 0;
-
-  for (const referralUID of Object.keys(referrals)) {
-    const userRef = ref(db, `users/${referralUID}`);
-    const userSnap = await get(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.val();
-      // Check the 'locked' field, must be false to count as unlocked
-      if (userData.locked === false) {
-        unlockedCount++;
-      }
-    }
-  }
-  return unlockedCount;
-}
-
-// Handle form submit
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -136,27 +66,24 @@ form.addEventListener("submit", async (e) => {
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
 
   if (!mobile || isNaN(amount)) {
-    msg.textContent = "Please fill in all required fields.";
-    msg.style.color = "orange";
+    showMsg("Please fill in all required fields.", "orange");
     return;
   }
 
   if (amount < 500) {
-    msg.textContent = "Minimum withdrawal amount is ₹500.";
-    msg.style.color = "red";
+    showMsg("Minimum withdrawal amount is ₹500.", "red");
     return;
   }
 
   if (amount > currentBalance) {
-    msg.textContent = "Insufficient balance.";
-    msg.style.color = "red";
+    showMsg("Insufficient balance.", "red");
     return;
   }
 
-  // Check unlocked referrals count before withdrawal
-  const unlockedCount = await checkUnlockedReferrals(currentUID);
-  if (unlockedCount < 3) {
-    showToast("You need at least 3 unlocked referrals to withdraw.", "warning");
+  // Check if user has 3 or more unlocked referrals
+  const unlockedReferralCount = await checkUnlockedReferrals(currentUID);
+  if (unlockedReferralCount < 3) {
+    showMsg(`⚠️ You need at least 3 unlocked referrals to withdraw. You currently have ${unlockedReferralCount}.`, "orange");
     return;
   }
 
@@ -170,43 +97,72 @@ form.addEventListener("submit", async (e) => {
 
   if (method === "upi") {
     if (!upi) {
-      msg.textContent = "Please enter UPI ID.";
-      msg.style.color = "red";
+      showMsg("Please enter UPI ID.", "red");
       return;
     }
     data.upi = upi;
   } else {
     if (!account || !ifsc) {
-      msg.textContent = "Please enter bank details.";
-      msg.style.color = "red";
+      showMsg("Please enter bank details.", "red");
       return;
     }
     data.account = account;
     data.ifsc = ifsc;
   }
 
-  // Deduct and store withdrawal request
   try {
     const newRef = push(ref(db, `withdrawals/${currentUID}`));
     await set(newRef, data);
     await set(ref(db, `users/${currentUID}/balance`), currentBalance - amount);
 
-    msg.textContent = "Withdrawal request submitted!";
-    msg.style.color = "lime";
-    showToast("Withdrawal request submitted successfully!", "success");
+    showMsg("Withdrawal request submitted!", "lime");
     playEffects();
     form.reset();
     fetchBalance();
     loadWithdrawalHistory();
   } catch (error) {
     console.error("Error submitting withdrawal:", error);
-    msg.textContent = "Error occurred. Try again.";
-    msg.style.color = "red";
-    showToast("Error occurred. Please try again.", "error");
+    showMsg("Error occurred. Try again.", "red");
   }
 });
 
-// Load withdrawal history
+function showMsg(text, color) {
+  msg.textContent = text;
+  msg.style.color = color;
+}
+
+async function checkUnlockedReferrals(userUID) {
+  const referralsRef = ref(db, `referrals/${userUID}`);
+  const referralsSnap = await get(referralsRef);
+
+  if (!referralsSnap.exists()) {
+    console.log("No referrals found.");
+    return 0;
+  }
+
+  const referrals = referralsSnap.val();
+  let unlockedCount = 0;
+  const referralUIDs = Object.keys(referrals);
+
+  for (const referralUID of referralUIDs) {
+    try {
+      const userRef = ref(db, `users/${referralUID}`);
+      const userSnap = await get(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.val();
+        if (userData.accountLocked === false) {
+          unlockedCount++;
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching referral user data:", err);
+    }
+  }
+
+  console.log(`Unlocked referrals count: ${unlockedCount}`);
+  return unlockedCount;
+}
+
 function loadWithdrawalHistory() {
   historyList.innerHTML = "";
   get(ref(db, `withdrawals/${currentUID}`)).then(snapshot => {
@@ -222,7 +178,6 @@ function loadWithdrawalHistory() {
   });
 }
 
-// Effects on success
 function playEffects() {
   if (successSound) {
     successSound.play().catch(e => console.warn("Autoplay blocked:", e));
