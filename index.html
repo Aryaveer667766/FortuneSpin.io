@@ -16,38 +16,41 @@
     
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
-    
+
+    <!-- Reset Password Link -->
+    <p style="text-align:right; margin:5px 0;">
+      <a href="#" id="reset-password-link" style="color:#f0b90b; text-decoration:none; font-size:14px; cursor:pointer;">
+        Forgot Password?
+      </a>
+    </p>
 
     <button onclick="login()">🔐 Login</button>
     <p id="error-msg" class="error"></p>
 
     <!-- ✅ New: Create Account Link -->
     <p class="switch-text">
-  Don't have an account? <a href="signup.html" class="switch-link">Create one</a>
-</p>
+      Don't have an account? <a href="signup.html" class="switch-link">Create one</a>
+    </p>
 
     <p class="note">New user? Join Now And get guaranteed win on your first spin</p>
-  
   </div>
- <audio id="success-sound" src="assets/success.mp3" preload="auto"></audio>
+  <audio id="success-sound" src="assets/success.mp3" preload="auto"></audio>
 
   <script type="module">
-   
-  import { db } from './js/firebase.js';
-  import { ref, get } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
-
-  const statusRef = ref(db, 'siteStatus/maintenance');
-  get(statusRef).then(snapshot => {
-    if (snapshot.exists() && snapshot.val() === true && !location.href.includes('maintenance.html')) {
-      location.href = 'maintenance.html';
-    }
-  });
-
-
+    import { db } from './js/firebase.js';
+    import { ref, get } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
     import { auth } from './js/firebase.js';
     import {
-      signInWithEmailAndPassword
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+    const statusRef = ref(db, 'siteStatus/maintenance');
+    get(statusRef).then(snapshot => {
+      if (snapshot.exists() && snapshot.val() === true && !location.href.includes('maintenance.html')) {
+        location.href = 'maintenance.html';
+      }
+    });
 
     window.login = async function () {
       const email = document.getElementById("email").value.trim();
@@ -67,20 +70,34 @@
         errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
       }
       // 🎉 Confetti
-        confetti({
-          particleCount: 100,
-          spread: 90,
-          origin: { y: 0.6 }
-        });
+      confetti({
+        particleCount: 100,
+        spread: 90,
+        origin: { y: 0.6 }
+      });
 
-        // 🔊 Sound
-        document.getElementById("success-sound").play();
+      // 🔊 Sound
+      document.getElementById("success-sound").play();
     };
-    
+
+    // Reset password handler
+    document.getElementById('reset-password-link').addEventListener('click', async () => {
+      const email = document.getElementById("email").value.trim();
+      const errorMsg = document.getElementById("error-msg");
+      errorMsg.innerText = "";
+      if (!email) {
+        errorMsg.innerText = "❌ Please enter your email to reset password.";
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        errorMsg.style.color = '#00ff88';
+        errorMsg.innerText = "✅ Password reset email sent!";
+      } catch (error) {
+        errorMsg.style.color = '#ff3c3c';
+        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
+      }
+    });
   </script>
-
-
-
-
 </body>
 </html>
