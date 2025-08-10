@@ -71,53 +71,60 @@
       <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
       <button onclick="submitTicket()">Submit Ticket</button>
     </section>
-    <!-- Refill Spins Section -->
-<div id="refillSection" style="display: none; margin-top: 20px; text-align: center;">
-  <button id="refillBtn" style="
-      background-color: #4CAF50; 
-      color: white; 
-      border: none; 
-      padding: 10px 20px; 
-      font-size: 16px; 
-      border-radius: 5px;
-      cursor: pointer;">
-    🔄 Refill Spins
-  </button>
+    <!-- Refill Spins Section (Initially Hidden) -->
+<div id="refill-section" style="display:none; position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 9999;">
+  <p style="margin: 0 0 10px;">You have 0 spins left!</p>
+  <button id="refill-btn" style="padding: 10px 15px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;">Refill Spins</button>
+  <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
 </div>
 
 <script type="module">
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-  import { app } from './js/firebase.js';
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+import { app } from './firebase.js'; // Use your firebase.js config
 
-  const auth = getAuth(app);
-  const db = getDatabase(app);
+const auth = getAuth(app);
+const db = getDatabase(app);
 
-  const refillSection = document.getElementById("refillSection");
-  const refillBtn = document.getElementById("refillBtn");
+let refillDismissed = false; // Tracks if user closed the section
 
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const uid = user.uid;
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const uid = user.uid;
 
-      // Check if user is unlocked
-      const snapshot = await get(ref(db, `users/${uid}/locked`));
-      const isLocked = snapshot.exists() ? snapshot.val() : false;
+    // Get user lock status & spins
+    const userRef = ref(db, `users/${uid}`);
+    onValue(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const spins = data.spins || 0;
+        const isLocked = data.locked || false;
 
-      if (!isLocked) {
-        // Show the button for unlocked users
-        refillSection.style.display = "block";
+        // Show button only if unlocked and spins == 0 (unless dismissed)
+        if (!isLocked && spins === 0 && !refillDismissed) {
+          document.getElementById("refill-section").style.display = "block";
+        } else {
+          document.getElementById("refill-section").style.display = "none";
+        }
 
-        refillBtn.addEventListener("click", () => {
-          const whatsappNumber = "918319427424"; // admin number without +
-          const message = `I want to refill my account. My unique ID is ${uid}`;
-          const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-          window.open(whatsappURL, "_blank");
-        });
+        // Set up refill button click
+        document.getElementById("refill-btn").onclick = () => {
+          const whatsappNumber = "6283194274244"; // Admin's WhatsApp
+          const message = `Hello, I want to refill my account. My unique id is ${uid}`;
+          window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
+        };
+
+        // Close button
+        document.getElementById("close-refill").onclick = () => {
+          document.getElementById("refill-section").style.display = "none";
+          refillDismissed = true;
+        };
       }
-    }
-  });
+    });
+  }
+});
 </script>
+
 
 
     <!-- 📢 NOTIFICATIONS -->
