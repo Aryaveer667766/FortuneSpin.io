@@ -53,7 +53,7 @@ onAuthStateChanged(auth, async (user) => {
   const userRef = ref(db, `users/${uid}`);
   const userSnap = await get(userRef);
 
-  // Referral code from URL is now expected to be the referrer's uidCode
+  // Referral code from URL is the referrer's uidCode
   const urlParams = new URLSearchParams(window.location.search);
   const referralByCode = urlParams.get("ref");
 
@@ -82,7 +82,7 @@ onAuthStateChanged(auth, async (user) => {
       unlocked: false,
       uidCode: newUID,
       referralBy: referralByUid || "",
-      referralBonusGiven: false,
+      referralBonusGiven: false, // flag to ensure bonus added only once
       notifications: [],
       spinsLeft: 1
     });
@@ -96,7 +96,7 @@ onAuthStateChanged(auth, async (user) => {
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
-    // Watch for unlock changes to grant referral bonus
+    // Watch unlock to grant referral bonus when unlocked
     watchUnlockAndGiveReferralBonus(userRef);
 
     return;
@@ -115,10 +115,11 @@ onAuthStateChanged(auth, async (user) => {
 
   loadNotifications();
 
-  // Watch for unlock changes to grant referral bonus
+  // Always watch unlock changes (for existing users too)
   watchUnlockAndGiveReferralBonus(userRef);
 });
 
+// Watches user's unlocked status changes and grants referral bonus after unlock
 function watchUnlockAndGiveReferralBonus(userRef) {
   let previousUnlockedStatus = null;
 
@@ -128,14 +129,15 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
     if (previousUnlockedStatus === null) {
       previousUnlockedStatus = userData.unlocked;
-      return;
+      return; // first read, just initialize
     }
 
+    // Trigger only when unlocking happens
     if (
       previousUnlockedStatus === false &&
       userData.unlocked === true &&
-      userData.referralBy &&
-      !userData.referralBonusGiven
+      userData.referralBy &&         // user has a referrer
+      userData.referralBonusGiven === false // bonus not yet given
     ) {
       const referrerUid = userData.referralBy;
       const referrerRef = ref(db, `users/${referrerUid}`);
@@ -146,9 +148,10 @@ function watchUnlockAndGiveReferralBonus(userRef) {
         const currentBalance = Number(referrerData.balance) || 0;
         const updatedBalance = currentBalance + 99;
 
+        // Update referrer's balance
         await update(referrerRef, { balance: updatedBalance });
 
-        // Mark bonus given so it doesn’t repeat
+        // Mark bonus given on referred user so it won't repeat
         await update(userRef, { referralBonusGiven: true });
 
         console.log(`Referral bonus ₹99 added to user ${referrerUid} for unlocking user ${uid}.`);
@@ -158,6 +161,8 @@ function watchUnlockAndGiveReferralBonus(userRef) {
     previousUnlockedStatus = userData.unlocked;
   });
 }
+
+// ... rest of your code for spinWheel, submitTicket, loadNotifications etc (unchanged) ...
 
 // Track spins & total win for the current 3-spin cycle
 let spinCount = 0;
