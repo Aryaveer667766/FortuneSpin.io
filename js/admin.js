@@ -17,40 +17,58 @@ import {
 let usersCache = {};
 let currentAdmin = null;
 
-// ----------------- Toast Notification -----------------
+// ----------------- Toast Notification (top-center) -----------------
 function showToast(message, type = "info") {
-  let container = document.querySelector(".toast-container");
+  let container = document.getElementById("toast-container");
   if (!container) {
     container = document.createElement("div");
-    container.className = "toast-container";
+    container.id = "toast-container";
+    // top-center styling (mobile friendly)
     container.style.position = "fixed";
-    container.style.top = "15px";
+    container.style.top = "12px";
     container.style.left = "50%";
     container.style.transform = "translateX(-50%)";
-    container.style.zIndex = "9999";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
+    container.style.gap = "8px";
+    container.style.zIndex = "99999";
     document.body.appendChild(container);
   }
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.innerText = message;
-  toast.style.background = type === "success" ? "#4CAF50" :
-                           type === "error" ? "#f44336" :
-                           type === "warning" ? "#ff9800" : "#2196F3";
+
+  // Basic look
+  toast.style.padding = "10px 16px";
+  toast.style.borderRadius = "8px";
   toast.style.color = "#fff";
-  toast.style.padding = "10px 20px";
-  toast.style.marginTop = "8px";
-  toast.style.borderRadius = "5px";
-  toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+  toast.style.fontSize = "14px";
+  toast.style.boxShadow = "0 6px 18px rgba(0,0,0,0.25)";
   toast.style.opacity = "0";
-  toast.style.transition = "opacity 0.3s ease";
-  
+  toast.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+  toast.style.transform = "translateY(-6px)";
+
+  // color by type
+  const bg = type === "success" ? "#2ECC71" :
+             type === "error" ? "#E74C3C" :
+             type === "warning" ? "#F39C12" : "#3498DB";
+  toast.style.background = bg;
+
   container.appendChild(toast);
 
-  setTimeout(() => toast.style.opacity = "1", 50);
+  // show
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  });
+
+  // remove after 3s
   setTimeout(() => {
     toast.style.opacity = "0";
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transform = "translateY(-6px)";
+    setTimeout(() => toast.remove(), 250);
   }, 3000);
 }
 
@@ -63,6 +81,39 @@ onAuthStateChanged(auth, (user) => {
   loadTickets();
 });
 
+// ----------------- Helper: find DB key from UID input -----------------
+async function findUserKeyByUidInput(uidInput) {
+  if (!uidInput) return null;
+  uidInput = uidInput.trim();
+
+  // If usersCache already has this as a DB key, return it directly
+  if (usersCache[uidInput]) return uidInput;
+
+  const normalizedInput = uidInput.toLowerCase().replace(/^uid#/, '');
+
+  // Search local cache first (fast)
+  for (const [key, user] of Object.entries(usersCache)) {
+    const ucode = (user.uidCode || "").toLowerCase();
+    if (ucode === uidInput.toLowerCase()) return key;
+    if (ucode.replace(/^uid#/, '') === normalizedInput) return key;
+  }
+
+  // Fallback: fetch from DB and search (covers cache misses)
+  const usersSnap = await get(ref(db, "users"));
+  if (!usersSnap.exists()) return null;
+
+  let foundKey = null;
+  usersSnap.forEach(childSnap => {
+    const u = childSnap.val();
+    const ucode = (u.uidCode || "").toLowerCase();
+    if (ucode === uidInput.toLowerCase() || ucode.replace(/^uid#/, '') === normalizedInput) {
+      foundKey = childSnap.key;
+    }
+  });
+
+  return foundKey;
+}
+
 // ----------------- Load Users -----------------
 function loadUsers() {
   const userRef = ref(db, "users");
@@ -74,18 +125,22 @@ function loadUsers() {
 
 function renderUserList(users) {
   const list = document.getElementById("user-list");
+  if (!list) return;
   list.innerHTML = "";
   Object.entries(users).forEach(([id, data]) => {
     const row = document.createElement("div");
     row.className = "user-row";
+    // show either maxWin or maxWinAmount (compatibility)
+    const maxWinDisplay = data.maxWin ?? data.maxWinAmount ?? "Not set";
+
     row.innerHTML = `
       <div class="user-info">
-        <strong>${data.uidCode || "N/A"}</strong> | ${data.email || ""} | Bal: ₹${data.balance || 0} | Spins: ${data.spinsLeft || 0} | MaxWin: ${data.maxWin || "N/A"}
+        <strong>${data.uidCode || "N/A"}</strong> | ${data.email || ""} | Bal: ₹${data.balance ?? 0} | Spins: ${data.spinsLeft ?? 0} | MaxWin: ₹${maxWinDisplay}
       </div>
       <div class="user-actions">
         <button onclick="assignSpins('${id}')">🎯 Spins</button>
         <button onclick="assignMaxWin('${id}')">💰 MaxWin</button>
-        <button onclick="toggleLock('${id}', ${data.unlocked})">${data.unlocked ? "🔒 Lock" : "🔓 Unlock"}</button>
+        <button onclick="toggleLock('${id}', ${!!data.unlocked})">${data.unlocked ? "🔒 Lock" : "🔓 Unlock"}</button>
         <button onclick="deleteUser('${id}')">🗑</button>
       </div>
     `;
@@ -95,13 +150,15 @@ function renderUserList(users) {
 
 // ----------------- Search -----------------
 window.filterUsers = (query) => {
+  if (!query) return renderUserList(usersCache);
   query = query.toLowerCase();
   const filtered = {};
   Object.entries(usersCache).forEach(([id, user]) => {
     if (
       (user.uidCode && user.uidCode.toLowerCase().includes(query)) ||
       (user.email && user.email.toLowerCase().includes(query)) ||
-      (user.phone && user.phone.toLowerCase().includes(query))
+      (user.phone && user.phone.toLowerCase().includes(query)) ||
+      (user.name && user.name.toLowerCase().includes(query))
     ) {
       filtered[id] = user;
     }
@@ -109,38 +166,58 @@ window.filterUsers = (query) => {
   renderUserList(filtered);
 };
 
-// ----------------- Assign Spins -----------------
-window.assignSpins = async (uid) => {
-  const spins = prompt("Enter number of spins to assign:");
-  if (spins === null || spins.trim() === "") return;
-  await update(ref(db, `users/${uid}`), { spinsLeft: Number(spins) });
-  showToast(`✅ Assigned ${spins} spins to ${uid}`, "success");
-  loadUsers();
+// ----------------- Assign Spins (from list button using DB key) -----------------
+window.assignSpins = async (dbKey) => {
+  const val = prompt("Enter number of spins to assign:");
+  if (val === null || val.trim() === "") return;
+  const spins = Number(val);
+  if (Number.isNaN(spins)) return showToast("Invalid number", "error");
+
+  await update(ref(db, `users/${dbKey}`), { spinsLeft: spins });
+  // update cache/UI immediately
+  usersCache[dbKey] = usersCache[dbKey] || {};
+  usersCache[dbKey].spinsLeft = spins;
+  renderUserList(usersCache);
+  showToast(`✅ Assigned ${spins} spins`, "success");
 };
 
-// ----------------- Assign Max Win -----------------
-window.assignMaxWin = async (uid) => {
-  const maxWin = prompt("Enter max win amount (leave empty to remove):");
-  if (maxWin === null) return;
-  await update(ref(db, `users/${uid}`), { maxWin: maxWin === "" ? null : Number(maxWin) });
-  showToast(`✅ MaxWin set to ${maxWin || "N/A"} for ${uid}`, "success");
-  loadUsers();
+// ----------------- Assign Max Win (from list button using DB key) -----------------
+window.assignMaxWin = async (dbKey) => {
+  const val = prompt("Enter max win amount (leave empty to remove):");
+  if (val === null) return;
+  const maxWin = val === "" ? null : Number(val);
+  if (val !== "" && Number.isNaN(maxWin)) return showToast("Invalid number", "error");
+
+  // write both names for compatibility
+  const updateObj = { maxWin: maxWin };
+  if (maxWin !== null) updateObj.maxWinAmount = maxWin; else { updateObj.maxWinAmount = null; }
+
+  await update(ref(db, `users/${dbKey}`), updateObj);
+  usersCache[dbKey] = usersCache[dbKey] || {};
+  usersCache[dbKey].maxWin = maxWin;
+  usersCache[dbKey].maxWinAmount = maxWin;
+  renderUserList(usersCache);
+  showToast(`✅ MaxWin updated`, "success");
 };
 
 // ----------------- Lock/Unlock -----------------
-window.toggleLock = async (uid, unlocked) => {
+window.toggleLock = async (dbKey, unlocked) => {
   if (!confirm(`Are you sure you want to ${unlocked ? "lock" : "unlock"} this user?`)) return;
-  await update(ref(db, `users/${uid}`), { unlocked: !unlocked });
-  showToast(`🔄 User ${uid} is now ${!unlocked ? "unlocked" : "locked"}`, "info");
-  loadUsers();
+  const newStatus = !unlocked;
+  await update(ref(db, `users/${dbKey}`), { unlocked: newStatus });
+  usersCache[dbKey] = usersCache[dbKey] || {};
+  usersCache[dbKey].unlocked = newStatus;
+  renderUserList(usersCache);
+  showToast(`🔄 User ${newStatus ? "unlocked" : "locked"}`, "info");
 };
 
 // ----------------- Delete User -----------------
-window.deleteUser = async (uid) => {
-  if (!confirm(`⚠️ Are you sure you want to delete user ${uid}?`)) return;
-  await remove(ref(db, `users/${uid}`));
-  showToast(`🗑 User ${uid} deleted`, "error");
-  loadUsers();
+window.deleteUser = async (dbKey) => {
+  if (!confirm("Are you sure you want to delete this user?")) return;
+  await remove(ref(db, `users/${dbKey}`));
+  delete usersCache[dbKey];
+  renderUserList(usersCache);
+  showToast("🗑 User deleted", "error");
 };
 
 // ----------------- Withdrawals -----------------
@@ -154,6 +231,7 @@ window.loadWithdrawals = () => {
     const users = usersSnap.val() || {};
 
     const list = document.getElementById("withdraw-list");
+    if (!list) return;
     list.innerHTML = "";
 
     Object.entries(withdrawals).forEach(([uid, wList]) => {
@@ -162,16 +240,16 @@ window.loadWithdrawals = () => {
         if (w.status && w.status.toLowerCase() !== "pending") return;
 
         const div = document.createElement("div");
-        div.className = "panel";
+        div.className = "withdraw-row panel";
         div.innerHTML = `
-          <p>🔹 UID: ${userData.uidCode || "N/A"}</p>
-          <p>👤 Name: ${userData.username || "Unknown"}</p>
-          <p>📱 Phone: ${userData.phone || "Not Provided"}</p>
-          <p>💰 Amount: ₹${w.amount}</p>
-          <p>🏦 UPI: ${w.upi}</p>
-          <p>Status: ${w.status || "Pending"}</p>
-          <button onclick="approveWithdraw('${uid}', '${wid}')">✅ Approve</button>
-          <button onclick="rejectWithdraw('${uid}', '${wid}', ${w.amount})">❌ Reject</button>
+          <div class="withdraw-header"><strong>${userData.uidCode || uid}</strong><span>₹${w.amount}</span></div>
+          <div>👤 ${userData.username || userData.name || "Unknown"}</div>
+          <div>📱 ${userData.phone || "Not Provided"}</div>
+          <div>UPI: ${w.upi || "N/A"}</div>
+          <div class="withdraw-actions">
+            <button onclick="approveWithdraw('${uid}', '${wid}')">✅ Approve</button>
+            <button onclick="rejectWithdraw('${uid}', '${wid}', ${w.amount})">❌ Reject</button>
+          </div>
         `;
         list.appendChild(div);
       });
@@ -182,7 +260,7 @@ window.loadWithdrawals = () => {
 window.approveWithdraw = async (uid, wid) => {
   await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Approved" });
   showToast("✅ Withdrawal approved", "success");
-  loadWithdrawals();
+  // list will auto-refresh via onValue
 };
 
 window.rejectWithdraw = async (uid, wid, amount) => {
@@ -191,7 +269,6 @@ window.rejectWithdraw = async (uid, wid, amount) => {
   await update(ref(db, `users/${uid}`), { balance: currentBal + amount });
   await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Rejected" });
   showToast("❌ Withdrawal rejected & refunded", "error");
-  loadWithdrawals();
 };
 
 // ----------------- Tickets -----------------
@@ -200,6 +277,7 @@ window.loadTickets = () => {
   onValue(tRef, (snap) => {
     const tickets = snap.val() || {};
     const list = document.getElementById("ticket-list");
+    if (!list) return;
     list.innerHTML = "";
 
     Object.entries(tickets).forEach(([uid, tList]) => {
@@ -207,13 +285,14 @@ window.loadTickets = () => {
         if (t.status && t.status.toLowerCase() === "resolved") return;
 
         const div = document.createElement("div");
-        div.className = "panel";
+        div.className = "ticket-row panel";
         div.innerHTML = `
-          <p>📨 UID: ${uid}</p>
-          <p>📄 ${t.subject}</p>
-          <p>${t.message}</p>
-          <button onclick="replyTicket('${uid}', '${tid}')">💬 Reply</button>
-          <button onclick="resolveTicket('${uid}', '${tid}')">✅ Resolve</button>
+          <div class="ticket-header"><strong>${uid}</strong><span>${t.subject}</span></div>
+          <div>${t.message}</div>
+          <div class="ticket-actions">
+            <button onclick="replyTicket('${uid}', '${tid}')">💬 Reply</button>
+            <button onclick="resolveTicket('${uid}', '${tid}')">✅ Resolve</button>
+          </div>
         `;
         list.appendChild(div);
       });
@@ -232,54 +311,80 @@ window.replyTicket = async (uid, tid) => {
 window.resolveTicket = async (uid, tid) => {
   await update(ref(db, `tickets/${uid}/${tid}`), { status: "Resolved" });
   showToast("✅ Ticket resolved", "success");
-  loadTickets();
 };
 
-// ----------------- Quick User Actions -----------------
+// ----------------- Quick User Actions (direct UID input) -----------------
 window.assignSpinsDirect = async () => {
-  const uid = document.getElementById("uid-input").value.trim();
-  const spins = parseInt(document.getElementById("spins-input").value);
-  if (!uid || isNaN(spins)) return showToast("❌ Enter UID and Spins", "error");
+  const uidInput = document.getElementById("uid-input").value.trim();
+  const spins = parseInt(document.getElementById("spins-input").value, 10);
+  if (!uidInput || Number.isNaN(spins)) return showToast("❌ Enter UID and valid Spins", "error");
 
-  await update(ref(db, `users/${uid}`), { spinsLeft: spins });
-  showToast(`✅ Assigned ${spins} spins to ${uid}`, "success");
-  loadUsers();
+  const key = await findUserKeyByUidInput(uidInput);
+  if (!key) return showToast("❌ User not found", "error");
+
+  await update(ref(db, `users/${key}`), { spinsLeft: spins });
+  usersCache[key] = usersCache[key] || {};
+  usersCache[key].spinsLeft = spins;
+  renderUserList(usersCache);
+  showToast(`✅ Assigned ${spins} spins to ${uidInput}`, "success");
 };
 
 window.setMaxWinDirect = async () => {
-  const uid = document.getElementById("uid-input").value.trim();
-  const maxWin = parseInt(document.getElementById("maxwin-input").value);
-  if (!uid || isNaN(maxWin)) return showToast("❌ Enter UID and MaxWin", "error");
+  const uidInput = document.getElementById("uid-input").value.trim();
+  const maxWin = parseInt(document.getElementById("maxwin-input").value, 10);
+  if (!uidInput || Number.isNaN(maxWin)) return showToast("❌ Enter UID and valid MaxWin", "error");
 
-  await update(ref(db, `users/${uid}`), { maxWin });
-  showToast(`✅ MaxWin set to ${maxWin} for ${uid}`, "success");
-  loadUsers();
+  const key = await findUserKeyByUidInput(uidInput);
+  if (!key) return showToast("❌ User not found", "error");
+
+  // write both keys for compatibility
+  await update(ref(db, `users/${key}`), { maxWin: maxWin, maxWinAmount: maxWin });
+  usersCache[key] = usersCache[key] || {};
+  usersCache[key].maxWin = maxWin;
+  usersCache[key].maxWinAmount = maxWin;
+  renderUserList(usersCache);
+  showToast(`✅ MaxWin set to ₹${maxWin} for ${uidInput}`, "success");
 };
 
 window.adjustBalanceDirect = async () => {
-  const uid = document.getElementById("uid-input").value.trim();
+  const uidInput = document.getElementById("uid-input").value.trim();
   const balance = parseFloat(document.getElementById("balance-input").value);
-  if (!uid || isNaN(balance)) return showToast("❌ Enter UID and Balance", "error");
+  if (!uidInput || Number.isNaN(balance)) return showToast("❌ Enter UID and valid Balance", "error");
 
-  await update(ref(db, `users/${uid}`), { balance });
-  showToast(`✅ Balance updated to ₹${balance} for ${uid}`, "success");
-  loadUsers();
+  const key = await findUserKeyByUidInput(uidInput);
+  if (!key) return showToast("❌ User not found", "error");
+
+  await update(ref(db, `users/${key}`), { balance });
+  usersCache[key] = usersCache[key] || {};
+  usersCache[key].balance = balance;
+  renderUserList(usersCache);
+  showToast(`✅ Balance updated to ₹${balance} for ${uidInput}`, "success");
 };
 
 window.lockUserDirect = async () => {
-  const uid = document.getElementById("uid-input").value.trim();
-  if (!uid) return showToast("❌ Enter UID", "error");
+  const uidInput = document.getElementById("uid-input").value.trim();
+  if (!uidInput) return showToast("❌ Enter UID", "error");
 
-  await update(ref(db, `users/${uid}`), { unlocked: false });
-  showToast(`🔒 User ${uid} locked`, "warning");
-  loadUsers();
+  const key = await findUserKeyByUidInput(uidInput);
+  if (!key) return showToast("❌ User not found", "error");
+
+  await update(ref(db, `users/${key}`), { unlocked: false });
+  usersCache[key] = usersCache[key] || {};
+  usersCache[key].unlocked = false;
+  renderUserList(usersCache);
+  showToast(`🔒 User ${uidInput} locked`, "warning");
 };
 
 window.unlockUserDirect = async () => {
-  const uid = document.getElementById("uid-input").value.trim();
-  if (!uid) return showToast("❌ Enter UID", "error");
+  const uidInput = document.getElementById("uid-input").value.trim();
+  if (!uidInput) return showToast("❌ Enter UID", "error");
 
-  await update(ref(db, `users/${uid}`), { unlocked: true });
-  showToast(`🔓 User ${uid} unlocked`, "success");
-  loadUsers();
+  const key = await findUserKeyByUidInput(uidInput);
+  if (!key) return showToast("❌ User not found", "error");
+
+  await update(ref(db, `users/${key}`), { unlocked: true });
+  usersCache[key] = usersCache[key] || {};
+  usersCache[key].unlocked = true;
+  renderUserList(usersCache);
+  showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
