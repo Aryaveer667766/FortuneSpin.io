@@ -14,7 +14,102 @@ import {
   remove
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-// 🔍 SEARCH USER (search by uidCode, username, email, phone)
+// --------------- USER LIST & SEARCH -----------------
+let allUsers = [];
+
+// Load all users and render in list container
+async function loadAllUsers() {
+  const usersRef = ref(db, "users");
+  const snap = await get(usersRef);
+
+  allUsers = [];
+  snap.forEach(childSnap => {
+    allUsers.push({ key: childSnap.key, ...childSnap.val() });
+  });
+
+  renderUserList(allUsers);
+}
+
+// Render user list in container
+function renderUserList(users) {
+  const list = document.getElementById("user-list");
+  if (!list) return;
+
+  if (!users.length) {
+    list.innerHTML = `<div class="alert">No users found.</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  users.forEach(user => {
+    const lockedClass = user.unlocked ? '' : 'locked';
+    const lockTitle = user.unlocked ? 'Lock User' : 'Unlock User';
+
+    const userRow = document.createElement('div');
+    userRow.classList.add('user-row');
+
+    userRow.innerHTML = `
+      <div class="user-info">
+        <strong>${user.name || '(No Name)'}</strong> | UID: <code>${user.uidCode || '-'}</code><br />
+        📧 ${user.email || '-'} | 📞 ${user.phone || '-'} | Balance: ₹${user.balance || 0}<br/>
+        Spins Left: ${user.spinsLeft ?? 0} | Max Win: ₹${user.maxWinAmount ?? 'Not set'} | Unlocked: ${user.unlocked ? 'Yes' : 'No'}
+      </div>
+      <div class="user-actions">
+        <button title="${lockTitle}" class="${lockedClass}" onclick="toggleLock('${user.key}', ${user.unlocked})">
+          ${user.unlocked ? '🔓' : '🔒'}
+        </button>
+        <button title="Delete User" onclick="deleteUser('${user.key}')">❌</button>
+      </div>
+    `;
+
+    list.appendChild(userRow);
+  });
+}
+
+// Filter users live in user list by name, email, phone, uidCode
+window.filterUserList = (query) => {
+  query = query.trim().toLowerCase();
+  if (!query) {
+    renderUserList(allUsers);
+    return;
+  }
+  const filtered = allUsers.filter(user => {
+    return (
+      (user.name && user.name.toLowerCase().includes(query)) ||
+      (user.email && user.email.toLowerCase().includes(query)) ||
+      (user.phone && user.phone.toLowerCase().includes(query)) ||
+      (user.uidCode && user.uidCode.toLowerCase().includes(query))
+    );
+  });
+  renderUserList(filtered);
+};
+
+// Toggle lock/unlock user
+window.toggleLock = async (key, currentlyUnlocked) => {
+  try {
+    await update(ref(db, `users/${key}`), { unlocked: !currentlyUnlocked });
+    alert(`User ${currentlyUnlocked ? 'locked' : 'unlocked'} successfully.`);
+    await loadAllUsers();
+  } catch (err) {
+    alert("Error updating user lock status.");
+    console.error(err);
+  }
+};
+
+// Delete user
+window.deleteUser = async (key) => {
+  if (!confirm("Are you sure you want to delete this user?")) return;
+  try {
+    await remove(ref(db, `users/${key}`));
+    alert("User deleted successfully.");
+    await loadAllUsers();
+  } catch (err) {
+    alert("Error deleting user.");
+    console.error(err);
+  }
+};
+
+// ------------------ SEARCH USER (single user details) ----------------
 window.searchUser = async () => {
   const q = document.getElementById("search-user").value.trim().toLowerCase();
   const usersRef = ref(db, "users");
@@ -62,49 +157,32 @@ window.searchUser = async () => {
   if (!found) div.innerHTML = `<div class="alert">User not found.</div>`;
 };
 
-// 🔓 Unlock user
+// Unlock/Lock/Reset Password for searched user (reuse previous definitions)
 window.unlockUser = async (uid) => {
   try {
     await update(ref(db, `users/${uid}`), { unlocked: true });
     alert("✅ User Unlocked");
+    await loadAllUsers();
   } catch (err) {
-    console.error(err);
     alert("Error unlocking user");
   }
 };
 
-// 🔒 Lock user
 window.lockUser = async (uid) => {
   try {
     await update(ref(db, `users/${uid}`), { unlocked: false });
     alert("🔒 User Locked");
+    await loadAllUsers();
   } catch (err) {
-    console.error(err);
     alert("Error locking user");
   }
 };
 
-// 🗑️ Delete user
-window.deleteUser = async (uid) => {
-  if (confirm("Are you sure you want to delete this user?")) {
-    try {
-      await remove(ref(db, `users/${uid}`));
-      alert("User deleted.");
-      document.getElementById("user-result").innerHTML = "No user selected.";
-    } catch (err) {
-      console.error(err);
-      alert("Error deleting user");
-    }
-  }
-};
-
-// 🔄 Reset password
 window.resetPassword = async (uid) => {
-  // Full reset requires Admin SDK or sending password reset email to known email.
-  alert("Manual reset required via Firebase console or implement Admin SDK.");
+  alert("Manual reset required via Firebase console or Admin SDK.");
 };
 
-// 🎯 SET MAX WIN
+// ----------------- MAX WIN -------------------
 window.setMaxWin = async () => {
   const uidInput = document.getElementById("max-win-uid").value.trim();
   const maxWinAmt = parseInt(document.getElementById("max-win-amount").value, 10);
@@ -143,12 +221,11 @@ window.setMaxWin = async () => {
     document.getElementById("max-win-uid").value = "";
     document.getElementById("max-win-amount").value = "";
   } catch (err) {
-    console.error(err);
     alert("Error setting max win");
   }
 };
 
-// 🎡 ASSIGN SPINS + WIN AMOUNT
+// -------------- ASSIGN SPINS -------------------
 window.assignSpin = async () => {
   const uidCodeInput = document.getElementById("spin-uid").value.trim();
   const spins = parseInt(document.getElementById("spin-count").value, 10);
@@ -181,12 +258,11 @@ window.assignSpin = async () => {
     document.getElementById("win-amount").value = "";
     alert("🎯 Spin assigned successfully!");
   } catch (err) {
-    console.error(err);
     alert("Error assigning spins");
   }
 };
 
-// 💸 LOAD WITHDRAWALS — Show only pending
+// ------------------ WITHDRAWALS -------------------
 window.loadWithdrawals = async () => {
   const list = document.getElementById("withdraw-list");
   list.innerHTML = "Loading...";
@@ -231,7 +307,7 @@ window.loadWithdrawals = async () => {
   });
 };
 
-// ✅ Approve withdrawal — mark as Approved
+// Approve withdrawal
 window.approveWithdraw = async (uid, id, amount) => {
   try {
     await update(ref(db, `withdrawals/${uid}/${id}`), {
@@ -239,37 +315,34 @@ window.approveWithdraw = async (uid, id, amount) => {
     });
 
     alert("✅ Withdrawal approved");
-    loadWithdrawals(); // refresh pending list
+    loadWithdrawals();
   } catch (error) {
-    console.error("Approval error:", error);
     alert("Error approving withdrawal");
   }
 };
 
-// ❌ Reject withdrawal — refund & mark as Rejected
+// Reject withdrawal + refund
 window.rejectWithdraw = async (uid, id, amount) => {
   try {
-    // refund
     const balSnap = await get(ref(db, `users/${uid}/balance`));
     const currentBal = balSnap.val() || 0;
+
     await update(ref(db, `users/${uid}`), {
       balance: currentBal + amount
     });
 
-    // mark rejected
     await update(ref(db, `withdrawals/${uid}/${id}`), {
       status: "Rejected"
     });
 
     alert("❌ Withdrawal rejected & amount refunded");
-    loadWithdrawals(); // refresh pending list
+    loadWithdrawals();
   } catch (error) {
-    console.error("Rejection error:", error);
     alert("Error rejecting withdrawal");
   }
 };
 
-// 🧾 LOAD TICKETS
+// ------------------ TICKETS -------------------
 window.loadTickets = async () => {
   const list = document.getElementById("ticket-list");
   list.innerHTML = "Loading...";
@@ -302,7 +375,7 @@ window.loadTickets = async () => {
   });
 };
 
-// 💬 REPLY TICKET
+// Reply ticket
 window.replyTicket = async (uid, id) => {
   const msg = prompt("Enter your reply:");
   if (!msg) return;
@@ -312,24 +385,22 @@ window.replyTicket = async (uid, id) => {
     await push(notifRef, msg);
     alert("Reply sent.");
   } catch (err) {
-    console.error(err);
     alert("Error sending reply");
   }
 };
 
-// ✅ RESOLVE
+// Resolve ticket
 window.resolveTicket = async (uid, id) => {
   try {
     await update(ref(db, `tickets/${uid}/${id}`), { status: "Resolved" });
     alert("Marked resolved.");
     loadTickets();
   } catch (err) {
-    console.error(err);
     alert("Error resolving ticket");
   }
 };
 
-// 👥 REFERRAL TREE
+// -------------- REFERRAL TREE -------------------
 window.viewReferralTree = async () => {
   const uidText = document.getElementById("ref-uid").value.trim();
   if (!uidText) return alert("Enter a UID");
@@ -366,3 +437,10 @@ window.viewReferralTree = async () => {
 
   treeDiv.innerHTML = `<p>Referrals by ${uidText}:</p><ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>`;
 };
+
+// ------------------- INITIALIZE -------------------
+window.addEventListener('DOMContentLoaded', () => {
+  loadAllUsers();
+  loadWithdrawals();
+  loadTickets();
+});
