@@ -112,28 +112,37 @@ window.spinWheel = async () => {
   document.getElementById("spin-result").innerText = "Spinning...";
 
   setTimeout(async () => {
+    let maxWin = data.maxWinAmount ?? null; // user's max win limit or null
+    let targetTotal;
+    if (maxWin === null) {
+      // No maxWin set, default target max 499 (minimum 480)
+      targetTotal = 480 + Math.floor(Math.random() * 20); // 480 to 499 max
+    } else {
+      targetTotal = Math.min(maxWin, 499); // Never allow above 499
+    }
+
+    // Initialize on first spin of cycle
+    if (spinCount === 1) {
+      totalWin = 0; // reset total win
+    }
+
+    const minPerSpin = 10; // minimum per spin
+    const remainingSpins = 3 - (spinCount - 1);
+    const remainingTarget = targetTotal - totalWin;
+
     let outcome;
 
     if (spinCount < 3) {
-      const min = 10;
-      const max = 210;
-      const remainingSpins = 3 - spinCount;
-      const remainingTarget = 500 - totalWin - (remainingSpins * min);
+      // For spins 1 and 2: 
+      // Calculate max possible for this spin without exceeding targetTotal - min*remainingSpins
+      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
+      maxPossible = Math.max(maxPossible, minPerSpin); // Ensure at least minPerSpin
 
-      outcome = Math.min(
-        Math.floor(Math.random() * (max - min + 1) + min),
-        remainingTarget > min ? remainingTarget : max
-      );
+      // Random outcome between minPerSpin and maxPossible
+      outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
     } else {
-      let targetTotal = 480 + Math.floor(Math.random() * 31); // 480–510
-      outcome = targetTotal - totalWin;
-
-      if (totalWin + outcome === 500) {
-        outcome += (Math.random() < 0.5 ? -1 : 1);
-      }
-
-      spinCount = 0;
-      totalWin = 0;
+      // For spin 3, just hit the targetTotal - totalWin
+      outcome = remainingTarget;
     }
 
     totalWin += outcome;
@@ -150,7 +159,14 @@ window.spinWheel = async () => {
     });
 
     balanceEl.innerText = newBalance;
-    console.log(`Spin ${spinCount || 3}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
+
+    console.log(`Spin ${spinCount}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
+
+    // Reset after 3 spins
+    if (spinCount === 3) {
+      spinCount = 0;
+      totalWin = 0;
+    }
   }, 3000);
 };
 
