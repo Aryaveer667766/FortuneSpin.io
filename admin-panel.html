@@ -143,6 +143,38 @@
     background: #666;
     border-radius: 3px;
   }
+
+  /* Toast Notifications */
+  #toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .toast {
+    background: var(--panel);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    animation: slideIn 0.4s ease, fadeOut 0.4s ease 3.6s forwards;
+  }
+  .toast.success { border-color: var(--accent); }
+  .toast.error { border-color: var(--danger); }
+  .toast.warning { border-color: var(--warning); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateX(100%); }
+  }
+
   @media (max-width: 600px) {
     header h1 {
       font-size: 16px;
@@ -219,6 +251,9 @@
 
 </main>
 
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
 <!-- Sounds -->
 <audio id="click-sound" src="assets/sounds/click.mp3" preload="auto"></audio>
 <audio id="alert-sound" src="assets/sounds/alert.mp3" preload="auto"></audio>
@@ -227,13 +262,26 @@
 <!-- JS -->
 <script type="module" src="js/admin.js"></script>
 <script>
+  // Play click sound on buttons
   const click = document.getElementById("click-sound");
   document.querySelectorAll("button").forEach(btn =>
     btn.addEventListener("click", () => click.play())
   );
+
+  // User search filter
   document.getElementById('search-user').addEventListener('input', e => {
     if (typeof window.filterUsers === 'function') window.filterUsers(e.target.value);
   });
+
+  // Toast helper
+  function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 4000);
+  }
 </script>
 
 </body>
