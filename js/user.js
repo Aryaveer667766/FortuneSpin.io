@@ -65,6 +65,7 @@ onAuthStateChanged(auth, async (user) => {
       unlocked: false,
       uidCode: newUID,
       referralBy: referralBy || "",
+      referralBonusGiven: false,  // track bonus given
       notifications: [],
       spinsLeft: 1
     });
@@ -77,6 +78,10 @@ onAuthStateChanged(auth, async (user) => {
     uidEl.innerText = newUID;
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;  // <--- updated here
     document.getElementById("locked-msg").style.display = "block";
+
+    // Start watching for unlock change for referral bonus
+    watchUnlockAndGiveReferralBonus(userRef);
+
     return;
   }
 
@@ -92,7 +97,52 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   loadNotifications();
+
+  // Watch for unlock changes to grant referral bonus
+  watchUnlockAndGiveReferralBonus(userRef);
 });
+
+function watchUnlockAndGiveReferralBonus(userRef) {
+  let previousUnlockedStatus = null;
+
+  onValue(userRef, async (snapshot) => {
+    if (!snapshot.exists()) return;
+    const userData = snapshot.val();
+
+    if (previousUnlockedStatus === null) {
+      previousUnlockedStatus = userData.unlocked;
+      return;
+    }
+
+    if (
+      previousUnlockedStatus === false &&
+      userData.unlocked === true &&
+      userData.referralBy &&
+      !userData.referralBonusGiven
+    ) {
+      const referrerUid = userData.referralBy;
+      const referrerRef = ref(db, `users/${referrerUid}`);
+
+      const referrerSnap = await get(referrerRef);
+      if (referrerSnap.exists()) {
+        const referrerData = referrerSnap.val();
+        const currentBalance = Number(referrerData.balance) || 0;
+        const updatedBalance = currentBalance + 99;
+
+        await update(referrerRef, { balance: updatedBalance });
+
+        // Set referralBonusGiven to true to prevent duplicate bonuses
+        await update(userRef, { referralBonusGiven: true });
+
+        console.log(`Referral bonus ₹99 added to user ${referrerUid} for unlocking user ${uid}.`);
+
+        // Optionally notify the referrer or current user here
+      }
+    }
+
+    previousUnlockedStatus = userData.unlocked;
+  });
+}
 
 // Track spins & total win for the current 3-spin cycle
 let spinCount = 0;
