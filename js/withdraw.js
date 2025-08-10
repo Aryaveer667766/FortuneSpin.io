@@ -57,9 +57,44 @@ function fetchBalance() {
   });
 }
 
-// Handle form
+// Count unlocked referrals for current user
+async function countUnlockedReferrals() {
+  const referralsSnap = await get(ref(db, `referrals/${currentUID}`));
+  if (!referralsSnap.exists()) return 0;
+
+  const referrals = referralsSnap.val();
+  let count = 0;
+
+  // referrals is an object with keys = referredUserUid, values = true
+  for (const referredUid of Object.keys(referrals)) {
+    const referredUserSnap = await get(ref(db, `users/${referredUid}`));
+    if (referredUserSnap.exists()) {
+      const referredUserData = referredUserSnap.val();
+      if (referredUserData.unlocked) count++;
+    }
+  }
+  return count;
+}
+
+// Show toast message
+function showToast(message, color = "red") {
+  msg.style.color = color;
+  msg.textContent = message;
+  setTimeout(() => {
+    msg.textContent = "";
+  }, 5000);
+}
+
+// Handle form submit
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  // Check unlocked referrals first
+  const unlockedCount = await countUnlockedReferrals();
+  if (unlockedCount < 3) {
+    showToast("You need at least 3 unlocked referrals to withdraw your amount.", "orange");
+    return;
+  }
 
   const method = methodSelect.value;
   const mobile = document.getElementById("withdraw-mobile").value.trim();
@@ -70,20 +105,17 @@ form.addEventListener("submit", async (e) => {
   const ifsc = document.getElementById("withdraw-ifsc").value.trim();
 
   if (!mobile || isNaN(amount)) {
-    msg.textContent = "Please fill in all required fields.";
-    msg.style.color = "orange";
+    showToast("Please fill in all required fields.", "orange");
     return;
   }
 
   if (amount < 500) {
-    msg.textContent = "Minimum withdrawal amount is ₹500.";
-    msg.style.color = "red";
+    showToast("Minimum withdrawal amount is ₹500.", "red");
     return;
   }
 
   if (amount > currentBalance) {
-    msg.textContent = "Insufficient balance.";
-    msg.style.color = "red";
+    showToast("Insufficient balance.", "red");
     return;
   }
 
@@ -97,41 +129,37 @@ form.addEventListener("submit", async (e) => {
 
   if (method === "upi") {
     if (!upi) {
-      msg.textContent = "Please enter UPI ID.";
-      msg.style.color = "red";
+      showToast("Please enter UPI ID.", "red");
       return;
     }
     data.upi = upi;
   } else {
     if (!account || !ifsc) {
-      msg.textContent = "Please enter bank details.";
-      msg.style.color = "red";
+      showToast("Please enter bank details.", "red");
       return;
     }
     data.account = account;
     data.ifsc = ifsc;
   }
 
-  // Deduct and store
+  // Deduct and store withdrawal request
   try {
     const newRef = push(ref(db, `withdrawals/${currentUID}`));
     await set(newRef, data);
     await set(ref(db, `users/${currentUID}/balance`), currentBalance - amount);
 
-    msg.textContent = "Withdrawal request submitted!";
-    msg.style.color = "lime";
+    showToast("Withdrawal request submitted!", "lime");
     playEffects();
     form.reset();
     fetchBalance();
     loadWithdrawalHistory();
   } catch (error) {
     console.error("Error submitting withdrawal:", error);
-    msg.textContent = "Error occurred. Try again.";
-    msg.style.color = "red";
+    showToast("Error occurred. Try again.", "red");
   }
 });
 
-// Load history
+// Load withdrawal history
 function loadWithdrawalHistory() {
   historyList.innerHTML = "";
   get(ref(db, `withdrawals/${currentUID}`)).then(snapshot => {
