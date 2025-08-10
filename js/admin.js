@@ -388,62 +388,65 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
-// ---------------- Referral Tree ----------------
+// 👥 REFERRAL TREE - Collapsible + Status Badges
 window.viewReferralTree = async () => {
-  const inputUID = document.getElementById("ref-uid").value.trim();
-  if (!inputUID) return showToast("❌ Enter UID", "error");
+  const uidText = document.getElementById("ref-uid").value.trim();
+  if (!uidText.startsWith("UID#")) return showToast("❌ Enter valid UID#...", "error");
 
-  const userRef = ref(db, "users");
-  const snap = await get(userRef);
+  const treeDiv = document.getElementById("ref-tree");
+  treeDiv.innerHTML = "Loading...";
 
-  let startKey = null;
-  snap.forEach(child => {
-    if (child.val().uidCode === inputUID) {
-      startKey = child.key;
-    }
+  const usersSnap = await get(ref(db, "users"));
+  const allUsers = [];
+  usersSnap.forEach(child => {
+    const data = child.val();
+    allUsers.push(data);
   });
 
-  if (!startKey) {
-    document.getElementById("ref-tree").innerHTML = `<p style="color:#ff3c3c">❌ UID not found.</p>`;
+  const rootUser = allUsers.find(u => u.uidCode === uidText);
+  if (!rootUser) {
+    treeDiv.innerHTML = `<div class="alert">❌ User not found.</div>`;
     return;
   }
 
-  const buildTree = (uidCode, allUsers) => {
-    const user = allUsers.find(u => u.data.uidCode === uidCode);
-    if (!user) return "";
+  const getStatusBadge = (isUnlocked) => {
+    return isUnlocked
+      ? `<span class="badge unlocked">Unlocked</span>`
+      : `<span class="badge locked">Locked</span>`;
+  };
 
-    const status = user.data.unlocked ? 
-      `<span style="color:#00ff88; font-weight:bold">Unlocked</span>` : 
-      `<span style="color:#ff3c3c; font-weight:bold">Locked</span>`;
-
-    const children = allUsers
-      .filter(u => u.data.referredBy === uidCode)
-      .map(child => buildTree(child.data.uidCode, allUsers))
-      .join("");
+  // Recursive builder with collapsible sections
+  const buildTree = (parentUID) => {
+    const children = allUsers.filter(u => u.referralBy === parentUID);
+    if (children.length === 0) return "";
 
     return `
-      <li>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <strong>${user.data.name || "Unnamed"}</strong> 
-          <small>(${uidCode})</small>
-          ${status}
-        </div>
-        ${children ? `<ul style="margin-left:20px;">${children}</ul>` : ""}
-      </li>
+      <ul>
+        ${children.map(child => `
+          <li>
+            <details>
+              <summary>
+                <strong>${child.name || "Unnamed"}</strong> 
+                (${child.uidCode}) ${getStatusBadge(child.unlocked)}
+              </summary>
+              ${buildTree(child.uidCode)}
+            </details>
+          </li>
+        `).join("")}
+      </ul>
     `;
   };
 
-  const allUsers = [];
-  snap.forEach(child => {
-    allUsers.push({ key: child.key, data: child.val() });
-  });
-
-  const startUser = allUsers.find(u => u.key === startKey);
-  const treeHTML = `<ul>${buildTree(startUser.data.uidCode, allUsers)}</ul>`;
-
-  document.getElementById("ref-tree").innerHTML = `
-    <div style="padding:10px; background:#151515; border-radius:8px; border:1px solid #333;">
-      ${treeHTML}
+  treeDiv.innerHTML = `
+    <div class="referral-container">
+      <details open>
+        <summary>
+          <strong>${rootUser.name || "Unnamed"}</strong> 
+          (${rootUser.uidCode}) ${getStatusBadge(rootUser.unlocked)}
+        </summary>
+        ${buildTree(uidText)}
+      </details>
     </div>
   `;
 };
+
