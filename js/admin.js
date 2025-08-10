@@ -389,56 +389,60 @@ window.unlockUserDirect = async () => {
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
 
-/// 👥 REFERRAL TREE (with status and better visuals)
 window.viewReferralTree = async () => {
-  let uidText = document.getElementById("ref-uid").value.trim();
-  if (!uidText) {
+  let input = document.getElementById("ref-uid").value.trim();
+  if (!input) {
     alert("Please enter a UID");
     return;
   }
 
-  // Normalize: if no UID# prefix, add it; uppercase for case-insensitive match
-  if (!uidText.toUpperCase().startsWith("UID#")) {
-    uidText = "UID#" + uidText;
-  }
-  uidText = uidText.toUpperCase();
+  // Normalize input to uppercase (no UID# prefix expected in input)
+  input = input.toUpperCase();
 
   const usersSnap = await get(ref(db, "users"));
   const treeDiv = document.getElementById("ref-tree");
   treeDiv.innerHTML = "Loading...";
 
-  let rootUID = null;
+  let rootKey = null;
+  let rootUidCode = null;
 
-  // Find root user key
+  // Find user DB key matching input uidCode ignoring UID# prefix in DB
   usersSnap.forEach(child => {
-    if ((child.val().uidCode || "").toUpperCase() === uidText) {
-      rootUID = child.key;
+    const u = child.val();
+    let code = (u.uidCode || "").toUpperCase();
+    if (code.startsWith("UID#")) code = code.slice(4);  // remove prefix
+
+    if (code === input) {
+      rootKey = child.key;
+      rootUidCode = u.uidCode || ("UID#" + input);
     }
   });
 
-  if (!rootUID) {
+  if (!rootKey) {
     treeDiv.innerHTML = `<div class="alert" style="color:#E74C3C; font-weight:bold;">User not found.</div>`;
     return;
   }
 
-  // Collect direct referrals
+  // Find direct referrals where referralBy matches root input uid (case-insensitive & no prefix in input)
   const referrals = [];
   usersSnap.forEach(child => {
     const u = child.val();
-    if ((u.referralBy || "").toUpperCase() === uidText) {
+    let referralBy = (u.referralBy || "").toUpperCase();
+    if (referralBy.startsWith("UID#")) referralBy = referralBy.slice(4);
+
+    if (referralBy === input) {
       referrals.push({
         uidCode: u.uidCode || "N/A",
-        unlocked: u.unlocked !== false // default true if missing
+        unlocked: u.unlocked !== false // default true if not set
       });
     }
   });
 
   if (referrals.length === 0) {
-    treeDiv.innerHTML = `<div style="color:#F39C12; font-weight:bold;">No referrals found for <strong>${uidText}</strong>.</div>`;
+    treeDiv.innerHTML = `<div style="color:#F39C12; font-weight:bold;">No referrals found for <strong>${rootUidCode}</strong>.</div>`;
     return;
   }
 
-  // Create list HTML with status badges
   const listHtml = referrals.map(r => {
     const statusColor = r.unlocked ? "#2ECC71" : "#E74C3C";
     const statusText = r.unlocked ? "Unlocked" : "Locked";
@@ -467,10 +471,11 @@ window.viewReferralTree = async () => {
 
   treeDiv.innerHTML = `
     <p style="font-weight: bold; font-size: 18px; margin-bottom: 12px;">
-      Direct referrals of <span style="color:#2980B9;">${uidText}</span>:
+      Direct referrals of <span style="color:#2980B9;">${rootUidCode}</span>:
     </p>
     <ul style="list-style-type:none; padding-left: 0;">
       ${listHtml}
     </ul>
   `;
 };
+
