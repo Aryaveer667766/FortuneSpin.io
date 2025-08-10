@@ -388,64 +388,119 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
-// 👥 REFERRAL TREE - Collapsible + Status Badges
-window.viewReferralTree = async () => {
-  const uidText = document.getElementById("ref-uid").value.trim();
-  if (!uidText.startsWith("UID#")) return showToast("❌ Enter valid UID#...", "error");
+// ===== REFERRAL TREE =====
 
-  const treeDiv = document.getElementById("ref-tree");
-  treeDiv.innerHTML = "Loading...";
+const db = getDatabase();
+let referralData = {};
+let flatUserList = {};
+let treeCollapsed = false;
 
-  const usersSnap = await get(ref(db, "users"));
-  const allUsers = [];
-  usersSnap.forEach(child => {
-    const data = child.val();
-    allUsers.push(data);
-  });
-
-  const rootUser = allUsers.find(u => u.uidCode === uidText);
-  if (!rootUser) {
-    treeDiv.innerHTML = `<div class="alert">❌ User not found.</div>`;
+// Load & render referral tree
+async function loadReferralTree() {
+  const snapshot = await get(ref(db, "users"));
+  if (!snapshot.exists()) {
+    document.getElementById("referral-tree").innerHTML = "<li>No users found.</li>";
     return;
   }
 
-  const getStatusBadge = (isUnlocked) => {
-    return isUnlocked
-      ? `<span class="badge unlocked">Unlocked</span>`
-      : `<span class="badge locked">Locked</span>`;
-  };
+  flatUserList = snapshot.val();
+  referralData = buildTree(flatUserList);
+  renderTree(referralData, document.getElementById("referral-tree"));
+}
 
-  // Recursive builder with collapsible sections
-  const buildTree = (parentUID) => {
-    const children = allUsers.filter(u => u.referralBy === parentUID);
-    if (children.length === 0) return "";
+// Build hierarchical tree from flat user list
+function buildTree(users) {
+  let tree = {};
+  let childrenMap = {};
 
-    return `
-      <ul>
-        ${children.map(child => `
-          <li>
-            <details>
-              <summary>
-                <strong>${child.name || "Unnamed"}</strong> 
-                (${child.uidCode}) ${getStatusBadge(child.unlocked)}
-              </summary>
-              ${buildTree(child.uidCode)}
-            </details>
-          </li>
-        `).join("")}
-      </ul>
-    `;
-  };
+  // Organize users by their referrer
+  Object.keys(users).forEach(uid => {
+    let refBy = users[uid].referralBy || null;
+    if (!childrenMap[refBy]) childrenMap[refBy] = [];
+    childrenMap[refBy].push(uid);
+  });
 
-  treeDiv.innerHTML = `
-    <div class="referral-container">
-      <details open>
-        <summary>
-          <strong>${rootUser.name || "Unnamed"}</strong> 
-          (${rootUser.uidCode}) ${getStatusBadge(rootUser.unlocked)}
-        </summary>
-        ${buildTree(uidText)}
-      </details>
+  // Recursive function to create nodes
+  function createNode(uid) {
+    return {
+      uid,
+      name: users[uid].name || "Unknown",
+      children: (childrenMap[uid] || []).map(childUid => createNode(childUid))
+    };
+  }
+
+  // Top-level (users with no referrer)
+  (childrenMap[null] || []).forEach(rootUid => {
+    tree[rootUid] = createNode(rootUid);
+  });
+
+  return tree;
+}
+
+// Render tree into HTML
+function renderTree(tree, container) {
+  container.innerHTML = "";
+  const ul = document.createElement("ul");
+  for (const uid in tree) {
+    ul.appendChild(renderNode(tree[uid]));
+  }
+  container.appendChild(ul);
+}
+
+// Render each node recursively
+function renderNode(node) {
+  const li = document.createElement("li");
+  li.className = "tree-node";
+
+  const span = document.createElement("span");
+  span.className = "node-name collapsible";
+  span.textContent = `${node.name} (${node.uid})`;
+  span.addEventListener("click", () => li.classList.toggle("collapsed"));
+
+  li.appendChild(span);
+
+  if (node.children.length > 0) {
+    const childUl = document.createElement("ul");
+    node.children.forEach(child => childUl.appendChild(renderNode(child)));
+    li.appendChild(childUl);
+  }
+
+  return li;
+}
+
+// Search referral tree
+function searchReferralTree() {
+  const term = document.getElementById("tree-search").value.toLowerCase();
+  const nodes = document.querySelectorAll("#referral-tree .node-name");
+  nodes.forEach(node => {
+    const text = node.textContent.toLowerCase();
+    if (text.includes(term) && term !== "") {
+      node.classList.add("highlight");
+    } else {
+      node.classList.remove("highlight");
+    }
+  });
+}
+
+// Expand/collapse all
+function toggleExpandAll() {
+  treeCollapsed = !treeCollapsed;
+  document.querySelectorAll("#referral-tree .tree-node").forEach(node => {
+    if (treeCollapsed) node.classList.add("collapsed");
+    else node.classList.remove("collapsed");
+  });
+  document.getElementById("toggle-tree").textContent = treeCollapsed ? "Expand All" : "Collapse All";
+}
+
+// Attach search listener
+document.getElementById("tree-search").addEventListener("input", searchReferralTree);
+
+// Expose toggle function globally for HTML button
+window.toggleExpandAll = toggleExpandAll;
+
+// Load tree on page load
+loadReferralTree();
+
     </div>
   `;
 };
