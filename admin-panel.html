@@ -1,45 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>🛰️ FortuneSpin God Mode HQ</title>
-  <link rel="stylesheet" href="style/admin.css">
-  <link rel="icon" href="assets/logo/logo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style/admin.css" />
+  <link rel="icon" href="assets/logo/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet" />
   <style>
-    /* Add minimal styles here for the table */
-    #users-list-panel {
-      margin-top: 2rem;
-    }
-    #users-list-panel input[type="text"] {
-      width: 300px;
-      padding: 0.5rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-    #users-table {
-      width: 100%;
-      border-collapse: collapse;
+    /* Quick additional styles for user list */
+    #user-list {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 10px;
+      border: 1px solid #555;
+      padding: 10px;
+      background: #111;
       color: #eee;
+      font-family: monospace;
     }
-    #users-table th, #users-table td {
-      border: 1px solid #444;
-      padding: 0.6rem 1rem;
-      text-align: left;
+    .user-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      padding: 6px 0;
     }
-    #users-table th {
-      background: #222;
+    .user-info {
+      flex: 1;
+      font-size: 14px;
     }
-    .lock-icon, .unlock-icon {
+    .user-actions button {
+      margin-left: 6px;
       cursor: pointer;
-      font-size: 1.3rem;
-      user-select: none;
+      background: transparent;
+      border: none;
+      color: #0f0;
+      font-size: 16px;
+      transition: color 0.3s;
     }
-    .lock-icon {
-      color: #dc3545; /* red */
+    .user-actions button.locked {
+      color: #f33;
     }
-    .unlock-icon {
-      color: #28a745; /* green */
+    .user-actions button:hover {
+      color: #ff0;
+    }
+    /* Scrollbar for user list */
+    #user-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    #user-list::-webkit-scrollbar-thumb {
+      background: #666;
+      border-radius: 3px;
     }
   </style>
 </head>
@@ -54,33 +65,29 @@
 
   <!-- ⚙️ CONTROL PANEL -->
   <main>
+
+    <!-- 👥 USER LIST & SEARCH -->
     <section class="panel" id="user-panel">
-      <h2>👤 User Control</h2>
-      <input type="text" placeholder="Search UID or username..." id="search-user" />
-      <button onclick="searchUser()">Search</button>
-      <div id="user-result">No user selected.</div>
+      <h2>👥 User List & Search</h2>
+      <input type="text" id="search-user" placeholder="Search by Name, Email, Phone or UID" style="width: 100%; padding: 8px; font-size: 16px;" />
+      <div id="user-list">Loading users...</div>
     </section>
 
-    <section class="panel">
-      <h2>🎡 Spin Control</h2>
-      <input type="text" id="spin-uid" placeholder="UID" />
-      <input type="number" id="spin-count" placeholder="Spins to Add" />
-      <input type="number" id="win-amount" placeholder="Set Win ₹ Amount (Optional)" />
-      <button onclick="assignSpin()">Assign Spin</button>
-    </section>
-
+    <!-- 💸 Withdrawals -->
     <section class="panel">
       <h2>💸 Withdrawals</h2>
       <button onclick="loadWithdrawals()">🔁 Refresh Requests</button>
       <div id="withdraw-list">No pending requests.</div>
     </section>
 
+    <!-- 🧾 Tickets -->
     <section class="panel">
       <h2>🧾 Tickets</h2>
       <button onclick="loadTickets()">🔁 Refresh Tickets</button>
       <div id="ticket-list">No tickets loaded.</div>
     </section>
 
+    <!-- 🧑‍🤝‍🧑 Referral Tree -->
     <section class="panel">
       <h2>🧑‍🤝‍🧑 Referral Tree</h2>
       <input type="text" id="ref-uid" placeholder="Enter UID" />
@@ -88,24 +95,6 @@
       <div id="ref-tree"></div>
     </section>
 
-    <!-- NEW Users List Panel -->
-    <section class="panel" id="users-list-panel">
-      <h2>👥 Users List</h2>
-      <input type="text" id="users-search" placeholder="Search by Name, Email, Phone, UID..." oninput="filterUsers()" />
-      <table id="users-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>UID</th>
-            <th>Phone</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="users-tbody">
-          <!-- User rows will be injected here -->
-        </tbody>
-      </table>
-    </section>
   </main>
 
   <!-- 🔊 SOUNDS -->
@@ -122,73 +111,11 @@
       btn.addEventListener("click", () => click.play())
     );
 
-    // Sample function to toggle user lock status - you will implement the real logic in admin.js
-    async function toggleLock(uid, currentStatus, row) {
-      // Play click sound
-      click.play();
-
-      // Here you would update the Firebase DB with new status for the user
-      // For demo, just toggle UI and status text
-
-      const newStatus = currentStatus === 'Unlocked' ? 'Locked' : 'Unlocked';
-      const statusCell = row.querySelector(".status-cell");
-      const iconCell = row.querySelector(".lock-toggle-icon");
-
-      // Update UI
-      statusCell.innerText = newStatus;
-      if (newStatus === 'Locked') {
-        iconCell.innerHTML = '<span class="lock-icon" title="Unlock User">🔒</span>';
-      } else {
-        iconCell.innerHTML = '<span class="unlock-icon" title="Lock User">🔓</span>';
-      }
-
-      // TODO: Update Firebase here...
-
-      alert(`User ${uid} is now ${newStatus}`);
-    }
-
-    // Filter users table based on search input
-    function filterUsers() {
-      const filter = document.getElementById('users-search').value.toLowerCase();
-      const rows = document.querySelectorAll('#users-tbody tr');
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        if (text.includes(filter)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-    }
-
-    // Function to render users in table - call this from admin.js after fetching users
-    export function renderUsers(users) {
-      // users = array of user objects: { uid, name, phone, unlocked }
-      const tbody = document.getElementById('users-tbody');
-      tbody.innerHTML = '';
-      users.forEach(user => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${user.name || '—'}</td>
-          <td>${user.uid}</td>
-          <td>${user.phone || '—'}</td>
-          <td class="status-cell">${user.unlocked ? 'Unlocked' : 'Locked'}</td>
-          <td class="lock-toggle-icon" style="cursor:pointer;">
-            ${user.unlocked ? 
-              '<span class="unlock-icon" title="Lock User">🔓</span>' : 
-              '<span class="lock-icon" title="Unlock User">🔒</span>'
-            }
-          </td>
-        `;
-
-        // Add click event on lock/unlock icon cell
-        tr.querySelector(".lock-toggle-icon").addEventListener('click', () => {
-          toggleLock(user.uid, user.unlocked ? 'Unlocked' : 'Locked', tr);
-        });
-
-        tbody.appendChild(tr);
-      });
-    }
+    // Search input listener to filter users on typing
+    const searchInput = document.getElementById('search-user');
+    searchInput.addEventListener('input', () => {
+      window.filterUsers(searchInput.value);
+    });
   </script>
 
 </body>
