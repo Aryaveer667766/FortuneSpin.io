@@ -1,160 +1,187 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap');
-
+/* ==================== General Reset ==================== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, sans-serif;
 }
 
-body.admin-body {
-  font-family: 'Orbitron', sans-serif;
-  background: linear-gradient(135deg, #0a0a1e, #090a20);
-  color: #00ffff;
-  padding: 20px;
-  overflow-x: hidden;
-  animation: backgroundScan 10s linear infinite;
+body {
+  background: #f4f6f8;
+  color: #333;
+  padding: 10px;
 }
 
-/* 🔻 HEADER */
+/* ==================== Header ==================== */
 header {
-  text-align: center;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #00ffff55;
-  padding-bottom: 10px;
-}
-
-.admin-logo {
-  width: 80px;
-  filter: drop-shadow(0 0 8px #00ffffaa);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #4a90e2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
 }
 
 header h1 {
-  font-size: 28px;
-  color: #00ffff;
-  text-shadow: 0 0 10px #00ffff99;
+  font-size: 1.4rem;
 }
 
-.live-indicator {
-  color: lime;
-  font-size: 14px;
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-/* ⚙️ PANELS */
-main {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  gap: 25px;
-}
-
-.panel {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #00ffff33;
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 0 15px #00ffff44;
-  backdrop-filter: blur(10px);
-  animation: slideIn 0.6s ease-in-out;
-}
-
-.panel h2 {
-  color: #FFD700;
-  margin-bottom: 15px;
-  font-family: 'Rajdhani', sans-serif;
-}
-
-input[type="text"],
-input[type="number"] {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  background: #0d0f1f;
-  color: #00ffff;
-  border: 1px solid #00ffff55;
-  border-radius: 8px;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 14px;
-}
-
-button {
-  width: 100%;
-  padding: 10px;
-  background: #00ffff;
-  color: #000;
+header button {
+  background: #fff;
+  color: #4a90e2;
   border: none;
-  border-radius: 8px;
-  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: 0.2s;
+  font-weight: bold;
+  transition: 0.3s;
 }
 
-button:hover {
-  background: #29fcd3;
-  box-shadow: 0 0 10px #00ffff88;
-  transform: scale(1.02);
+header button:hover {
+  background: #e8f0fe;
 }
 
-#user-result,
-#withdraw-list,
-#ticket-list,
-#ref-tree {
-  font-size: 14px;
-  padding-top: 10px;
-  font-family: 'Rajdhani', sans-serif;
+/* ==================== Search ==================== */
+.search-bar {
+  margin: 10px 0;
+  display: flex;
+  gap: 8px;
 }
 
-/* 🛰️ Animations */
-@keyframes pulse {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
-}
-
-@keyframes slideIn {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes backgroundScan {
-  0% { background-position: 0 0; }
-  100% { background-position: 100vw 100vh; }
-}
-
-/* ⚠️ ALERT TEXT */
-.alert {
-  background-color: #ff003344;
-  color: #ff5555;
-  border-left: 4px solid red;
-  padding: 10px;
-  margin-top: 10px;
+.search-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
   border-radius: 6px;
 }
 
-/* ✅ APPROVED TEXT */
-.success {
-  background-color: #00ff1a22;
-  color: #00ff88;
-  border-left: 4px solid #00ff99;
-  padding: 10px;
-  margin-top: 10px;
+.search-bar button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 8px 14px;
   border-radius: 6px;
+  cursor: pointer;
 }
 
-/* 🌐 SCROLLING */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-thumb {
-  background: #00ffff88;
-  border-radius: 6px;
+.search-bar button:hover {
+  background: #357ac9;
 }
 
-/* 📱 RESPONSIVE */
-@media screen and (max-width: 500px) {
+/* ==================== User List ==================== */
+.user-row {
+  background: white;
+  margin-bottom: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-info {
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.user-actions button {
+  background: #eee;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.3s;
+}
+
+.user-actions button:hover {
+  background: #ddd;
+}
+
+.user-actions button:nth-child(1) { background: #ffe082; } /* Spins */
+.user-actions button:nth-child(2) { background: #a5d6a7; } /* MaxWin */
+.user-actions button:nth-child(3) { background: #90caf9; } /* Lock/Unlock */
+.user-actions button:nth-child(4) { background: #ef9a9a; } /* Delete */
+
+.user-actions button:nth-child(1):hover { background: #ffca28; }
+.user-actions button:nth-child(2):hover { background: #66bb6a; }
+.user-actions button:nth-child(3):hover { background: #42a5f5; }
+.user-actions button:nth-child(4):hover { background: #e53935; }
+
+/* ==================== Panel Lists ==================== */
+.panel {
+  background: white;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.panel p {
+  margin: 3px 0;
+}
+
+.panel button {
+  margin-right: 6px;
+  margin-top: 5px;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.panel button:nth-child(odd) {
+  background: #a5d6a7;
+}
+
+.panel button:nth-child(even) {
+  background: #ef9a9a;
+}
+
+.panel button:hover {
+  filter: brightness(0.9);
+}
+
+/* ==================== Toast Notifications ==================== */
+.toast {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  background: #333;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 1000;
+  font-size: 0.9rem;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success { background: #4caf50; }
+.toast.error { background: #f44336; }
+.toast.info { background: #2196f3; }
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
   header h1 {
-    font-size: 20px;
+    font-size: 1rem;
   }
-  .admin-logo {
-    width: 60px;
+  .user-row {
+    flex-direction: column;
+  }
+  .user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }
