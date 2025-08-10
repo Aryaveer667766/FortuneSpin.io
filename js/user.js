@@ -75,14 +75,14 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     uidEl.innerText = newUID;
-    referralEl.value = `${window.location.origin}/?ref=${newUID}`;
+    referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;  // <--- updated here
     document.getElementById("locked-msg").style.display = "block";
     return;
   }
 
   const data = userSnap.val();
   uidEl.innerText = data.uidCode;
-  referralEl.value = `${window.location.origin}/?ref=${data.uidCode}`;
+  referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;  // <--- updated here
   balanceEl.innerText = data.balance || 0;
 
   if (data.unlocked) {
