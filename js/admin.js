@@ -388,94 +388,62 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
-// ----------------- REFERRAL TREE WITH TOTAL REFERRALS + TOGGLE ALL -----------------
-let allUsersData = {};
-let treeSearchQuery = "";
-let treeExpanded = false;
+// ---------------- Referral Tree ----------------
+window.viewReferralTree = async () => {
+  const inputUID = document.getElementById("ref-uid").value.trim();
+  if (!inputUID) return showToast("❌ Enter UID", "error");
 
-window.loadReferralTree = async () => {
-  const snap = await get(ref(db, "users"));
-  allUsersData = snap.val() || {};
-  renderReferralTree();
-};
+  const userRef = ref(db, "users");
+  const snap = await get(userRef);
 
-function renderReferralTree() {
-  const treeList = document.getElementById("referral-tree");
-  treeList.innerHTML = "";
-
-  Object.entries(allUsersData).forEach(([id, data]) => {
-    if (!data.referredBy) {
-      const li = createTreeNode(data, allUsersData);
-      treeList.appendChild(li);
+  let startKey = null;
+  snap.forEach(child => {
+    if (child.val().uidCode === inputUID) {
+      startKey = child.key;
     }
   });
-}
 
-function createTreeNode(user, allUsers) {
-  const li = document.createElement("li");
-  li.classList.add("tree-node");
-
-  const icon = document.createElement("span");
-  icon.classList.add("status-icon");
-  icon.textContent = user.unlocked ? "🔓" : "🔒";
-  icon.style.color = user.unlocked ? "green" : "red";
-
-  const name = document.createElement("span");
-  name.classList.add("node-name");
-  name.textContent = `${user.uidCode || "N/A"} (${countReferrals(user.uidCode, allUsers)})`;
-
-  const matchesSearch = treeSearchQuery && user.uidCode?.toLowerCase().includes(treeSearchQuery.toLowerCase());
-  if (matchesSearch) {
-    name.classList.add("highlight");
-    expandParents(li);
+  if (!startKey) {
+    document.getElementById("ref-tree").innerHTML = `<p style="color:#ff3c3c">❌ UID not found.</p>`;
+    return;
   }
 
-  const children = Object.values(allUsers).filter(u => u.referredBy === user.uidCode);
+  const buildTree = (uidCode, allUsers) => {
+    const user = allUsers.find(u => u.data.uidCode === uidCode);
+    if (!user) return "";
 
-  if (children.length > 0) {
-    name.classList.add("collapsible");
-    name.addEventListener("click", () => {
-      li.classList.toggle("collapsed");
-    });
+    const status = user.data.unlocked ? 
+      `<span style="color:#00ff88; font-weight:bold">Unlocked</span>` : 
+      `<span style="color:#ff3c3c; font-weight:bold">Locked</span>`;
 
-    const ul = document.createElement("ul");
-    children.forEach(child => ul.appendChild(createTreeNode(child, allUsers)));
-    li.appendChild(name);
-    li.appendChild(icon);
-    li.appendChild(ul);
-  } else {
-    li.appendChild(name);
-    li.appendChild(icon);
-  }
+    const children = allUsers
+      .filter(u => u.data.referredBy === uidCode)
+      .map(child => buildTree(child.data.uidCode, allUsers))
+      .join("");
 
-  if (!treeExpanded) {
-    li.classList.add("collapsed");
-  }
+    return `
+      <li>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <strong>${user.data.name || "Unnamed"}</strong> 
+          <small>(${uidCode})</small>
+          ${status}
+        </div>
+        ${children ? `<ul style="margin-left:20px;">${children}</ul>` : ""}
+      </li>
+    `;
+  };
 
-  return li;
-}
+  const allUsers = [];
+  snap.forEach(child => {
+    allUsers.push({ key: child.key, data: child.val() });
+  });
 
-function countReferrals(uidCode, allUsers) {
-  return Object.values(allUsers).filter(u => u.referredBy === uidCode).length;
-}
+  const startUser = allUsers.find(u => u.key === startKey);
+  const treeHTML = `<ul>${buildTree(startUser.data.uidCode, allUsers)}</ul>`;
 
-function searchReferralTree() {
-  treeSearchQuery = document.getElementById("tree-search").value.trim();
-  renderReferralTree();
-}
-
-function expandParents(li) {
-  let parent = li.parentElement;
-  while (parent && parent.tagName === "UL") {
-    parent.parentElement?.classList.remove("collapsed");
-    parent = parent.parentElement?.parentElement;
-  }
-}
-
-// ----------------- Expand/Collapse All -----------------
-function toggleExpandAll() {
-  treeExpanded = !treeExpanded;
-  renderReferralTree();
-  const btn = document.getElementById("toggle-tree");
-  btn.textContent = treeExpanded ? "Collapse All" : "Expand All";
-}
+  document.getElementById("ref-tree").innerHTML = `
+    <div style="padding:10px; background:#151515; border-radius:8px; border:1px solid #333;">
+      ${treeHTML}
+    </div>
+  `;
+};
