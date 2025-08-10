@@ -305,13 +305,29 @@
     <button onclick="loadTickets()">🔁 Refresh</button>
     <div id="ticket-list">No tickets loaded.</div>
   </section>
+<!-- Referral Tree Input & Output -->
+<div style="max-width:420px; margin:18px auto; font-family: Arial, sans-serif;">
+  <label for="ref-uid" style="display:block; margin-bottom:6px; font-weight:600;">
+    Enter UID (just the number or UID#12345)
+  </label>
 
- <section class="panel">
-      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
-      <input type="text" id="ref-uid" placeholder="Enter UID" />
-      <button onclick="viewReferralTree()">View Tree</button>
-      <div id="ref-tree"></div>
-    </section>
+  <input id="ref-uid"
+         type="text"
+         placeholder="e.g. 12345 or UID#12345"
+         style="width:100%; padding:8px 10px; font-size:14px; margin-bottom:8px;"
+         onkeydown="if(event.key==='Enter'){ viewReferralTree(); }" />
+
+  <div style="display:flex; gap:8px; margin-bottom:10px;">
+    <button onclick="viewReferralTree()" style="padding:7px 10px; cursor:pointer;">View Referrals</button>
+    <button onclick="document.getElementById('ref-uid').value=''; document.getElementById('ref-tree').innerHTML='';"
+            style="padding:7px 10px; cursor:pointer;">Clear</button>
+  </div>
+
+  <div id="ref-tree" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-height:40px;">
+    Type a UID and press Enter or click View Referrals...
+  </div>
+</div>
+
   </main>
 
 
