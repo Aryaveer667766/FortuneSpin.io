@@ -19,9 +19,6 @@ let allUsers = [];
 
 // Load all users and render in list container
 async function loadAllUsers() {
-  const list = document.getElementById("user-list");
-  if (list) list.innerHTML = "Loading users...";
-
   const usersRef = ref(db, "users");
   const snap = await get(usersRef);
 
@@ -45,10 +42,8 @@ function renderUserList(users) {
 
   list.innerHTML = '';
   users.forEach(user => {
-    // If user.unlocked === true, button should show lock icon to lock user now
     const lockedClass = user.unlocked ? '' : 'locked';
     const lockTitle = user.unlocked ? 'Lock User' : 'Unlock User';
-    const lockIcon = user.unlocked ? '🔒' : '🔓';
 
     const userRow = document.createElement('div');
     userRow.classList.add('user-row');
@@ -61,7 +56,7 @@ function renderUserList(users) {
       </div>
       <div class="user-actions">
         <button title="${lockTitle}" class="${lockedClass}" onclick="toggleLock('${user.key}', ${user.unlocked})">
-          ${lockIcon}
+          ${user.unlocked ? '🔓' : '🔒'}
         </button>
         <button title="Delete User" onclick="deleteUser('${user.key}')">❌</button>
       </div>
@@ -89,13 +84,8 @@ window.filterUserList = (query) => {
   renderUserList(filtered);
 };
 
-// Toggle lock/unlock user with confirmation
+// Toggle lock/unlock user
 window.toggleLock = async (key, currentlyUnlocked) => {
-  const confirmMsg = currentlyUnlocked
-    ? "Are you sure you want to LOCK this user?"
-    : "Are you sure you want to UNLOCK this user?";
-  if (!confirm(confirmMsg)) return;
-
   try {
     await update(ref(db, `users/${key}`), { unlocked: !currentlyUnlocked });
     alert(`User ${currentlyUnlocked ? 'locked' : 'unlocked'} successfully.`);
@@ -106,7 +96,7 @@ window.toggleLock = async (key, currentlyUnlocked) => {
   }
 };
 
-// Delete user with confirmation
+// Delete user
 window.deleteUser = async (key) => {
   if (!confirm("Are you sure you want to delete this user?")) return;
   try {
@@ -132,9 +122,9 @@ window.searchUser = async () => {
   snap.forEach(childSnap => {
     const user = childSnap.val();
 
-    // Normalize values for search comparison
+    // Use name instead of username here
     const uidCode = (user.uidCode || "").toLowerCase();
-    const username = (user.username || "").toLowerCase();
+    const username = (user.name || "").toLowerCase();  // Fixed here
     const email = (user.email || "").toLowerCase();
     const phone = (user.phone || "").toLowerCase();
 
@@ -151,7 +141,7 @@ window.searchUser = async () => {
         <p>📱 Phone: ${user.phone || "N/A"}</p>
         <p>📧 Email: ${user.email || "N/A"}</p>
         <p>💰 Balance: ₹${user.balance || 0}</p>
-        <p>🎡 Unlocked: ${user.unlocked ? 'Yes' : 'No'}</p>
+        <p>🎡 Unlocked: ${user.unlocked}</p>
         <p>🎯 Spins Left: ${user.spinsLeft ?? 0}</p>
         <p>🏷️ Max Win: ₹${user.maxWinAmount ?? "Not set"}</p>
         <div style="margin-top:8px;">
