@@ -11,10 +11,11 @@ import {
   set,
   update,
   remove,
+  push,
   onValue
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-let usersCache = {}; // store all users for search
+let usersCache = {};
 let currentAdmin = null;
 
 // ----------------- Toast Notification -----------------
@@ -23,7 +24,7 @@ function showToast(message, type = "info") {
   toast.className = `toast ${type}`;
   toast.innerText = message;
   document.body.appendChild(toast);
-  setTimeout(() => { toast.classList.add("show"); }, 100);
+  setTimeout(() => toast.classList.add("show"), 100);
   setTimeout(() => {
     toast.classList.remove("show");
     setTimeout(() => toast.remove(), 300);
@@ -118,31 +119,88 @@ window.deleteUser = async (uid) => {
 // ----------------- Withdrawals -----------------
 window.loadWithdrawals = () => {
   const wRef = ref(db, "withdrawals");
-  onValue(wRef, (snapshot) => {
-    const data = snapshot.val() || {};
+  const uRef = ref(db, "users");
+
+  onValue(wRef, async (wSnap) => {
+    const withdrawals = wSnap.val() || {};
+    const usersSnap = await get(uRef);
+    const users = usersSnap.val() || {};
+
     const list = document.getElementById("withdraw-list");
     list.innerHTML = "";
-    Object.entries(data).forEach(([id, w]) => {
-      const item = document.createElement("div");
-      item.innerHTML = `${id}: ₹${w.amount} - ${w.status}`;
-      list.appendChild(item);
+
+    Object.entries(withdrawals).forEach(([uid, wList]) => {
+      const userData = users[uid] || {};
+      Object.entries(wList).forEach(([wid, w]) => {
+        if (w.status && w.status.toLowerCase() !== "pending") return;
+
+        const div = document.createElement("div");
+        div.className = "panel";
+        div.innerHTML = `
+          <p>🔹 UID: ${userData.uidCode || "N/A"}</p>
+          <p>👤 Name: ${userData.username || "Unknown"}</p>
+          <p>📱 Phone: ${userData.phone || "Not Provided"}</p>
+          <p>💰 Amount: ₹${w.amount}</p>
+          <p>🏦 UPI: ${w.upi}</p>
+          <p>Status: ${w.status || "Pending"}</p>
+          <button onclick="approveWithdraw('${uid}', '${wid}', ${w.amount})">✅ Approve</button>
+          <button onclick="rejectWithdraw('${uid}', '${wid}', ${w.amount})">❌ Reject</button>
+        `;
+        list.appendChild(div);
+      });
     });
   });
 };
 
+window.approveWithdraw = async (uid, wid) => {
+  await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Approved" });
+  showToast("✅ Withdrawal approved", "success");
+};
+
+window.rejectWithdraw = async (uid, wid, amount) => {
+  const balSnap = await get(ref(db, `users/${uid}/balance`));
+  const currentBal = balSnap.val() || 0;
+  await update(ref(db, `users/${uid}`), { balance: currentBal + amount });
+  await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Rejected" });
+  showToast("❌ Withdrawal rejected & refunded", "error");
+};
+
 // ----------------- Tickets -----------------
 window.loadTickets = () => {
-  const tRef = ref(db, "supportTickets");
-  onValue(tRef, (snapshot) => {
-    const data = snapshot.val() || {};
+  const tRef = ref(db, "tickets");
+  onValue(tRef, (snap) => {
+    const tickets = snap.val() || {};
     const list = document.getElementById("ticket-list");
     list.innerHTML = "";
-    Object.entries(data).forEach(([uid, tickets]) => {
-      Object.entries(tickets).forEach(([tid, t]) => {
-        const item = document.createElement("div");
-        item.innerHTML = `[${uid}] ${t.subject} - ${t.status}`;
-        list.appendChild(item);
+
+    Object.entries(tickets).forEach(([uid, tList]) => {
+      Object.entries(tList).forEach(([tid, t]) => {
+        if (t.status && t.status.toLowerCase() === "resolved") return;
+
+        const div = document.createElement("div");
+        div.className = "panel";
+        div.innerHTML = `
+          <p>📨 UID: ${uid}</p>
+          <p>📄 ${t.subject}</p>
+          <p>${t.message}</p>
+          <button onclick="replyTicket('${uid}', '${tid}')">💬 Reply</button>
+          <button onclick="resolveTicket('${uid}', '${tid}')">✅ Resolve</button>
+        `;
+        list.appendChild(div);
       });
     });
   });
+};
+
+window.replyTicket = async (uid, tid) => {
+  const msg = prompt("Enter your reply:");
+  if (!msg) return;
+  const notifRef = ref(db, `users/${uid}/notifications`);
+  await push(notifRef, msg);
+  showToast("💬 Reply sent", "info");
+};
+
+window.resolveTicket = async (uid, tid) => {
+  await update(ref(db, `tickets/${uid}/${tid}`), { status: "Resolved" });
+  showToast("✅ Ticket resolved", "success");
 };
