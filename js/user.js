@@ -53,7 +53,7 @@ onAuthStateChanged(auth, async (user) => {
   const userRef = ref(db, `users/${uid}`);
   const userSnap = await get(userRef);
 
-  // Referral code from URL is the referrer's uidCode
+  // Referral code from URL is now expected to be the referrer's uidCode
   const urlParams = new URLSearchParams(window.location.search);
   const referralByCode = urlParams.get("ref");
 
@@ -81,8 +81,8 @@ onAuthStateChanged(auth, async (user) => {
       balance: 0,
       unlocked: false,
       uidCode: newUID,
-      referralBy: referralByUid || "",
-      referralBonusGiven: false, // flag to ensure bonus added only once
+      referralBy: referralByCode || "", // store uidCode string here
+      referralBonusGiven: false,
       notifications: [],
       spinsLeft: 1
     });
@@ -96,7 +96,7 @@ onAuthStateChanged(auth, async (user) => {
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
-    // Watch unlock to grant referral bonus when unlocked
+    // Watch for unlock changes to grant referral bonus
     watchUnlockAndGiveReferralBonus(userRef);
 
     return;
@@ -115,11 +115,10 @@ onAuthStateChanged(auth, async (user) => {
 
   loadNotifications();
 
-  // Always watch unlock changes (for existing users too)
+  // Watch for unlock changes to grant referral bonus
   watchUnlockAndGiveReferralBonus(userRef);
 });
 
-// Watches user's unlocked status changes and grants referral bonus after unlock
 function watchUnlockAndGiveReferralBonus(userRef) {
   let previousUnlockedStatus = null;
 
@@ -129,40 +128,51 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
     if (previousUnlockedStatus === null) {
       previousUnlockedStatus = userData.unlocked;
-      return; // first read, just initialize
+      return;
     }
 
-    // Trigger only when unlocking happens
     if (
       previousUnlockedStatus === false &&
       userData.unlocked === true &&
-      userData.referralBy &&         // user has a referrer
-      userData.referralBonusGiven === false // bonus not yet given
+      userData.referralBy &&
+      !userData.referralBonusGiven
     ) {
-      const referrerUid = userData.referralBy;
-      const referrerRef = ref(db, `users/${referrerUid}`);
+      const referrerUidCode = userData.referralBy;
 
-      const referrerSnap = await get(referrerRef);
-      if (referrerSnap.exists()) {
-        const referrerData = referrerSnap.val();
-        const currentBalance = Number(referrerData.balance) || 0;
-        const updatedBalance = currentBalance + 99;
+      // Search for referrer by uidCode string
+      const usersSnap = await get(ref(db, 'users'));
+      if (!usersSnap.exists()) return;
 
-        // Update referrer's balance
-        await update(referrerRef, { balance: updatedBalance });
-
-        // Mark bonus given on referred user so it won't repeat
-        await update(userRef, { referralBonusGiven: true });
-
-        console.log(`Referral bonus ₹99 added to user ${referrerUid} for unlocking user ${uid}.`);
+      const users = usersSnap.val();
+      let referrerKey = null;
+      for (const [key, val] of Object.entries(users)) {
+        if (val.uidCode === referrerUidCode) {
+          referrerKey = key;
+          break;
+        }
       }
+
+      if (!referrerKey) return;
+
+      const referrerRef = ref(db, `users/${referrerKey}`);
+      const referrerSnap = await get(referrerRef);
+      if (!referrerSnap.exists()) return;
+
+      const referrerData = referrerSnap.val();
+      const currentBalance = Number(referrerData.balance) || 0;
+      const updatedBalance = currentBalance + 99;
+
+      await update(referrerRef, { balance: updatedBalance });
+
+      // Mark bonus given so it doesn’t repeat
+      await update(userRef, { referralBonusGiven: true });
+
+      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
   });
 }
-
-// ... rest of your code for spinWheel, submitTicket, loadNotifications etc (unchanged) ...
 
 // Track spins & total win for the current 3-spin cycle
 let spinCount = 0;
@@ -219,8 +229,6 @@ window.spinWheel = async () => {
     });
 
     balanceEl.innerText = newBalance;
-
-    console.log(`Spin ${spinCount}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
 
     if (spinCount === 3) {
       spinCount = 0;
