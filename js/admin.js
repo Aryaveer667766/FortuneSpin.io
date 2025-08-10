@@ -388,3 +388,94 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
+// ----------------- REFERRAL TREE WITH TOTAL REFERRALS + TOGGLE ALL -----------------
+let allUsersData = {};
+let treeSearchQuery = "";
+let treeExpanded = false;
+
+window.loadReferralTree = async () => {
+  const snap = await get(ref(db, "users"));
+  allUsersData = snap.val() || {};
+  renderReferralTree();
+};
+
+function renderReferralTree() {
+  const treeList = document.getElementById("referral-tree");
+  treeList.innerHTML = "";
+
+  Object.entries(allUsersData).forEach(([id, data]) => {
+    if (!data.referredBy) {
+      const li = createTreeNode(data, allUsersData);
+      treeList.appendChild(li);
+    }
+  });
+}
+
+function createTreeNode(user, allUsers) {
+  const li = document.createElement("li");
+  li.classList.add("tree-node");
+
+  const icon = document.createElement("span");
+  icon.classList.add("status-icon");
+  icon.textContent = user.unlocked ? "🔓" : "🔒";
+  icon.style.color = user.unlocked ? "green" : "red";
+
+  const name = document.createElement("span");
+  name.classList.add("node-name");
+  name.textContent = `${user.uidCode || "N/A"} (${countReferrals(user.uidCode, allUsers)})`;
+
+  const matchesSearch = treeSearchQuery && user.uidCode?.toLowerCase().includes(treeSearchQuery.toLowerCase());
+  if (matchesSearch) {
+    name.classList.add("highlight");
+    expandParents(li);
+  }
+
+  const children = Object.values(allUsers).filter(u => u.referredBy === user.uidCode);
+
+  if (children.length > 0) {
+    name.classList.add("collapsible");
+    name.addEventListener("click", () => {
+      li.classList.toggle("collapsed");
+    });
+
+    const ul = document.createElement("ul");
+    children.forEach(child => ul.appendChild(createTreeNode(child, allUsers)));
+    li.appendChild(name);
+    li.appendChild(icon);
+    li.appendChild(ul);
+  } else {
+    li.appendChild(name);
+    li.appendChild(icon);
+  }
+
+  if (!treeExpanded) {
+    li.classList.add("collapsed");
+  }
+
+  return li;
+}
+
+function countReferrals(uidCode, allUsers) {
+  return Object.values(allUsers).filter(u => u.referredBy === uidCode).length;
+}
+
+function searchReferralTree() {
+  treeSearchQuery = document.getElementById("tree-search").value.trim();
+  renderReferralTree();
+}
+
+function expandParents(li) {
+  let parent = li.parentElement;
+  while (parent && parent.tagName === "UL") {
+    parent.parentElement?.classList.remove("collapsed");
+    parent = parent.parentElement?.parentElement;
+  }
+}
+
+// ----------------- Expand/Collapse All -----------------
+function toggleExpandAll() {
+  treeExpanded = !treeExpanded;
+  renderReferralTree();
+  const btn = document.getElementById("toggle-tree");
+  btn.textContent = treeExpanded ? "Collapse All" : "Expand All";
+}
