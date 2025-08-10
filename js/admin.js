@@ -23,17 +23,33 @@ function showToast(message, type = "info") {
   if (!container) {
     container = document.createElement("div");
     container.className = "toast-container";
+    container.style.position = "fixed";
+    container.style.top = "15px";
+    container.style.left = "50%";
+    container.style.transform = "translateX(-50%)";
+    container.style.zIndex = "9999";
     document.body.appendChild(container);
   }
 
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.innerText = message;
+  toast.style.background = type === "success" ? "#4CAF50" :
+                           type === "error" ? "#f44336" :
+                           type === "warning" ? "#ff9800" : "#2196F3";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 20px";
+  toast.style.marginTop = "8px";
+  toast.style.borderRadius = "5px";
+  toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+  toast.style.opacity = "0";
+  toast.style.transition = "opacity 0.3s ease";
+  
   container.appendChild(toast);
 
-  setTimeout(() => toast.classList.add("show"), 50);
+  setTimeout(() => toast.style.opacity = "1", 50);
   setTimeout(() => {
-    toast.classList.remove("show");
+    toast.style.opacity = "0";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -99,6 +115,7 @@ window.assignSpins = async (uid) => {
   if (spins === null || spins.trim() === "") return;
   await update(ref(db, `users/${uid}`), { spinsLeft: Number(spins) });
   showToast(`✅ Assigned ${spins} spins to ${uid}`, "success");
+  loadUsers();
 };
 
 // ----------------- Assign Max Win -----------------
@@ -107,6 +124,7 @@ window.assignMaxWin = async (uid) => {
   if (maxWin === null) return;
   await update(ref(db, `users/${uid}`), { maxWin: maxWin === "" ? null : Number(maxWin) });
   showToast(`✅ MaxWin set to ${maxWin || "N/A"} for ${uid}`, "success");
+  loadUsers();
 };
 
 // ----------------- Lock/Unlock -----------------
@@ -114,6 +132,7 @@ window.toggleLock = async (uid, unlocked) => {
   if (!confirm(`Are you sure you want to ${unlocked ? "lock" : "unlock"} this user?`)) return;
   await update(ref(db, `users/${uid}`), { unlocked: !unlocked });
   showToast(`🔄 User ${uid} is now ${!unlocked ? "unlocked" : "locked"}`, "info");
+  loadUsers();
 };
 
 // ----------------- Delete User -----------------
@@ -121,6 +140,7 @@ window.deleteUser = async (uid) => {
   if (!confirm(`⚠️ Are you sure you want to delete user ${uid}?`)) return;
   await remove(ref(db, `users/${uid}`));
   showToast(`🗑 User ${uid} deleted`, "error");
+  loadUsers();
 };
 
 // ----------------- Withdrawals -----------------
@@ -162,6 +182,7 @@ window.loadWithdrawals = () => {
 window.approveWithdraw = async (uid, wid) => {
   await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Approved" });
   showToast("✅ Withdrawal approved", "success");
+  loadWithdrawals();
 };
 
 window.rejectWithdraw = async (uid, wid, amount) => {
@@ -170,6 +191,7 @@ window.rejectWithdraw = async (uid, wid, amount) => {
   await update(ref(db, `users/${uid}`), { balance: currentBal + amount });
   await update(ref(db, `withdrawals/${uid}/${wid}`), { status: "Rejected" });
   showToast("❌ Withdrawal rejected & refunded", "error");
+  loadWithdrawals();
 };
 
 // ----------------- Tickets -----------------
@@ -210,6 +232,7 @@ window.replyTicket = async (uid, tid) => {
 window.resolveTicket = async (uid, tid) => {
   await update(ref(db, `tickets/${uid}/${tid}`), { status: "Resolved" });
   showToast("✅ Ticket resolved", "success");
+  loadTickets();
 };
 
 // ----------------- Quick User Actions -----------------
@@ -220,6 +243,7 @@ window.assignSpinsDirect = async () => {
 
   await update(ref(db, `users/${uid}`), { spinsLeft: spins });
   showToast(`✅ Assigned ${spins} spins to ${uid}`, "success");
+  loadUsers();
 };
 
 window.setMaxWinDirect = async () => {
@@ -229,6 +253,7 @@ window.setMaxWinDirect = async () => {
 
   await update(ref(db, `users/${uid}`), { maxWin });
   showToast(`✅ MaxWin set to ${maxWin} for ${uid}`, "success");
+  loadUsers();
 };
 
 window.adjustBalanceDirect = async () => {
@@ -238,6 +263,7 @@ window.adjustBalanceDirect = async () => {
 
   await update(ref(db, `users/${uid}`), { balance });
   showToast(`✅ Balance updated to ₹${balance} for ${uid}`, "success");
+  loadUsers();
 };
 
 window.lockUserDirect = async () => {
@@ -246,6 +272,7 @@ window.lockUserDirect = async () => {
 
   await update(ref(db, `users/${uid}`), { unlocked: false });
   showToast(`🔒 User ${uid} locked`, "warning");
+  loadUsers();
 };
 
 window.unlockUserDirect = async () => {
@@ -254,4 +281,5 @@ window.unlockUserDirect = async () => {
 
   await update(ref(db, `users/${uid}`), { unlocked: true });
   showToast(`🔓 User ${uid} unlocked`, "success");
+  loadUsers();
 };
