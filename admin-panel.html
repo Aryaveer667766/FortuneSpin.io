@@ -306,24 +306,14 @@
     <div id="ticket-list">No tickets loaded.</div>
   </section>
 
- <!-- Input + Display for Referral Tree -->
-<div style="max-width: 400px; margin: 20px auto; font-family: Arial, sans-serif;">
-  
-  <!-- UID Input -->
-  <label for="ref-uid" style="display:block; margin-bottom: 6px; font-weight: bold;">
-    Enter UID:
-  </label>
-  <input 
-    type="text" 
-    id="ref-uid" 
-    placeholder="e.g. 12345" 
-    style="width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px;"
-  />
+ <section class="panel">
+      <h2>🧑‍🤝‍🧑 Referral Tree</h2>
+      <input type="text" id="ref-uid" placeholder="Enter UID" />
+      <button onclick="viewReferralTree()">View Tree</button>
+      <div id="ref-tree"></div>
+    </section>
+  </main>
 
-  <!-- Referral Results -->
-  <div id="ref-tree" style="padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
-    <!-- JS will populate results here -->
-  </div>
 
 </div>
 
