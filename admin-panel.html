@@ -7,47 +7,101 @@
   <link rel="icon" href="assets/logo/logo.png" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Rajdhani:wght@500&display=swap" rel="stylesheet" />
   <style>
-    /* Quick additional styles for user list */
+    body.admin-body {
+      background: #000;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      background: #111;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-bottom: 2px solid #444;
+    }
+    header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      margin: 0;
+      flex: 1;
+    }
+    .live-indicator {
+      color: #0f0;
+      font-weight: bold;
+    }
+    .admin-logo {
+      height: 40px;
+    }
+    main {
+      padding: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .panel {
+      background: #111;
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .panel h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+    }
     #user-list {
       max-height: 400px;
       overflow-y: auto;
       margin-top: 10px;
       border: 1px solid #555;
       padding: 10px;
-      background: #111;
+      background: #000;
       color: #eee;
       font-family: monospace;
     }
     .user-row {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #333;
       padding: 6px 0;
+      gap: 8px;
     }
     .user-info {
-      flex: 1;
+      flex: 1 1 150px;
       font-size: 14px;
     }
+    .user-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .user-actions input {
+      width: 60px;
+      padding: 3px;
+      font-size: 13px;
+    }
     .user-actions button {
-      margin-left: 6px;
       cursor: pointer;
       background: transparent;
-      border: none;
+      border: 1px solid #0f0;
       color: #0f0;
-      font-size: 16px;
-      transition: color 0.3s;
-    }
-    .user-actions button.locked {
-      color: #f33;
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      transition: all 0.3s;
     }
     .user-actions button:hover {
-      color: #ff0;
+      background: #0f0;
+      color: #000;
     }
-    /* Scrollbar for user list */
-    #user-list::-webkit-scrollbar {
-      width: 6px;
-    }
+    /* Scrollbar */
+    #user-list::-webkit-scrollbar { width: 6px; }
     #user-list::-webkit-scrollbar-thumb {
       background: #666;
       border-radius: 3px;
@@ -111,10 +165,12 @@
       btn.addEventListener("click", () => click.play())
     );
 
-    // Search input listener to filter users on typing
+    // Search filter listener
     const searchInput = document.getElementById('search-user');
     searchInput.addEventListener('input', () => {
-      window.filterUsers(searchInput.value);
+      if (typeof window.filterUsers === 'function') {
+        window.filterUsers(searchInput.value);
+      }
     });
   </script>
 
