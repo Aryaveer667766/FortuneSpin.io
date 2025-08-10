@@ -29,6 +29,7 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
       opacity: 1;
       transition: opacity 0.5s ease;
+      user-select: none;
     }
     .toast.error {
       background: #ff3c3c;
@@ -38,11 +39,11 @@
 </head>
 <body class="login-body">
   <div class="login-container glass-card">
-    <img src="assets/logo/logo.png" class="login-logo" />
+    <img src="assets/logo/logo.png" class="login-logo" alt="FortuneSpin Logo" />
     <h2>Welcome to <span class="gold">FortuneSpin.online</span></h2>
     
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
+    <input type="email" id="email" placeholder="Email" autocomplete="email" />
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
 
     <!-- Reset Password Link -->
     <p style="text-align:right; margin:5px 0;">
@@ -52,7 +53,7 @@
     </p>
 
     <button onclick="login()">🔐 Login</button>
-    <p id="error-msg" class="error"></p>
+    <p id="error-msg" class="error" style="min-height:1.2em;"></p>
 
     <!-- ✅ New: Create Account Link -->
     <p class="switch-text">
@@ -99,7 +100,7 @@
         }
       } catch (error) {
         errorMsg.style.color = '#ff3c3c';
-        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
+        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "").trim();
       }
       // 🎉 Confetti
       confetti({
@@ -143,10 +144,11 @@
         showToast("✅ Password reset email sent! Please check your spam/junk folder if you don't see it.");
       } catch (error) {
         errorMsg.style.color = '#ff3c3c';
-        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
+        errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "").trim();
       }
     });
   </script>
 </body>
 </html>
+
 
