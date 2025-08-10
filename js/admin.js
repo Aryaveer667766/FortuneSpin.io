@@ -19,6 +19,9 @@ let allUsers = [];
 
 // Load all users and render in list container
 async function loadAllUsers() {
+  const list = document.getElementById("user-list");
+  if (list) list.innerHTML = "Loading users...";
+
   const usersRef = ref(db, "users");
   const snap = await get(usersRef);
 
@@ -42,8 +45,10 @@ function renderUserList(users) {
 
   list.innerHTML = '';
   users.forEach(user => {
+    // If user.unlocked === true, button should show lock icon to lock user now
     const lockedClass = user.unlocked ? '' : 'locked';
     const lockTitle = user.unlocked ? 'Lock User' : 'Unlock User';
+    const lockIcon = user.unlocked ? '🔒' : '🔓';
 
     const userRow = document.createElement('div');
     userRow.classList.add('user-row');
@@ -56,7 +61,7 @@ function renderUserList(users) {
       </div>
       <div class="user-actions">
         <button title="${lockTitle}" class="${lockedClass}" onclick="toggleLock('${user.key}', ${user.unlocked})">
-          ${user.unlocked ? '🔓' : '🔒'}
+          ${lockIcon}
         </button>
         <button title="Delete User" onclick="deleteUser('${user.key}')">❌</button>
       </div>
@@ -84,8 +89,13 @@ window.filterUserList = (query) => {
   renderUserList(filtered);
 };
 
-// Toggle lock/unlock user
+// Toggle lock/unlock user with confirmation
 window.toggleLock = async (key, currentlyUnlocked) => {
+  const confirmMsg = currentlyUnlocked
+    ? "Are you sure you want to LOCK this user?"
+    : "Are you sure you want to UNLOCK this user?";
+  if (!confirm(confirmMsg)) return;
+
   try {
     await update(ref(db, `users/${key}`), { unlocked: !currentlyUnlocked });
     alert(`User ${currentlyUnlocked ? 'locked' : 'unlocked'} successfully.`);
@@ -96,7 +106,7 @@ window.toggleLock = async (key, currentlyUnlocked) => {
   }
 };
 
-// Delete user
+// Delete user with confirmation
 window.deleteUser = async (key) => {
   if (!confirm("Are you sure you want to delete this user?")) return;
   try {
@@ -141,7 +151,7 @@ window.searchUser = async () => {
         <p>📱 Phone: ${user.phone || "N/A"}</p>
         <p>📧 Email: ${user.email || "N/A"}</p>
         <p>💰 Balance: ₹${user.balance || 0}</p>
-        <p>🎡 Unlocked: ${user.unlocked}</p>
+        <p>🎡 Unlocked: ${user.unlocked ? 'Yes' : 'No'}</p>
         <p>🎯 Spins Left: ${user.spinsLeft ?? 0}</p>
         <p>🏷️ Max Win: ₹${user.maxWinAmount ?? "Not set"}</p>
         <div style="margin-top:8px;">
