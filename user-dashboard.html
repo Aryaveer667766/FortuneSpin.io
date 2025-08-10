@@ -49,20 +49,14 @@
       <button onclick="copyReferral()">Copy Referral Link</button>
     </section>
 
-    <!-- 🆕 Referral Entry -->
-   
-
-   <!-- 💸 WITHDRAW -->
-<section>
-  <h3>💸 Withdraw Winnings</h3>
-
-    <a href="withdraw.html">
-  <button type="button">Request Withdrawal</button>
-</a>
-  
-  <p id="withdraw-msg" style="color: gold;"></p>
-</section>
-
+    <!-- 💸 WITHDRAW -->
+    <section>
+      <h3>💸 Withdraw Winnings</h3>
+      <a href="withdraw.html">
+        <button type="button">Request Withdrawal</button>
+      </a>
+      <p id="withdraw-msg" style="color: gold;"></p>
+    </section>
 
     <!-- 🧾 SUPPORT TICKET -->
     <section>
@@ -71,61 +65,63 @@
       <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
       <button onclick="submitTicket()">Submit Ticket</button>
     </section>
+
     <!-- Refill Spins Section (Initially Hidden) -->
-<div id="refill-section" style="display:none; position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 9999;">
-  <p style="margin: 0 0 10px;">You have 0 spins left!</p>
-  <button id="refill-btn" style="padding: 10px 15px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;">Refill Spins</button>
-  <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
-</div>
+    <div id="refill-section" style="display:none; position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 9999;">
+      <p style="margin: 0 0 10px;">You have 0 spins left!</p>
+      <button id="refill-btn" style="padding: 10px 15px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;">Refill Spins</button>
+      <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
+    </div>
 
-<script type="module">
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-import { app } from './firebase.js'; // Use your firebase.js config
+    <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { app } from './firebase.js'; // Use your firebase.js config
 
-const auth = getAuth(app);
-const db = getDatabase(app);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-let refillDismissed = false; // Tracks if user closed the section
+    let refillDismissed = false; // Tracks if user closed the section
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    const uid = user.uid;
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const uid = user.uid;
 
-    // Get user lock status & spins
-    const userRef = ref(db, `users/${uid}`);
-    onValue(userRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const spins = data.spins || 0;
-        const isLocked = data.locked || false;
+        // Display UID in header without "UID#" prefix
+        document.getElementById("user-uid").textContent = uid;
 
-        // Show button only if unlocked and spins == 0 (unless dismissed)
-        if (!isLocked && spins === 0 && !refillDismissed) {
-          document.getElementById("refill-section").style.display = "block";
-        } else {
-          document.getElementById("refill-section").style.display = "none";
-        }
+        // Get user lock status & spins
+        const userRef = ref(db, `users/${uid}`);
+        onValue(userRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            const spins = data.spins || 0;
+            const isLocked = data.locked || false;
 
-        // Set up refill button click
-        document.getElementById("refill-btn").onclick = () => {
-          const whatsappNumber = "6283194274244"; // Admin's WhatsApp
-          const message = `Hello, I want to refill my account. My unique id is ${uid}`;
-          window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
-        };
+            // Show refill section only if unlocked and spins == 0 (unless dismissed)
+            if (!isLocked && spins === 0 && !refillDismissed) {
+              document.getElementById("refill-section").style.display = "block";
+            } else {
+              document.getElementById("refill-section").style.display = "none";
+            }
 
-        // Close button
-        document.getElementById("close-refill").onclick = () => {
-          document.getElementById("refill-section").style.display = "none";
-          refillDismissed = true;
-        };
+            // Setup refill button click
+            document.getElementById("refill-btn").onclick = () => {
+              const whatsappNumber = "6283194274244"; // Admin's WhatsApp
+              const message = `Hello, I want to refill my account. My unique id is ${uid}`;
+              window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
+            };
+
+            // Close button hides refill section permanently in this session
+            document.getElementById("close-refill").onclick = () => {
+              document.getElementById("refill-section").style.display = "none";
+              refillDismissed = true;
+            };
+          }
+        });
       }
     });
-  }
-});
-</script>
-
-
+    </script>
 
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
@@ -137,100 +133,9 @@ onAuthStateChanged(auth, (user) => {
     <section>
       <h3>🏆 Live Winners</h3>
       <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #FFD700; font-weight:bold;" id="winner-feed">
-        🎉 UID#X83KTR won ₹10,000 • 🎉 UID#M22BDX won ₹5,000 • 🎉 UID#A77ZZQ won ₹25,000🎉 UID#X83KTR won ₹10,000 •🎉 UID#M22BDX won ₹5,000 •🎉 UID#A77ZZQ won ₹25,000 •🎉 UID#L94HTU won ₹2,000 •🎉 UID#F18JOP won ₹15,000 •🎉 UID#T73YLM won ₹3,000 •
-🎉 UID#W62QAZ won ₹12,000 •
-🎉 UID#D55VBN won ₹8,500 •
-🎉 UID#K12ZXC won ₹9,000 •
-🎉 UID#H77WER won ₹7,000 •
-🎉 UID#G99NBV won ₹11,000 •
-🎉 UID#P34MKO won ₹6,500 •
-🎉 UID#B20QWE won ₹13,000 •
-🎉 UID#R88YUI won ₹4,000 •
-🎉 UID#C41TRE won ₹9,800 •
-🎉 UID#N65BVC won ₹10,500 •
-🎉 UID#S78GHJ won ₹5,200 •
-🎉 UID#E31MNB won ₹6,000 •
-🎉 UID#U93CXZ won ₹18,000 •
-🎉 UID#V14LOP won ₹14,000 •
-🎉 UID#A09ASD won ₹7,700 •
-🎉 UID#Z56TYU won ₹20,000 •
-🎉 UID#X78JKL won ₹5,300 •
-🎉 UID#Q30MNB won ₹6,900 •
-🎉 UID#Y24WER won ₹22,000 •
-🎉 UID#J83KIO won ₹3,500 •
-🎉 UID#M77NVC won ₹4,800 •
-🎉 UID#K63RTY won ₹8,200 •
-🎉 UID#H92LPK won ₹11,300 •
-🎉 UID#B11ZXV won ₹19,500 •
-🎉 UID#O85TGB won ₹17,000 •
-🎉 UID#I32SDW won ₹2,800 •
-🎉 UID#L76BNM won ₹15,300 •
-🎉 UID#F01XCV won ₹13,700 •
-🎉 UID#T69ZSD won ₹16,000 •
-🎉 UID#W88MKO won ₹12,800 •
-🎉 UID#E25DFG won ₹9,900 •
-🎉 UID#G43RVC won ₹8,600 •
-🎉 UID#C18YUI won ₹4,400 •
-🎉 UID#P75BGT won ₹3,900 •
-🎉 UID#R99JHT won ₹5,600 •
-🎉 UID#N62XZV won ₹6,200 •
-🎉 UID#S33KLO won ₹7,900 •
-🎉 UID#U11LPD won ₹14,700 •
-🎉 UID#V52XCF won ₹2,600 •
-🎉 UID#A04RTY won ₹13,400 •
-🎉 UID#Z79OIJ won ₹3,100 •
-🎉 UID#X27GHD won ₹6,300 •
-🎉 UID#M16BNK won ₹5,900 •
-🎉 UID#T81KLO won ₹10,700 •
-🎉 UID#Y91ZXC won ₹11,600 •
-🎉 UID#K22QAZ won ₹18,900 •
-🎉 UID#J64MNB won ₹12,500 •
-🎉 UID#L13NVC won ₹9,600 •
-🎉 UID#B84WER won ₹17,700 •
-🎉 UID#F59MKO won ₹7,100 •
-🎉 UID#H46ZXV won ₹8,400 •
-🎉 UID#O97ASD won ₹5,100 •
-🎉 UID#G25XCV won ₹6,700 •
-🎉 UID#C60TYU won ₹4,300 •
-🎉 UID#P19JKL won ₹7,600 •
-🎉 UID#R33YUI won ₹3,300 •
-🎉 UID#S88TRE won ₹9,100 •
-🎉 UID#U20LOP won ₹10,900 •
-🎉 UID#V37MNB won ₹13,600 •
-🎉 UID#A61CXZ won ₹8,000 •
-🎉 UID#Z42BVC won ₹6,800 •
-🎉 UID#X06GHJ won ₹4,900 •
-🎉 UID#M51NBV won ₹7,200 •
-🎉 UID#T23OPL won ₹11,800 •
-🎉 UID#W38ERT won ₹15,800 •
-🎉 UID#E91QWE won ₹5,400 •
-🎉 UID#G09BGT won ₹3,800 •
-🎉 UID#C84MKO won ₹14,500 •
-🎉 UID#P28ZSD won ₹6,600 •
-🎉 UID#R49LPK won ₹9,300 •
-🎉 UID#N05TYU won ₹4,600 •
-🎉 UID#S11JKL won ₹3,600 •
-🎉 UID#U95YUI won ₹8,700 •
-🎉 UID#V10TRE won ₹11,100 •
-🎉 UID#A39LOP won ₹13,300 •
-🎉 UID#Z66MNB won ₹6,100 •
-🎉 UID#X70CXZ won ₹4,200 •
-🎉 UID#M36BVC won ₹7,500 •
-🎉 UID#T44GHJ won ₹5,800 •
-🎉 UID#W98NBV won ₹9,400 •
-🎉 UID#E13OPL won ₹12,600 •
-🎉 UID#G72ERT won ₹14,200 •
-🎉 UID#C03QWE won ₹10,300 •
-🎉 UID#P50BGT won ₹6,400 •
-🎉 UID#R41MKO won ₹8,300 •
-🎉 UID#N26ZSD won ₹5,700 •
-🎉 UID#S93LPK won ₹3,200 •
-🎉 UID#U07ASD won ₹16,500 •
-🎉 UID#V60XCV won ₹19,000 •
-🎉 UID#A12TYU won ₹20,500 •
-🎉 UID#Z33JKL won ₹9,200 •
-🎉 UID#X99YUI won ₹11,900 •
-
+        🎉 X83KTR won ₹10,000 • 🎉 M22BDX won ₹5,000 • 🎉 A77ZZQ won ₹25,000 • 🎉 L94HTU won ₹2,000 • 🎉 F18JOP won ₹15,000 • 🎉 T73YLM won ₹3,000 •
+        🎉 W62QAZ won ₹12,000 • 🎉 D55VBN won ₹8,500 • 🎉 K12ZXC won ₹9,000 • 🎉 H77WER won ₹7,000 • 🎉 G99NBV won ₹11,000 • 🎉 P34MKO won ₹6,500 •
+        <!-- add more winners as you like -->
       </marquee>
     </section>
   </main>
@@ -250,7 +155,11 @@ onAuthStateChanged(auth, (user) => {
 
   <script>
   function openWhatsApp() {
-    const uid = document.getElementById("user-uid").textContent.trim();
+    let uid = document.getElementById("user-uid").textContent.trim();
+    // Remove "UID#" prefix if present
+    if (uid.startsWith("UID#")) {
+      uid = uid.slice(4);
+    }
     const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
     const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
@@ -258,10 +167,27 @@ onAuthStateChanged(auth, (user) => {
 
   function copyReferral() {
     const link = document.getElementById("referral-link");
-    link.select();
-    document.execCommand("copy");
-    alert("Link copied!");
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link.value).then(() => {
+        alert("Referral link copied!");
+      }).catch(() => {
+        fallbackCopyText(link);
+      });
+    } else {
+      fallbackCopyText(link);
+    }
   }
-</script>
+
+  function fallbackCopyText(element) {
+    element.select();
+    try {
+      document.execCommand("copy");
+      alert("Referral link copied!");
+    } catch (err) {
+      alert("Failed to copy. Please copy manually.");
+    }
+  }
+  </script>
+
 </body>
 </html>
