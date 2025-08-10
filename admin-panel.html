@@ -183,6 +183,71 @@
       grid-template-columns: 1fr;
     }
   }
+    /* Referral Tree Styles */
+.referral-tree {
+  list-style: none;
+  padding-left: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.referral-tree ul {
+  list-style: none;
+  margin-left: 20px;
+  border-left: 2px solid #ccc;
+  padding-left: 15px;
+}
+
+.tree-node {
+  margin: 5px 0;
+  position: relative;
+}
+
+.node-name {
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.node-name.collapsible::after {
+  content: " ▼";
+  font-size: 12px;
+  color: #666;
+}
+
+.tree-node.collapsed > ul {
+  display: none;
+}
+
+.status-icon {
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+.highlight {
+  background: yellow;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+#tree-search {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .node-name {
+    font-size: 14px;
+  }
+  .status-icon {
+    font-size: 14px;
+  }
+}
+
 </style>
 
 </head>
