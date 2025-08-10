@@ -106,7 +106,7 @@ window.spinWheel = async () => {
   const data = snap.val();
 
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
-  if (data.spinsLeft <= 0) return alert("😢 No spins left!");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
 
   spinCount++;
   spinSound.play();
