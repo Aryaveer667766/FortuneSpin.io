@@ -11,6 +11,7 @@
       font-family: 'Orbitron', sans-serif;
     }
     body {
+      
       margin: 0;
       padding: 0;
       background: radial-gradient(circle at center, #0a0a23, #000000);
@@ -146,10 +147,47 @@
       font-size: 13px;
       opacity: 0.5;
     }
+    .toast {
+  visibility: hidden;
+  min-width: 280px;
+  max-width: 90vw;
+  background-color: #f0ad4e; /* orange warning color */
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 16px 24px;
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  font-weight: 600;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: 0 0 12px rgba(240, 173, 78, 0.7);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.toast.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Optional: icon styling */
+.toast .icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
 
   </style>
 </head>
 <body>
+  <div id="toast" class="toast"></div>
+
   <div class="withdraw-container">
     <h2>Request Withdrawal</h2>
 
