@@ -389,13 +389,19 @@ window.unlockUserDirect = async () => {
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
 
-// 👥 REFERRAL TREE
+// 👥 REFERRAL TREE (edited)
 window.viewReferralTree = async () => {
-  const uidText = document.getElementById("ref-uid").value.trim();
-  if (!uidText.startsWith("UID#")) {
-    alert("Enter valid UID#...");
+  let uidText = document.getElementById("ref-uid").value.trim();
+  if (!uidText) {
+    alert("Please enter a UID");
     return;
   }
+
+  // Normalize: if no UID# prefix, add it; uppercase for case-insensitive match
+  if (!uidText.toUpperCase().startsWith("UID#")) {
+    uidText = "UID#" + uidText;
+  }
+  uidText = uidText.toUpperCase();
 
   const usersSnap = await get(ref(db, "users"));
   const treeDiv = document.getElementById("ref-tree");
@@ -404,7 +410,7 @@ window.viewReferralTree = async () => {
   let rootUID = null;
 
   usersSnap.forEach(child => {
-    if (child.val().uidCode === uidText) {
+    if ((child.val().uidCode || "").toUpperCase() === uidText) {
       rootUID = child.key;
     }
   });
@@ -414,18 +420,23 @@ window.viewReferralTree = async () => {
     return;
   }
 
+  // Find direct referrals (where referralBy matches uidText, case insensitive)
   const refs = [];
   usersSnap.forEach(child => {
     const u = child.val();
-    if (u.referralBy === uidText) {
+    if ((u.referralBy || "").toUpperCase() === uidText) {
       refs.push(u.uidCode);
     }
   });
 
   if (refs.length === 0) {
-    treeDiv.innerHTML = `<div>No referrals found.</div>`;
+    treeDiv.innerHTML = `<div>No referrals found for ${uidText}.</div>`;
     return;
   }
 
-  treeDiv.innerHTML = `<p>Referrals by ${uidText}:</p><ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>`;
+  treeDiv.innerHTML = `
+    <p>Direct referrals of <strong>${uidText}</strong>:</p>
+    <ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>
+  `;
 };
+
