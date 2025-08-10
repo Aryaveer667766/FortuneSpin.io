@@ -17,8 +17,6 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
-
-
 // 🎨 Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 if (confettiCanvas) {
@@ -35,14 +33,14 @@ const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 
-// 🧠 UID Generator
+// 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
-  return `UID#${result}`;
+  return result; // now returns only letters/numbers
 }
 
 // ✅ On Auth Login
@@ -95,6 +93,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadNotifications();
 });
+
 // Track spins & total win for the current 3-spin cycle
 let spinCount = 0;
 let totalWin = 0;
@@ -116,7 +115,6 @@ window.spinWheel = async () => {
     let outcome;
 
     if (spinCount < 3) {
-      // First two spins: random between ₹10–₹210 but keep space for target
       const min = 10;
       const max = 210;
       const remainingSpins = 3 - spinCount;
@@ -127,16 +125,13 @@ window.spinWheel = async () => {
         remainingTarget > min ? remainingTarget : max
       );
     } else {
-      // Third spin: aim for total ~480–510 but avoid exactly 500
       let targetTotal = 480 + Math.floor(Math.random() * 31); // 480–510
       outcome = targetTotal - totalWin;
 
-      // Avoid exactly 500 total
       if (totalWin + outcome === 500) {
         outcome += (Math.random() < 0.5 ? -1 : 1);
       }
 
-      // Reset cycle tracking
       spinCount = 0;
       totalWin = 0;
     }
@@ -158,9 +153,6 @@ window.spinWheel = async () => {
     console.log(`Spin ${spinCount || 3}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
   }, 3000);
 };
-
-
-
 
 // 🧾 Submit Support Ticket
 window.submitTicket = async () => {
