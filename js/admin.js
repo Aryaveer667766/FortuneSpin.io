@@ -267,4 +267,5 @@ window.viewReferralTree = async () => {
   }
 
   treeDiv.innerHTML = `<p>Referrals by ${uidText}:</p><ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>`;
+  <p>🎡 Unlocked: ${user.unlocked}</p>
 };
