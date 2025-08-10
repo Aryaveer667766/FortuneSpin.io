@@ -389,7 +389,7 @@ window.unlockUserDirect = async () => {
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
 
-// 👥 REFERRAL TREE (edited)
+/// 👥 REFERRAL TREE (with status and better visuals)
 window.viewReferralTree = async () => {
   let uidText = document.getElementById("ref-uid").value.trim();
   if (!uidText) {
@@ -409,6 +409,7 @@ window.viewReferralTree = async () => {
 
   let rootUID = null;
 
+  // Find root user key
   usersSnap.forEach(child => {
     if ((child.val().uidCode || "").toUpperCase() === uidText) {
       rootUID = child.key;
@@ -416,27 +417,60 @@ window.viewReferralTree = async () => {
   });
 
   if (!rootUID) {
-    treeDiv.innerHTML = `<div class="alert">User not found.</div>`;
+    treeDiv.innerHTML = `<div class="alert" style="color:#E74C3C; font-weight:bold;">User not found.</div>`;
     return;
   }
 
-  // Find direct referrals (where referralBy matches uidText, case insensitive)
-  const refs = [];
+  // Collect direct referrals
+  const referrals = [];
   usersSnap.forEach(child => {
     const u = child.val();
     if ((u.referralBy || "").toUpperCase() === uidText) {
-      refs.push(u.uidCode);
+      referrals.push({
+        uidCode: u.uidCode || "N/A",
+        unlocked: u.unlocked !== false // default true if missing
+      });
     }
   });
 
-  if (refs.length === 0) {
-    treeDiv.innerHTML = `<div>No referrals found for ${uidText}.</div>`;
+  if (referrals.length === 0) {
+    treeDiv.innerHTML = `<div style="color:#F39C12; font-weight:bold;">No referrals found for <strong>${uidText}</strong>.</div>`;
     return;
   }
 
+  // Create list HTML with status badges
+  const listHtml = referrals.map(r => {
+    const statusColor = r.unlocked ? "#2ECC71" : "#E74C3C";
+    const statusText = r.unlocked ? "Unlocked" : "Locked";
+    const statusIcon = r.unlocked ? "🔓" : "🔒";
+
+    return `
+      <li style="margin-bottom: 8px; font-size: 16px; display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: 600; color: #3498DB;">${r.uidCode}</span>
+        <span style="
+          background-color: ${statusColor};
+          color: white;
+          font-weight: 700;
+          border-radius: 12px;
+          padding: 4px 10px;
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          user-select: none;
+          ">
+          ${statusIcon} ${statusText}
+        </span>
+      </li>
+    `;
+  }).join("");
+
   treeDiv.innerHTML = `
-    <p>Direct referrals of <strong>${uidText}</strong>:</p>
-    <ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>
+    <p style="font-weight: bold; font-size: 18px; margin-bottom: 12px;">
+      Direct referrals of <span style="color:#2980B9;">${uidText}</span>:
+    </p>
+    <ul style="list-style-type:none; padding-left: 0;">
+      ${listHtml}
+    </ul>
   `;
 };
-
