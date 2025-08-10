@@ -53,33 +53,50 @@ onAuthStateChanged(auth, async (user) => {
   const userRef = ref(db, `users/${uid}`);
   const userSnap = await get(userRef);
 
+  // Referral code from URL is now expected to be the referrer's uidCode
   const urlParams = new URLSearchParams(window.location.search);
-  const referralBy = urlParams.get("ref");
+  const referralByCode = urlParams.get("ref");
 
   if (!userSnap.exists()) {
+    // Create new user entry
     const newUID = generateUID();
+
+    // Find referrer UID (firebase key) by uidCode from referralByCode
+    let referralByUid = "";
+    if (referralByCode) {
+      const usersSnap = await get(ref(db, 'users'));
+      if (usersSnap.exists()) {
+        const users = usersSnap.val();
+        for (const [key, val] of Object.entries(users)) {
+          if (val.uidCode === referralByCode) {
+            referralByUid = key;
+            break;
+          }
+        }
+      }
+    }
 
     await set(userRef, {
       email: user.email,
       balance: 0,
       unlocked: false,
       uidCode: newUID,
-      referralBy: referralBy || "",
-      referralBonusGiven: false,  // track bonus given
+      referralBy: referralByUid || "",
+      referralBonusGiven: false,
       notifications: [],
       spinsLeft: 1
     });
 
-    if (referralBy) {
-      const referralRef = ref(db, `referrals/${referralBy}/${uid}`);
+    if (referralByUid) {
+      const referralRef = ref(db, `referrals/${referralByUid}/${uid}`);
       await set(referralRef, true);
     }
 
     uidEl.innerText = newUID;
-    referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;  // <--- updated here
+    referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
-    // Start watching for unlock change for referral bonus
+    // Watch for unlock changes to grant referral bonus
     watchUnlockAndGiveReferralBonus(userRef);
 
     return;
@@ -87,7 +104,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const data = userSnap.val();
   uidEl.innerText = data.uidCode;
-  referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;  // <--- updated here
+  referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;
   balanceEl.innerText = data.balance || 0;
 
   if (data.unlocked) {
@@ -131,12 +148,10 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
         await update(referrerRef, { balance: updatedBalance });
 
-        // Set referralBonusGiven to true to prevent duplicate bonuses
+        // Mark bonus given so it doesn’t repeat
         await update(userRef, { referralBonusGiven: true });
 
         console.log(`Referral bonus ₹99 added to user ${referrerUid} for unlocking user ${uid}.`);
-
-        // Optionally notify the referrer or current user here
       }
     }
 
@@ -162,36 +177,26 @@ window.spinWheel = async () => {
   document.getElementById("spin-result").innerText = "Spinning...";
 
   setTimeout(async () => {
-    let maxWin = data.maxWinAmount ?? null; // user's max win limit or null
+    let maxWin = data.maxWinAmount ?? null;
     let targetTotal;
     if (maxWin === null) {
-      // No maxWin set, default target max 499 (minimum 480)
-      targetTotal = 480 + Math.floor(Math.random() * 20); // 480 to 499 max
+      targetTotal = 480 + Math.floor(Math.random() * 20);
     } else {
-      targetTotal = Math.min(maxWin, 499); // Never allow above 499
+      targetTotal = Math.min(maxWin, 499);
     }
 
-    // Initialize on first spin of cycle
-    if (spinCount === 1) {
-      totalWin = 0; // reset total win
-    }
+    if (spinCount === 1) totalWin = 0;
 
-    const minPerSpin = 10; // minimum per spin
+    const minPerSpin = 10;
     const remainingSpins = 3 - (spinCount - 1);
     const remainingTarget = targetTotal - totalWin;
 
     let outcome;
-
     if (spinCount < 3) {
-      // For spins 1 and 2: 
-      // Calculate max possible for this spin without exceeding targetTotal - min*remainingSpins
       let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
-      maxPossible = Math.max(maxPossible, minPerSpin); // Ensure at least minPerSpin
-
-      // Random outcome between minPerSpin and maxPossible
+      maxPossible = Math.max(maxPossible, minPerSpin);
       outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
     } else {
-      // For spin 3, just hit the targetTotal - totalWin
       outcome = remainingTarget;
     }
 
@@ -212,7 +217,6 @@ window.spinWheel = async () => {
 
     console.log(`Spin ${spinCount}: ₹${outcome} | Total in cycle: ₹${totalWin}`);
 
-    // Reset after 3 spins
     if (spinCount === 3) {
       spinCount = 0;
       totalWin = 0;
