@@ -388,12 +388,16 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
+
 // 👥 REFERRAL TREE
 window.viewReferralTree = async () => {
   const uidText = document.getElementById("ref-uid").value.trim();
-  if (!uidText.startsWith("UID#")) return alert("Enter valid UID#...");
+  if (!uidText.startsWith("UID#")) {
+    alert("Enter valid UID#...");
+    return;
+  }
 
-  const usersSnap = await get(ref(db, users));
+  const usersSnap = await get(ref(db, "users"));
   const treeDiv = document.getElementById("ref-tree");
   treeDiv.innerHTML = "Loading...";
 
@@ -406,7 +410,7 @@ window.viewReferralTree = async () => {
   });
 
   if (!rootUID) {
-    treeDiv.innerHTML = <div class="alert">User not found.</div>;
+    treeDiv.innerHTML = `<div class="alert">User not found.</div>`;
     return;
   }
 
@@ -419,9 +423,9 @@ window.viewReferralTree = async () => {
   });
 
   if (refs.length === 0) {
-    treeDiv.innerHTML = <div>No referrals found.</div>;
+    treeDiv.innerHTML = `<div>No referrals found.</div>`;
     return;
   }
 
-  treeDiv.innerHTML = <p>Referrals by ${uidText}:</p><ul>${refs.map(r => <li>${r}</li>).join('')}</ul>;
+  treeDiv.innerHTML = `<p>Referrals by ${uidText}:</p><ul>${refs.map(r => `<li>${r}</li>`).join('')}</ul>`;
 };
