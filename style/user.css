@@ -1,241 +1,163 @@
-/* Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reset Your FortuneSpin Password</title>
+  <link rel="stylesheet" href="style/user.css" />
+  <style>
+    /* Additional styles to match login page */
+    body.login-body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #0b0b0b;
+      font-family: 'Poppins', sans-serif;
+      color: white;
+    }
+    .login-container {
+      width: 360px;
+      padding: 30px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: #ffffff10;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #FFD700;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #fff87f;
+      transform: scale(1.03);
+      box-shadow: 0 0 10px #FFD70088;
+    }
+    .error {
+      color: #ff3c3c;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    .success {
+      color: #FFD700;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    .password-wrapper {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #FFD700;
+      font-weight: bold;
+      user-select: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body class="login-body">
+  <div class="login-container glass-card">
+    <h2>Reset Password</h2>
+    <p>Please enter your new password below.</p>
 
-body {
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #090a1a, #1c1f36);
-  font-family: 'Poppins', sans-serif;
-  color: white;
-}
+    <div class="password-wrapper">
+      <input type="password" id="new-password" placeholder="New Password" />
+      <span class="toggle-password" id="toggle-new">Show</span>
+    </div>
 
-/* ---------- LOGIN PAGE ---------- */
-body.login-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+    <div class="password-wrapper">
+      <input type="password" id="confirm-password" placeholder="Confirm Password" />
+      <span class="toggle-password" id="toggle-confirm">Show</span>
+    </div>
 
-.login-container {
-  width: 360px;
-  padding: 30px;
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-  text-align: center;
-  backdrop-filter: blur(12px);
-}
+    <button id="reset-btn">Reset Password</button>
+    <p id="error-msg" class="error"></p>
+    <p id="success-msg" class="success"></p>
+  </div>
 
-.login-logo {
-  width: 170px;
-  margin-bottom: 5px;
-}
+  <script type="module">
+    import { auth } from './js/firebase.js';
+    import { confirmPasswordReset } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
-input[type="email"],
-input[type="password"],
-input[type="text"],
-input[type="tel"] {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  background: #ffffff10;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-size: 14px;
-  outline: none;
-}
+    const params = new URLSearchParams(window.location.search);
+    const oobCode = params.get('oobCode');
 
-button {
-  width: 100%;
-  padding: 12px;
-  background: #FFD700;
-  color: #000;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-}
+    if (!oobCode) {
+      // Redirect if no oobCode is provided
+      window.location.href = 'index.html';
+    }
 
-button:hover {
-  background: #fff87f;
-  transform: scale(1.03);
-  box-shadow: 0 0 10px #FFD70088;
-}
+    const resetBtn = document.getElementById('reset-btn');
+    const errorMsg = document.getElementById('error-msg');
+    const successMsg = document.getElementById('success-msg');
 
-.note {
-  font-size: 12px;
-  opacity: 0.7;
-  margin-top: 10px;
-}
+    resetBtn.onclick = async () => {
+      errorMsg.textContent = '';
+      successMsg.textContent = '';
 
-.error {
-  color: red;
-  font-size: 14px;
-  margin-top: 5px;
-}
+      const newPassword = document.getElementById('new-password').value.trim();
+      const confirmPassword = document.getElementById('confirm-password').value.trim();
 
-.gold {
-  color: #FFD700;
-}
+      if (newPassword.length < 6) {
+        errorMsg.textContent = "Password must be at least 6 characters long.";
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        errorMsg.textContent = "Passwords do not match.";
+        return;
+      }
 
-/* ---------- DASHBOARD ---------- */
-main {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
-}
+      try {
+        await confirmPasswordReset(auth, oobCode, newPassword);
+        successMsg.textContent = "Your password has been reset successfully! Redirecting to login...";
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 3000);
+      } catch (error) {
+        errorMsg.textContent = "Error resetting password: " + error.message;
+      }
+    };
 
-section {
-  margin-bottom: 25px;
-  padding: 20px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #FFD70033;
-  box-shadow: 0 0 12px #00000050;
-  backdrop-filter: blur(10px);
-}
-
-.dashboard-header {
-  text-align: center;
-  padding: 20px 0;
-  background: linear-gradient(to right, #2c2f5a, #191b30);
-  border-bottom: 2px solid #FFD70055;
-}
-
-.dashboard-header img {
-  width: 70px;
-}
-
-.dashboard-header h1 {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 28px;
-  color: #FFD700;
-}
-
-/* UID + Balance */
-#user-uid,
-#user-balance {
-  font-weight: bold;
-  color: #00FFB2;
-}
-
-/* Spin Section */
-#spin-section {
-  text-align: center;
-}
-
-#wheel {
-  width: 250px;
-  margin: 10px auto;
-  animation: pulseGlow 2s infinite ease-in-out;
-}
-
-@keyframes pulseGlow {
-  0% { filter: drop-shadow(0 0 5px #FFD70044); }
-  50% { filter: drop-shadow(0 0 20px #FFD700); }
-  100% { filter: drop-shadow(0 0 5px #FFD70044); }
-}
-
-#spin-result {
-  margin-top: 10px;
-  font-size: 18px;
-  color: #FFD700;
-}
-
-/* Locked Message */
-#locked-msg {
-  color: orange;
-  text-align: center;
-  font-size: 18px;
-  padding: 20px;
-  border: 1px solid orange;
-  border-radius: 10px;
-  background-color: rgba(255, 165, 0, 0.1);
-  margin-bottom: 20px;
-}
-
-/* Referral */
-#referral-link {
-  width: 100%;
-  background: #333;
-  border: none;
-  padding: 10px;
-  border-radius: 10px;
-  color: #FFD700;
-  text-align: center;
-  font-weight: bold;
-}
-
-/* Notifications */
-.notification-section #notifications {
-  font-size: 15px;
-  line-height: 1.4;
-  color: #cfcfcf;
-}
-
-/* Withdrawal */
-#withdraw-amount {
-  width: 100%;
-  padding: 10px;
-  background: #1a1a2a;
-  color: #FFD700;
-  border: 1px solid #FFD70033;
-  border-radius: 8px;
-}
-
-#withdraw-msg {
-  font-weight: bold;
-}
-
-/* Confetti Placeholder (you’ll trigger via JS) */
-canvas#confetti-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-}
-
-/* Responsive */
-@media screen and (max-width: 480px) {
-  main {
-    padding: 10px;
-  }
-
-  section {
-    padding: 15px;
-  }
-
-  .dashboard-header h1 {
-    font-size: 22px;
-  }
-}
-.switch-text {
-  text-align: center;
-  font-size: 1rem;
-  color: #ccc;
-  margin-top: 20px;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.switch-link {
-  color: #00bcd4;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.switch-link:hover {
-  color: #ffffff;
-  text-decoration: underline;
-}
-.switch-link:hover {
-  color: #ffffff;
-  text-shadow: 0 0 8px #00bcd4;
-}
-
+    // Show/hide password toggles
+    function setupToggle(idInput, idToggle) {
+      const input = document.getElementById(idInput);
+      const toggle = document.getElementById(idToggle);
+      toggle.addEventListener('click', () => {
+        if (input.type === "password") {
+          input.type = "text";
+          toggle.textContent = "Hide";
+        } else {
+          input.type = "password";
+          toggle.textContent = "Show";
+        }
+      });
+    }
+    setupToggle('new-password', 'toggle-new');
+    setupToggle('confirm-password', 'toggle-confirm');
+  </script>
+</body>
+</html>
