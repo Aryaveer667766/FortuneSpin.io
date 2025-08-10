@@ -72,38 +72,53 @@
       <button onclick="submitTicket()">Submit Ticket</button>
     </section>
     <!-- Refill Spins Section -->
-<div id="refill-section" style="display:none; margin-top: 20px;">
-  <button id="refill-btn" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">
-    ♻️ Refill Spins
+<div id="refillSection" style="display: none; margin-top: 20px; text-align: center;">
+  <button id="refillBtn" style="
+      background-color: #4CAF50; 
+      color: white; 
+      border: none; 
+      padding: 10px 20px; 
+      font-size: 16px; 
+      border-radius: 5px;
+      cursor: pointer;">
+    🔄 Refill Spins
   </button>
 </div>
 
 <script type="module">
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
   import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+  import { app } from './firebase.js';
 
-  const auth = getAuth();
-  const db = getDatabase();
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const refillSection = document.getElementById("refillSection");
+  const refillBtn = document.getElementById("refillBtn");
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       const uid = user.uid;
-      const userRef = ref(db, "users/" + uid + "/locked");
 
-      const snapshot = await get(userRef);
-      if (snapshot.exists() && snapshot.val() === false) {
-        document.getElementById("refill-section").style.display = "block";
+      // Check if user is unlocked
+      const snapshot = await get(ref(db, `users/${uid}/locked`));
+      const isLocked = snapshot.exists() ? snapshot.val() : false;
 
-        document.getElementById("refill-btn").addEventListener("click", () => {
-          const whatsappNumber = "+918319427424"; // Replace with your WhatsApp number
+      if (!isLocked) {
+        // Show the button for unlocked users
+        refillSection.style.display = "block";
+
+        refillBtn.addEventListener("click", () => {
+          const whatsappNumber = "918319427424"; // admin number without +
           const message = `I want to refill my account. My unique ID is ${uid}`;
-          const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-          window.open(url, "_blank");
+          const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappURL, "_blank");
         });
       }
     }
   });
 </script>
+
 
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
