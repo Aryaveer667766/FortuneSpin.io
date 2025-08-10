@@ -161,26 +161,6 @@ window.spinWheel = async () => {
 
 
 
-    
-
-    const adminWhatsApp = "+6283194274244"; // Your admin WhatsApp number
-    const button = document.getElementById("refillSpinsBtn");
-
-    onAuthStateChanged(getAuth(), user => {
-        if (user) {
-            const uid = user.uid;
-            button.addEventListener("click", () => {
-                const prefilledMessage = encodeURIComponent(`Hello, my UID is ${uid} and I want to refill my account.`);
-                const waLink = `https://wa.me/${adminWhatsApp}?text=${prefilledMessage}`;
-                window.open(waLink, "_blank");
-            });
-        } else {
-            button.disabled = true;
-            button.innerText = "Login to Refill Spins";
-        }
-    });
-
-
 
 // 🧾 Submit Support Ticket
 window.submitTicket = async () => {
