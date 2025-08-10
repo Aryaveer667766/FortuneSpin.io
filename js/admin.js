@@ -388,68 +388,40 @@ window.unlockUserDirect = async () => {
   renderUserList(usersCache);
   showToast(`🔓 User ${uidInput} unlocked`, "success");
 };
-// 👥 REFERRAL TREE (Sorted + Totals + Faded Locked)
+// 👥 REFERRAL TREE
 window.viewReferralTree = async () => {
-  const uidNumber = document.getElementById("ref-uid").value.trim();
-  if (!uidNumber) return alert("Enter a UID...");
+  const uidText = document.getElementById("ref-uid").value.trim();
+  if (!uidText.startsWith("UID#")) return alert("Enter valid UID#...");
 
-  const fullUID = `UID#${uidNumber}`;
-  const usersSnap = await get(ref(db, "users"));
+  const usersSnap = await get(ref(db, users));
   const treeDiv = document.getElementById("ref-tree");
   treeDiv.innerHTML = "Loading...";
 
-  let rootFound = false;
-  const referrals = [];
+  let rootUID = null;
 
-  // Find root and collect referrals
+  usersSnap.forEach(child => {
+    if (child.val().uidCode === uidText) {
+      rootUID = child.key;
+    }
+  });
+
+  if (!rootUID) {
+    treeDiv.innerHTML = <div class="alert">User not found.</div>;
+    return;
+  }
+
+  const refs = [];
   usersSnap.forEach(child => {
     const u = child.val();
-    if (u.uidCode === fullUID) {
-      rootFound = true;
-    }
-    if (u.referralBy === fullUID) {
-      referrals.push({
-        name: u.username || u.uidCode.replace("UID#", ""),
-        locked: !!u.locked
-      });
+    if (u.referralBy === uidText) {
+      refs.push(u.uidCode);
     }
   });
 
-  if (!rootFound) {
-    treeDiv.innerHTML = `<div class="alert">User not found.</div>`;
+  if (refs.length === 0) {
+    treeDiv.innerHTML = <div>No referrals found.</div>;
     return;
   }
 
-  if (referrals.length === 0) {
-    treeDiv.innerHTML = `<div>No referrals found.</div>`;
-    return;
-  }
-
-  // Sort: unlocked first, then locked
-  referrals.sort((a, b) => a.locked - b.locked);
-
-  // Count totals
-  const unlockedCount = referrals.filter(r => !r.locked).length;
-  const lockedCount = referrals.length - unlockedCount;
-
-  // Build HTML list
-  let html = `
-    <p>Referrals by ${uidNumber}:</p>
-    <p>
-      <span class="unlocked">Unlocked: ${unlockedCount}</span> | 
-      <span class="locked">Locked: ${lockedCount}</span> | 
-      Total: ${referrals.length}
-    </p>
-    <ul>
-  `;
-  referrals.forEach(r => {
-    html += `<li class="${r.locked ? "locked-item" : ""}">
-               ${r.name} - <span class="${r.locked ? "locked" : "unlocked"}">
-                 ${r.locked ? "Locked" : "Unlocked"}
-               </span>
-             </li>`;
-  });
-  html += `</ul>`;
-
-  treeDiv.innerHTML = html;
+  treeDiv.innerHTML = <p>Referrals by ${uidText}:</p><ul>${refs.map(r => <li>${r}</li>).join('')}</ul>;
 };
