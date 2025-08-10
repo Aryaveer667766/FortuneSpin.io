@@ -8,6 +8,33 @@
   <link rel="icon" href="assets/logo/logo2.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    /* Toast container styles */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: #00ff88;
+      color: #000;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      min-width: 220px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    .toast.error {
+      background: #ff3c3c;
+      color: #fff;
+    }
+  </style>
 </head>
 <body class="login-body">
   <div class="login-container glass-card">
@@ -34,6 +61,10 @@
 
     <p class="note">New user? Join Now And get guaranteed win on your first spin</p>
   </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
   <audio id="success-sound" src="assets/success.mp3" preload="auto"></audio>
 
   <script type="module">
@@ -67,6 +98,7 @@
           window.location.href = "user-dashboard.html";
         }
       } catch (error) {
+        errorMsg.style.color = '#ff3c3c';
         errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
       }
       // 🎉 Confetti
@@ -80,19 +112,35 @@
       document.getElementById("success-sound").play();
     };
 
+    // Toast helper
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      if (type === "error") toast.classList.add("error");
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => container.removeChild(toast), 500);
+      }, 4000);
+    }
+
     // Reset password handler
     document.getElementById('reset-password-link').addEventListener('click', async () => {
       const email = document.getElementById("email").value.trim();
       const errorMsg = document.getElementById("error-msg");
       errorMsg.innerText = "";
       if (!email) {
+        errorMsg.style.color = '#ff3c3c';
         errorMsg.innerText = "❌ Please enter your email to reset password.";
         return;
       }
       try {
         await sendPasswordResetEmail(auth, email);
         errorMsg.style.color = '#00ff88';
-        errorMsg.innerText = "✅ Password reset email sent!";
+        errorMsg.innerText = "";
+        showToast("✅ Password reset email sent! Please check your spam/junk folder if you don't see it.");
       } catch (error) {
         errorMsg.style.color = '#ff3c3c';
         errorMsg.innerText = "❌ " + error.message.replace("Firebase:", "");
@@ -101,3 +149,4 @@
   </script>
 </body>
 </html>
+
