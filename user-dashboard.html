@@ -62,15 +62,6 @@
   
   <p id="withdraw-msg" style="color: gold;"></p>
 </section>
-<!-- Refill Spins Section -->
-<div id="refill-spins-section" style="margin-top:20px; text-align:center;">
-    <h3>Need More Spins?</h3>
-    <p>Click the button below to contact us on WhatsApp and refill your account instantly.</p>
-    <button id="refillSpinsBtn" style="padding:10px 20px; background:#25D366; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;">
-        💎 Refill Spins
-    </button>
-</div>
-
 
 
     <!-- 🧾 SUPPORT TICKET -->
@@ -80,6 +71,84 @@
       <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
       <button onclick="submitTicket()">Submit Ticket</button>
     </section>
+<!-- (If you don't already have the button, add this where you want it) -->
+<div id="refill-spins-section" style="margin-top:18px;text-align:center;">
+  <button id="refillSpinsBtn"
+          style="padding:12px 20px;background:linear-gradient(90deg,#ffd700,#ffb400);border:none;border-radius:8px;cursor:pointer;font-weight:700;">
+    💎 Refill Spins
+  </button>
+</div>
+
+<!-- Self-contained script — paste this (below the button or at page end) -->
+<script type="module">
+  import { auth, db } from './js/firebase.js'; // <-- adjust path if your firebase.js is elsewhere
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+  import { ref, get } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('refillSpinsBtn');
+    if (!btn) {
+      console.error('Refill button #refillSpinsBtn not found.');
+      return;
+    }
+
+    const adminPhone = '6283194274244'; // use international format WITHOUT '+' (example: 62... for Indonesia)
+
+    // Listen for signin state
+    onAuthStateChanged(auth, async (user) => {
+      // If not signed in: disable & link to login
+      if (!user) {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.title = 'Please login to refill spins';
+        btn.addEventListener('click', () => window.location.href = 'login.html');
+        return;
+      }
+
+      // If signed in: enable and attach click handler
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.title = '';
+
+      // Try to fetch user's friendly UID (UID#XXXXXX) from DB, fallback to short form
+      let displayUid = `UID#${user.uid.slice(0,6).toUpperCase()}`; // fallback
+
+      try {
+        const snap = await get(ref(db, `users/${user.uid}/uidCode`));
+        if (snap && snap.exists()) {
+          const val = snap.val();
+          if (val) displayUid = val;
+        } else {
+          // fallback: maybe the UID is stored as users/{uid}.uidCode
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          if (userSnap && userSnap.exists()) {
+            const ud = userSnap.val().uidCode;
+            if (ud) displayUid = ud;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read uidCode from DB, using fallback UID.', err);
+      }
+
+      // Attach click handler (one handler only)
+      btn.replaceWith(btn.cloneNode(true)); // remove previous listeners if any
+      const newBtn = document.getElementById('refillSpinsBtn');
+
+      newBtn.addEventListener('click', () => {
+        const message = [
+          `Hello,`,
+          `My UID is ${displayUid}.`,
+          `I want to refill my account and purchase spins.`,
+          `Please tell me the amount & payment options.`
+        ].join(' ');
+
+        const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+        // open in new tab
+        window.open(waUrl, '_blank');
+      });
+    });
+  });
+</script>
 
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
