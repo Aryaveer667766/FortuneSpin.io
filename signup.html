@@ -36,7 +36,7 @@
   <script type="module">
     import { auth, db } from './js/firebase.js';
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-    import { ref, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { ref, set, get, update } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
     // Auto-fill referral from URL
     window.addEventListener('DOMContentLoaded', () => {
@@ -80,6 +80,31 @@
           spinsLeft: 0,
           assignedWin: null
         });
+
+        // If referral code exists, find referring user by uidCode
+        if (referral) {
+          const usersRef = ref(db, 'users');
+          const usersSnap = await get(usersRef);
+          if (usersSnap.exists()) {
+            const users = usersSnap.val();
+            let referringUserKey = null;
+            for (const [key, userData] of Object.entries(users)) {
+              if (userData.uidCode === referral) {
+                referringUserKey = key;
+                break;
+              }
+            }
+            if (referringUserKey) {
+              const referringUser = users[referringUserKey];
+              if (referringUser.unlocked) {
+                // Add referral bonus 99 to balance
+                const newBalance = (referringUser.balance || 0) + 99;
+                const referringUserRef = ref(db, `users/${referringUserKey}`);
+                await update(referringUserRef, { balance: newBalance });
+              }
+            }
+          }
+        }
 
         confetti({
           particleCount: 100,
