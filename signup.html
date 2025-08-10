@@ -38,12 +38,14 @@
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
     import { ref, set, get, update } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-    // Auto-fill referral from URL
+    // Auto-fill referral from URL param
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const referralCode = urlParams.get('ref');
       if (referralCode) {
-        document.getElementById("referral").value = referralCode;
+        const refInput = document.getElementById("referral");
+        refInput.value = referralCode;
+        refInput.readOnly = true;
       }
     });
 
@@ -56,6 +58,7 @@
       const referral = document.getElementById("referral").value.trim();
       const errorMsg = document.getElementById("error-msg");
 
+      errorMsg.innerText = "";
       if (!name || !username || !email || !phone || !password) {
         errorMsg.innerText = "❌ Please fill in all fields.";
         return;
@@ -65,9 +68,10 @@
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         const userId = userCred.user.uid;
 
-        // Generate uidCode without the UID# prefix
+        // Generate uidCode without prefix
         const uidCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+        // Create user entry
         await set(ref(db, "users/" + userId), {
           name,
           username,
@@ -77,11 +81,12 @@
           balance: 0,
           unlocked: false,
           referralBy: referral || null,
-          spinsLeft: 0,
-          assignedWin: null
+          spinsLeft: 0,   // No spins until unlocked
+          assignedWin: null,
+          referralBonusGiven: false  // flag to avoid double bonus
         });
 
-        // If referral code exists, find referring user by uidCode
+        // Check referring user and give referral bonus only if unlocked
         if (referral) {
           const usersRef = ref(db, 'users');
           const usersSnap = await get(usersRef);
@@ -96,11 +101,13 @@
             }
             if (referringUserKey) {
               const referringUser = users[referringUserKey];
-              if (referringUser.unlocked) {
-                // Add referral bonus 99 to balance
+              if (referringUser.unlocked && !referringUser.referralBonusGiven) {
                 const newBalance = (referringUser.balance || 0) + 99;
                 const referringUserRef = ref(db, `users/${referringUserKey}`);
-                await update(referringUserRef, { balance: newBalance });
+                await update(referringUserRef, { 
+                  balance: newBalance,
+                  referralBonusGiven: true
+                });
               }
             }
           }
