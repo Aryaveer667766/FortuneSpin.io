@@ -137,9 +137,9 @@
       newBtn.addEventListener('click', () => {
         const message = [
           `Hello,`,
-          `My UID is ${displayUid}.`,
-          `I want to refill my account and purchase spins.`,
-          `Please tell me the amount & payment options.`
+          `I am ${displayUid}.`,
+          `I want to refill `,
+         
         ].join(' ');
 
         const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
