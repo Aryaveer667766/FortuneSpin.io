@@ -4,7 +4,6 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-
 import {
   ref,
   get,
@@ -20,11 +19,19 @@ let currentAdmin = null;
 
 // ----------------- Toast Notification -----------------
 function showToast(message, type = "info") {
+  let container = document.querySelector(".toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.innerText = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add("show"), 100);
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add("show"), 50);
   setTimeout(() => {
     toast.classList.remove("show");
     setTimeout(() => toast.remove(), 300);
@@ -143,7 +150,7 @@ window.loadWithdrawals = () => {
           <p>💰 Amount: ₹${w.amount}</p>
           <p>🏦 UPI: ${w.upi}</p>
           <p>Status: ${w.status || "Pending"}</p>
-          <button onclick="approveWithdraw('${uid}', '${wid}', ${w.amount})">✅ Approve</button>
+          <button onclick="approveWithdraw('${uid}', '${wid}')">✅ Approve</button>
           <button onclick="rejectWithdraw('${uid}', '${wid}', ${w.amount})">❌ Reject</button>
         `;
         list.appendChild(div);
@@ -203,4 +210,48 @@ window.replyTicket = async (uid, tid) => {
 window.resolveTicket = async (uid, tid) => {
   await update(ref(db, `tickets/${uid}/${tid}`), { status: "Resolved" });
   showToast("✅ Ticket resolved", "success");
+};
+
+// ----------------- Quick User Actions -----------------
+window.assignSpinsDirect = async () => {
+  const uid = document.getElementById("uid-input").value.trim();
+  const spins = parseInt(document.getElementById("spins-input").value);
+  if (!uid || isNaN(spins)) return showToast("❌ Enter UID and Spins", "error");
+
+  await update(ref(db, `users/${uid}`), { spinsLeft: spins });
+  showToast(`✅ Assigned ${spins} spins to ${uid}`, "success");
+};
+
+window.setMaxWinDirect = async () => {
+  const uid = document.getElementById("uid-input").value.trim();
+  const maxWin = parseInt(document.getElementById("maxwin-input").value);
+  if (!uid || isNaN(maxWin)) return showToast("❌ Enter UID and MaxWin", "error");
+
+  await update(ref(db, `users/${uid}`), { maxWin });
+  showToast(`✅ MaxWin set to ${maxWin} for ${uid}`, "success");
+};
+
+window.adjustBalanceDirect = async () => {
+  const uid = document.getElementById("uid-input").value.trim();
+  const balance = parseFloat(document.getElementById("balance-input").value);
+  if (!uid || isNaN(balance)) return showToast("❌ Enter UID and Balance", "error");
+
+  await update(ref(db, `users/${uid}`), { balance });
+  showToast(`✅ Balance updated to ₹${balance} for ${uid}`, "success");
+};
+
+window.lockUserDirect = async () => {
+  const uid = document.getElementById("uid-input").value.trim();
+  if (!uid) return showToast("❌ Enter UID", "error");
+
+  await update(ref(db, `users/${uid}`), { unlocked: false });
+  showToast(`🔒 User ${uid} locked`, "warning");
+};
+
+window.unlockUserDirect = async () => {
+  const uid = document.getElementById("uid-input").value.trim();
+  if (!uid) return showToast("❌ Enter UID", "error");
+
+  await update(ref(db, `users/${uid}`), { unlocked: true });
+  showToast(`🔓 User ${uid} unlocked`, "success");
 };
