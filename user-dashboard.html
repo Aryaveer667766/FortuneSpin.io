@@ -62,6 +62,35 @@
   
   <p id="withdraw-msg" style="color: gold;"></p>
 </section>
+<!-- Refill Spins Section -->
+<div id="refill-spins-section" style="margin-top:20px; text-align:center;">
+    <h3>Need More Spins?</h3>
+    <p>Click the button below to contact us on WhatsApp and refill your account instantly.</p>
+    <button id="refillSpinsBtn" style="padding:10px 20px; background:#25D366; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;">
+        💎 Refill Spins
+    </button>
+</div>
+
+<script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const adminWhatsApp = "+6283194274244"; // Your admin WhatsApp number
+    const button = document.getElementById("refillSpinsBtn");
+
+    onAuthStateChanged(getAuth(), user => {
+        if (user) {
+            const uid = user.uid;
+            button.addEventListener("click", () => {
+                const prefilledMessage = encodeURIComponent(`Hello, my UID is ${uid} and I want to refill my account.`);
+                const waLink = `https://wa.me/${adminWhatsApp}?text=${prefilledMessage}`;
+                window.open(waLink, "_blank");
+            });
+        } else {
+            button.disabled = true;
+            button.innerText = "Login to Refill Spins";
+        }
+    });
+</script>
 
 
     <!-- 🧾 SUPPORT TICKET -->
