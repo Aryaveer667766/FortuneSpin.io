@@ -20,7 +20,7 @@
     <input type="tel" id="phone" placeholder="Phone Number" />  
     <input type="password" id="password" placeholder="Password" />
 
-    <input type="text" id="referral" placeholder="Referral UID (optional) Enter in UID#ABC123 format" />
+    <input type="text" id="referral" placeholder="Referral Code (optional) Enter code like ABC123" />
 
     <button onclick="signup()">Create Account</button>
     <p id="error-msg" class="error"></p>
@@ -62,7 +62,8 @@
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         const userId = userCred.user.uid;
 
-        const uidCode = "UID#" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate uidCode without the UID# prefix
+        const uidCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         await set(ref(db, "users/" + userId), {
           name,
