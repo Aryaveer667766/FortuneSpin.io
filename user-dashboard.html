@@ -134,73 +134,78 @@
 
 
   <!-- ✅ Wheel Logic -->
-  <script>
-    const canvas = document.getElementById("wheelCanvas");
-    const ctx = canvas.getContext("2d");
-    const spinBtn = document.getElementById("spin-btn");
-    const resultText = document.getElementById("spin-result");
+<script>
+  const canvas = document.getElementById("wheelCanvas");
+  const ctx = canvas.getContext("2d");
+  const spinBtn = document.getElementById("spin-btn");
+  const resultText = document.getElementById("spin-result");
 
-    const segments = ["Try Again", "Small Prize", "Jackpot", "Bonus Spin", "Better Luck", "Big Prize"];
-    const colors = ["#FF5733","#33FF57","#3357FF","#FF33A6","#FFC300","#00CED1"];
-    let startAngle = 0;
-    let spinAngle = 0;
-    let spinning = false;
+  const segments = ["Try Again", "Small Prize", "Jackpot", "Bonus Spin", "Better Luck", "Big Prize"];
+  const colors = ["#FF5733","#33FF57","#3357FF","#FF33A6","#FFC300","#00CED1"];
+  let startAngle = 0;
+  let spinAngle = 0;
+  let spinning = false;
 
-    function drawWheel() {
-      const arc = Math.PI * 2 / segments.length;
-      for (let i = 0; i < segments.length; i++) {
-        const angle = startAngle + i * arc;
-        ctx.beginPath();
-        ctx.fillStyle = colors[i];
-        ctx.moveTo(200, 200);
-        ctx.arc(200, 200, 200, angle, angle + arc);
-        ctx.fill();
-        ctx.save();
-        ctx.translate(200, 200);
-        ctx.rotate(angle + arc / 2);
-        ctx.textAlign = "right";
-        ctx.fillStyle = "white";
-        ctx.font = "16px Montserrat";
-        ctx.fillText(segments[i], 180, 5);
-        ctx.restore();
+  const center = canvas.width / 2; // 135 for 270px
+  const radius = center - 5; // leave margin for border
+
+  function drawWheel() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const arc = Math.PI * 2 / segments.length;
+    for (let i = 0; i < segments.length; i++) {
+      const angle = startAngle + i * arc;
+      ctx.beginPath();
+      ctx.fillStyle = colors[i];
+      ctx.moveTo(center, center);
+      ctx.arc(center, center, radius, angle, angle + arc);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(angle + arc / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px Montserrat";
+      ctx.fillText(segments[i], radius - 10, 5);
+      ctx.restore();
+    }
+  }
+
+  function spinWheel() {
+    if (spinning) return;
+    spinning = true;
+    resultText.textContent = "Spinning...";
+    spinAngle = Math.random() * 1000 + 2000; // total spin angle
+    const duration = 4000; // spin time
+    const startTime = performance.now();
+
+    function animate(time) {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3); // smooth slow-down
+      startAngle += (spinAngle * (1 - easeOut)) / 100;
+      drawWheel();
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        spinning = false;
+        determineResult();
       }
     }
+    requestAnimationFrame(animate);
+  }
 
-    function spinWheel() {
-      if (spinning) return;
-      spinning = true;
-      resultText.textContent = "Spinning...";
-      spinAngle = Math.random() * 1000 + 2000; // total spin angle
-      const duration = 4000; // spin time
-      const startTime = performance.now();
+  function determineResult() {
+    const arc = Math.PI * 2 / segments.length;
+    const degrees = startAngle * 180 / Math.PI + 90;
+    const normalized = (degrees % 360 + 360) % 360;
+    const index = Math.floor((360 - normalized) / (360 / segments.length)) % segments.length;
+    resultText.textContent = `🎉 You got: ${segments[index]}!`;
+  }
 
-      function animate(time) {
-        const elapsed = time - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3); // smooth slow-down
-        startAngle += (spinAngle * (1 - easeOut)) / 100;
-        drawWheel();
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          spinning = false;
-          determineResult();
-        }
-      }
-      requestAnimationFrame(animate);
-    }
+  drawWheel();
+  spinBtn.addEventListener("click", spinWheel);
+</script>
 
-    function determineResult() {
-      const arc = Math.PI * 2 / segments.length;
-      const degrees = startAngle * 180 / Math.PI + 90;
-      const normalized = (degrees % 360 + 360) % 360;
-      const index = Math.floor((360 - normalized) / (360 / segments.length)) % segments.length;
-      resultText.textContent = `🎉 You got: ${segments[index]}!`;
-    }
-
-    drawWheel();
-    spinBtn.addEventListener("click", spinWheel);
-  </script>
 
   <script>
     function openWhatsApp() {
