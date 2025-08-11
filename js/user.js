@@ -1,6 +1,7 @@
 import { auth, db } from './firebase.js';
 import {
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 import {
@@ -26,25 +27,14 @@ if (confettiCanvas) {
 // 🎵 Sounds
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
-const jackpotSound = new Audio('assets/jackpot.mp3');
 
 // 💸 Elements
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
-const wheelEl = document.getElementById("wheel");
-const resultEl = document.getElementById("spin-result");
+const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 
-// Wheel segments (clockwise from top)
-const wheelSegments = [
-  { label: "Try Again", prize: 0 },
-  { label: "Small Win", prize: () => Math.floor(Math.random() * 20) + 10 },
-  { label: "Medium Win", prize: () => Math.floor(Math.random() * 50) + 30 },
-  { label: "Big Win", prize: () => Math.floor(Math.random() * 100) + 60 },
-  { label: "Jackpot", prize: 500, rare: true }
-];
-const segmentAngle = 360 / wheelSegments.length;
-
+// 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -54,6 +44,7 @@ function generateUID(length = 6) {
   return result;
 }
 
+// ✅ On Auth Login
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "index.html";
 
@@ -68,6 +59,21 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!userSnap.exists()) {
     const newUID = generateUID();
+
+    let referralByUid = "";
+    if (referralByCode) {
+      const usersSnap = await get(ref(db, 'users'));
+      if (usersSnap.exists()) {
+        const users = usersSnap.val();
+        for (const [key, val] of Object.entries(users)) {
+          if (val.uidCode === referralByCode) {
+            referralByUid = key;
+            break;
+          }
+        }
+      }
+    }
+
     await set(userRef, {
       email: user.email,
       balance: 0,
@@ -78,9 +84,16 @@ onAuthStateChanged(auth, async (user) => {
       notifications: [],
       spinsLeft: 1
     });
+
+    if (referralByUid) {
+      const referralRef = ref(db, `referrals/${referralByUid}/${uid}`);
+      await set(referralRef, true);
+    }
+
     uidEl.innerText = newUID;
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
+
     watchUnlockAndGiveReferralBonus(userRef);
     return;
   }
@@ -138,85 +151,125 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       if (!referrerSnap.exists()) return;
 
       const referrerData = referrerSnap.val();
-      const updatedBalance = (Number(referrerData.balance) || 0) + 99;
+      const currentBalance = Number(referrerData.balance) || 0;
+      const updatedBalance = currentBalance + 99;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
+
+      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
   });
 }
 
+// Track spins & total win
+let spinCount = 0;
+let totalWin = 0;
+
+// 🎡 SPIN Wheel Logic
 window.spinWheel = async () => {
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
   const data = snap.val();
 
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
-  if (data.spinsLeft <= 0) return alert("😢 No spins left!");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
 
+  spinCount++;
   spinSound.play();
-  resultEl.innerText = "Spinning...";
+  document.getElementById("spin-result").innerText = "Spinning...";
 
+  // 🎡 Animate the wheel
   if (wheelEl) {
-    wheelEl.style.transition = "transform 4s ease-out";
+    wheelEl.style.transition = "transform 3s ease-out";
+    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
+    var randomOffset = Math.floor(Math.random() * 360); // random final angle
+    wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
+  }
 
-    let rareJackpot = Math.random() < 0.02; // 2% jackpot chance
-    let selectedIndex;
-    if (rareJackpot) {
-      selectedIndex = wheelSegments.findIndex(s => s.label === "Jackpot");
+  setTimeout(async () => {
+    let maxWin = data.maxWinAmount ?? null;
+    let targetTotal;
+    if (maxWin === null) {
+      targetTotal = 480 + Math.floor(Math.random() * 20);
     } else {
-      selectedIndex = Math.floor(Math.random() * wheelSegments.length);
-      if (wheelSegments[selectedIndex].label === "Jackpot") selectedIndex = 0;
+      targetTotal = Math.min(maxWin, 499);
     }
 
-    const finalAngle = 360 - (selectedIndex * segmentAngle + segmentAngle / 2);
-    const randomTurns = 4 + Math.floor(Math.random() * 2);
-    const totalRotation = randomTurns * 360 + finalAngle;
+    if (spinCount === 1) totalWin = 0;
 
-    wheelEl.style.transform = `rotate(${totalRotation}deg)`;
+    const minPerSpin = 10;
+    const remainingSpins = 3 - (spinCount - 1);
+    const remainingTarget = targetTotal - totalWin;
 
-    // Wait until spin finishes
-    setTimeout(async () => {
-      const segment = wheelSegments[selectedIndex];
-      let prize = typeof segment.prize === "function" ? segment.prize() : segment.prize;
+    let outcome;
+    if (spinCount < 3) {
+      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
+      maxPossible = Math.max(maxPossible, minPerSpin);
+      outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
+    } else {
+      outcome = remainingTarget;
+    }
 
-      if (prize > 0) {
-        if (segment.label === "Jackpot") {
-          jackpotSound.play();
-          confetti({ particleCount: 300, spread: 100 });
-        } else {
-          winSound.play();
-          confetti({ particleCount: 150, spread: 80 });
-        }
-        resultEl.innerText = `🎉 ${segment.label}! You won ₹${prize}!`;
-        await update(userRef, {
-          balance: (data.balance || 0) + prize,
-          spinsLeft: data.spinsLeft - 1
-        });
-        balanceEl.innerText = (data.balance || 0) + prize;
-      } else {
-        resultEl.innerText = "😢 Try Again!";
-        await update(userRef, { spinsLeft: data.spinsLeft - 1 });
-      }
+    totalWin += outcome;
 
-      // Reset rotation so next spin starts fresh
+    winSound.play();
+    confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
+
+    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
+
+    const newBalance = (data.balance || 0) + outcome;
+    await update(userRef, {
+      balance: newBalance,
+      spinsLeft: data.spinsLeft - 1
+    });
+
+    balanceEl.innerText = newBalance;
+
+    if (spinCount === 3) {
+      spinCount = 0;
+      totalWin = 0;
+    }
+
+    // Reset wheel angle for next spin
+    if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
-        wheelEl.style.transform = `rotate(${finalAngle}deg)`;
-      }, 500);
-
-    }, 4000);
-  }
+        wheelEl.style.transform = `rotate(${randomOffset}deg)`;
+      }, 200);
+    }
+  }, 3000);
 };
 
+// 🧾 Submit Support Ticket
+window.submitTicket = async () => {
+  const subject = document.getElementById("ticket-subject").value;
+  const msg = document.getElementById("ticket-message").value;
+  if (!subject || !msg) return alert("Please fill both subject and message.");
+
+  const ticketRef = ref(db, `supportTickets/${uid}`);
+  await push(ticketRef, {
+    subject,
+    message: msg,
+    status: "Open",
+    timestamp: new Date().toISOString()
+  });
+
+  alert("📩 Ticket submitted!");
+  document.getElementById("ticket-subject").value = "";
+  document.getElementById("ticket-message").value = "";
+};
+
+// 🔔 Real-Time Notifications
 function loadNotifications() {
   const notifRef = ref(db, `users/${uid}/notifications`);
   onValue(notifRef, (snapshot) => {
     const data = snapshot.val();
     const container = document.getElementById("notifications");
     container.innerHTML = "";
+
     if (data) {
       Object.values(data).forEach(msg => {
         const p = document.createElement("p");
