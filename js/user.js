@@ -34,6 +34,10 @@ const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 
+// Mystery Box Elements
+const mysteryBoxBtn = document.getElementById("mystery-box-btn");
+const mysteryBoxStatus = document.getElementById("mystery-box-status");
+
 // 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -82,7 +86,8 @@ onAuthStateChanged(auth, async (user) => {
       referralBy: referralByCode || "",
       referralBonusGiven: false,
       notifications: [],
-      spinsLeft: 1
+      spinsLeft: 1,
+      mysteryBoxLastClaim: null  // track mystery box claim timestamp
     });
 
     if (referralByUid) {
@@ -95,6 +100,7 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById("locked-msg").style.display = "block";
 
     watchUnlockAndGiveReferralBonus(userRef);
+    setupMysteryBox(userRef);
     return;
   }
 
@@ -111,6 +117,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadNotifications();
   watchUnlockAndGiveReferralBonus(userRef);
+  setupMysteryBox(userRef, data.mysteryBoxLastClaim);
 });
 
 function watchUnlockAndGiveReferralBonus(userRef) {
@@ -280,4 +287,73 @@ function loadNotifications() {
       container.innerText = "No messages yet.";
     }
   });
+}
+
+// 🎁 Mystery Box Logic
+
+async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
+  if (!mysteryBoxBtn || !mysteryBoxStatus) return;
+
+  mysteryBoxBtn.disabled = true;
+  mysteryBoxStatus.innerText = "Loading Mystery Box status...";
+
+  // Check if 24 hours have passed since last claim
+  let canClaim = false;
+
+  if (lastClaimTimestamp) {
+    const lastClaimDate = new Date(lastClaimTimestamp);
+    const now = new Date();
+    const diffMs = now - lastClaimDate;
+    const diffHrs = diffMs / (1000 * 60 * 60);
+    if (diffHrs >= 24) {
+      canClaim = true;
+    }
+  } else {
+    canClaim = true; // never claimed before
+  }
+
+  if (canClaim) {
+    mysteryBoxBtn.disabled = false;
+    mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+  } else {
+    mysteryBoxBtn.disabled = true;
+    mysteryBoxStatus.innerText = "⏳ Mystery Box will be available in 24 hours after last claim.";
+  }
+
+  mysteryBoxBtn.onclick = async () => {
+    mysteryBoxBtn.disabled = true;
+    mysteryBoxStatus.innerText = "Opening Mystery Box...";
+
+    // Reward: random spins between 1 and 5
+    const spinsReward = Math.floor(Math.random() * 5) + 1;
+
+    const snap = await get(userRef);
+    if (!snap.exists()) {
+      mysteryBoxStatus.innerText = "Error: User data not found.";
+      return;
+    }
+    const data = snap.val();
+
+    const newSpinsLeft = (data.spinsLeft || 0) + spinsReward;
+
+    // Update spinsLeft and mysteryBoxLastClaim timestamp in Firebase
+    await update(userRef, {
+      spinsLeft: newSpinsLeft,
+      mysteryBoxLastClaim: new Date().toISOString()
+    });
+
+    mysteryBoxStatus.innerText = `🎉 Congrats! You got +${spinsReward} spins!`;
+    balanceEl.innerText = data.balance || 0;
+
+    // Confetti & sound effect
+    winSound.play();
+    confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
+
+    // Enable spin section if hidden
+    if (!data.unlocked) {
+      mysteryBoxStatus.innerText += " (Unlock your account to use spins)";
+    } else {
+      document.getElementById("spin-section").style.display = "block";
+    }
+  };
 }
