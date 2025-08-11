@@ -131,12 +131,23 @@ section {
   width: 250px;
   margin: 10px auto;
   animation: pulseGlow 2s infinite ease-in-out;
+  transition: transform 4s ease-out; /* smooth spin */
+}
+
+/* When spinning */
+#wheel.spinning {
+  animation: spinWheel 4s cubic-bezier(.17,.67,.83,.67) forwards;
 }
 
 @keyframes pulseGlow {
   0% { filter: drop-shadow(0 0 5px #FFD70044); }
   50% { filter: drop-shadow(0 0 20px #FFD700); }
   100% { filter: drop-shadow(0 0 5px #FFD70044); }
+}
+
+@keyframes spinWheel {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(1440deg); } /* 4 full spins */
 }
 
 #spin-result {
@@ -190,7 +201,7 @@ section {
   font-weight: bold;
 }
 
-/* Confetti Placeholder (you’ll trigger via JS) */
+/* Confetti Placeholder */
 canvas#confetti-canvas {
   position: fixed;
   top: 0;
@@ -215,6 +226,7 @@ canvas#confetti-canvas {
     font-size: 22px;
   }
 }
+
 .switch-text {
   text-align: center;
   font-size: 1rem;
@@ -234,6 +246,7 @@ canvas#confetti-canvas {
   color: #ffffff;
   text-decoration: underline;
 }
+
 .switch-link:hover {
   color: #ffffff;
   text-shadow: 0 0 8px #00bcd4;
