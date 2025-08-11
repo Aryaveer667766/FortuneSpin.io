@@ -56,9 +56,9 @@
         <button type="button">Request Withdrawal</button>
       </a>
       <p id="withdraw-msg" style="color: gold;"></p>
-    </section
-      
-       <!-- 🎁 MYSTERY BOX SECTION -->
+    </section>
+
+    <!-- 🎁 MYSTERY BOX SECTION -->
     <section id="mystery-box-section" style="margin: 24px auto; max-width: 300px; text-align: center; padding: 20px; border-radius: 12px; background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%); box-shadow: 0 0 20px #ff4e50aa; color: #fff; font-weight: 700; font-family: 'Montserrat', sans-serif;">
       <h2 style="margin-bottom: 10px; font-size: 1.8rem; text-shadow: 0 0 8px #fff;">
         🎁 Daily Mystery Box
@@ -86,7 +86,6 @@
       </p>
     </section>
 
-
     <!-- 🧾 SUPPORT TICKET -->
     <section>
       <h3>🆘 Support Ticket</h3>
@@ -102,7 +101,6 @@
       <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
     </div>
 
-   
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
       <h3>📢 Notifications</h3>
@@ -115,7 +113,6 @@
       <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #FFD700; font-weight:bold;" id="winner-feed">
         🎉 X83KTR won ₹10,000 • 🎉 M22BDX won ₹5,000 • 🎉 A77ZZQ won ₹25,000 • 🎉 L94HTU won ₹2,000 • 🎉 F18JOP won ₹15,000 • 🎉 T73YLM won ₹3,000 •
         🎉 W62QAZ won ₹12,000 • 🎉 D55VBN won ₹8,500 • 🎉 K12ZXC won ₹9,000 • 🎉 H77WER won ₹7,000 • 🎉 G99NBV won ₹11,000 • 🎉 P34MKO won ₹6,500 •
-        <!-- add more winners as you like -->
       </marquee>
     </section>
   </main>
@@ -126,6 +123,7 @@
   <!-- 🔊 Sound Effects -->
   <audio id="spin-sound" src="assets/spin.mp3"></audio>
   <audio id="win-sound" src="assets/win.mp3"></audio>
+  <audio id="box-sound" src="assets/box.mp3"></audio>
   <audio id="error-sound" src="assets/sounds/error.mp3"></audio>
  
 
@@ -137,7 +135,6 @@
   <script>
   function openWhatsApp() {
     let uid = document.getElementById("user-uid").textContent.trim();
-    // Remove "UID#" prefix if present
     if (uid.startsWith("UID#")) {
       uid = uid.slice(4);
     }
