@@ -26,15 +26,16 @@ if (confettiCanvas) {
 // 🎵 Sounds
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
-const jackpotSound = new Audio('assets/jackpot.mp3'); // Add a jackpot sound file
+const jackpotSound = new Audio('assets/jackpot.mp3');
 
 // 💸 Elements
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 const wheelEl = document.getElementById("wheel");
+const resultEl = document.getElementById("spin-result");
 
-// Wheel segments (clockwise)
+// Wheel segments (clockwise from top)
 const wheelSegments = [
   { label: "Try Again", prize: 0 },
   { label: "Small Win", prize: () => Math.floor(Math.random() * 20) + 10 },
@@ -156,25 +157,27 @@ window.spinWheel = async () => {
   if (data.spinsLeft <= 0) return alert("😢 No spins left!");
 
   spinSound.play();
-  document.getElementById("spin-result").innerText = "Spinning...";
+  resultEl.innerText = "Spinning...";
 
   if (wheelEl) {
     wheelEl.style.transition = "transform 4s ease-out";
+
     let rareJackpot = Math.random() < 0.02; // 2% jackpot chance
     let selectedIndex;
     if (rareJackpot) {
       selectedIndex = wheelSegments.findIndex(s => s.label === "Jackpot");
     } else {
       selectedIndex = Math.floor(Math.random() * wheelSegments.length);
-      if (wheelSegments[selectedIndex].label === "Jackpot") selectedIndex = 0; // avoid jackpot unless rare
+      if (wheelSegments[selectedIndex].label === "Jackpot") selectedIndex = 0;
     }
 
-    const finalAngle = (wheelSegments.length - selectedIndex) * segmentAngle - (segmentAngle / 2);
-    const randomTurns = 4 + Math.floor(Math.random() * 2); // 4-5 spins
+    const finalAngle = 360 - (selectedIndex * segmentAngle + segmentAngle / 2);
+    const randomTurns = 4 + Math.floor(Math.random() * 2);
     const totalRotation = randomTurns * 360 + finalAngle;
 
     wheelEl.style.transform = `rotate(${totalRotation}deg)`;
 
+    // Wait until spin finishes
     setTimeout(async () => {
       const segment = wheelSegments[selectedIndex];
       let prize = typeof segment.prize === "function" ? segment.prize() : segment.prize;
@@ -187,16 +190,23 @@ window.spinWheel = async () => {
           winSound.play();
           confetti({ particleCount: 150, spread: 80 });
         }
-        document.getElementById("spin-result").innerText = `🎉 ${segment.label}! You won ₹${prize}!`;
+        resultEl.innerText = `🎉 ${segment.label}! You won ₹${prize}!`;
         await update(userRef, {
           balance: (data.balance || 0) + prize,
           spinsLeft: data.spinsLeft - 1
         });
         balanceEl.innerText = (data.balance || 0) + prize;
       } else {
-        document.getElementById("spin-result").innerText = "😢 Try Again!";
+        resultEl.innerText = "😢 Try Again!";
         await update(userRef, { spinsLeft: data.spinsLeft - 1 });
       }
+
+      // Reset rotation so next spin starts fresh
+      setTimeout(() => {
+        wheelEl.style.transition = "none";
+        wheelEl.style.transform = `rotate(${finalAngle}deg)`;
+      }, 500);
+
     }, 4000);
   }
 };
