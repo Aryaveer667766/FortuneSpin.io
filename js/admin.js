@@ -479,3 +479,44 @@ window.viewReferralTree = async () => {
   `;
 };
 
+// ----------------- Notification Sender -----------------
+document.addEventListener("DOMContentLoaded", () => {
+  const sendNotifBtn = document.getElementById("send-notif-btn");
+  if (!sendNotifBtn) return;
+
+  sendNotifBtn.addEventListener("click", async () => {
+    const messageInput = document.getElementById("notif-message");
+    const targetUidInput = document.getElementById("notif-target-uid");
+    if (!messageInput) return showToast("Message input missing", "error");
+
+    const message = messageInput.value.trim();
+    if (!message) return showToast("Please enter a notification message", "warning");
+
+    const targetUid = targetUidInput ? targetUidInput.value.trim() : "";
+
+    try {
+      if (targetUid) {
+        // Send notification to a specific user
+        const key = await findUserKeyByUidInput(targetUid);
+        if (!key) {
+          showToast("User not found for notification", "error");
+          return;
+        }
+        await push(ref(db, `users/${key}/notifications`), message);
+        showToast(`✅ Notification sent to ${targetUid}`, "success");
+      } else {
+        // Broadcast notification (global)
+        await push(ref(db, "notifications"), {
+          message,
+          timestamp: Date.now(),
+          fromAdmin: currentAdmin ? currentAdmin.uid : "admin"
+        });
+        showToast("✅ Broadcast notification sent", "success");
+      }
+      messageInput.value = "";
+      if (targetUidInput) targetUidInput.value = "";
+    } catch (err) {
+      showToast("Failed to send notification: " + err.message, "error");
+    }
+  });
+});
