@@ -56,24 +56,9 @@
         <button type="button">Request Withdrawal</button>
       </a>
       <p id="withdraw-msg" style="color: gold;"></p>
-    </section>
-
-    <!-- 🧾 SUPPORT TICKET -->
-    <section>
-      <h3>🆘 Support Ticket</h3>
-      <input type="text" id="ticket-subject" placeholder="Subject" />
-      <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
-      <button onclick="submitTicket()">Submit Ticket</button>
-    </section>
-
-    <!-- Refill Spins Section (Initially Hidden) -->
-    <div id="refill-section" style="display:none; position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 9999;">
-      <p style="margin: 0 0 10px;">You have 0 spins left!</p>
-      <button id="refill-btn" style="padding: 10px 15px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;">Refill Spins</button>
-      <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
-    </div>
-
-    <!-- 🎁 MYSTERY BOX SECTION -->
+    </section
+      
+       <!-- 🎁 MYSTERY BOX SECTION -->
     <section id="mystery-box-section" style="margin: 24px auto; max-width: 300px; text-align: center; padding: 20px; border-radius: 12px; background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%); box-shadow: 0 0 20px #ff4e50aa; color: #fff; font-weight: 700; font-family: 'Montserrat', sans-serif;">
       <h2 style="margin-bottom: 10px; font-size: 1.8rem; text-shadow: 0 0 8px #fff;">
         🎁 Daily Mystery Box
@@ -94,13 +79,30 @@
         onmouseenter="this.style.transform='scale(1.1)'; this.style.boxShadow='0 0 25px #ff4e50ff';"
         onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 0 15px #fff';"
       >
-        🔓 Unlock your Mystery Box!
+        🔓 OPEN your Mystery Box!
       </button>
       <p id="mystery-box-status" style="margin-top: 12px; font-size: 1.1rem; text-shadow: 0 0 5px #fff;">
         Loading Mystery Box status...
       </p>
     </section>
 
+
+    <!-- 🧾 SUPPORT TICKET -->
+    <section>
+      <h3>🆘 Support Ticket</h3>
+      <input type="text" id="ticket-subject" placeholder="Subject" />
+      <textarea id="ticket-message" placeholder="Describe your issue..." rows="3"></textarea>
+      <button onclick="submitTicket()">Submit Ticket</button>
+    </section>
+
+    <!-- Refill Spins Section (Initially Hidden) -->
+    <div id="refill-section" style="display:none; position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 9999;">
+      <p style="margin: 0 0 10px;">You have 0 spins left!</p>
+      <button id="refill-btn" style="padding: 10px 15px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;">Refill Spins</button>
+      <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
+    </div>
+
+   
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
       <h3>📢 Notifications</h3>
@@ -125,6 +127,7 @@
   <audio id="spin-sound" src="assets/spin.mp3"></audio>
   <audio id="win-sound" src="assets/win.mp3"></audio>
   <audio id="error-sound" src="assets/sounds/error.mp3"></audio>
+ 
 
   <!-- ✅ Scripts -->
   <script type="module" src="js/user.js"></script>
