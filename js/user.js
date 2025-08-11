@@ -346,7 +346,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     balanceEl.innerText = data.balance || 0;
 
     // Confetti & sound effect
-    winSound.play();
+    document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
 
     // Enable spin section if hidden
