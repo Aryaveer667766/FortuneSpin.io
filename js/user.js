@@ -37,6 +37,7 @@ const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 // Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
+const mysteryBoxSection = document.getElementById("mystery-box-section"); // Added for toggle visibility
 
 // 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
@@ -99,6 +100,9 @@ onAuthStateChanged(auth, async (user) => {
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
+    // Hide mystery box if locked
+    if (mysteryBoxSection) mysteryBoxSection.style.display = "none";
+
     watchUnlockAndGiveReferralBonus(userRef);
     setupMysteryBox(userRef);
     return;
@@ -111,8 +115,14 @@ onAuthStateChanged(auth, async (user) => {
 
   if (data.unlocked) {
     document.getElementById("spin-section").style.display = "block";
+
+    // Show mystery box section if unlocked
+    if (mysteryBoxSection) mysteryBoxSection.style.display = "block";
   } else {
     document.getElementById("locked-msg").style.display = "block";
+
+    // Hide mystery box section if locked
+    if (mysteryBoxSection) mysteryBoxSection.style.display = "none";
   }
 
   loadNotifications();
