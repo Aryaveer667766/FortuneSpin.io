@@ -71,7 +71,7 @@
         // Generate uidCode without prefix
         const uidCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Create user entry
+        // Create user entry with Mystery Box field
         await set(ref(db, "users/" + userId), {
           name,
           username,
@@ -83,7 +83,8 @@
           referralBy: referral || null,
           spinsLeft: 0,   // No spins until unlocked
           assignedWin: null,
-          referralBonusGiven: false  // flag to avoid double bonus
+          referralBonusGiven: false,  // flag to avoid double bonus
+          lastMysteryBox: ""           // empty so they can claim after unlock
         });
 
         // Check referring user and give referral bonus only if unlocked
