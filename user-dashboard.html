@@ -9,7 +9,15 @@
   <link rel="icon" href="assets/logo/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Poppins&display=swap" rel="stylesheet">
   <style>
-    canvas { display:block; margin:auto; }
+    /* 🎡 Wheel Spin Animation */
+    #wheel.spinning {
+      animation: spinWheel 4s ease-out forwards;
+    }
+
+    @keyframes spinWheel {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(1440deg); } /* 4 full spins */
+    }
   </style>
 </head>
 <body>
@@ -31,40 +39,12 @@
     </div>
 
     <!-- 🎡 SPIN WHEEL -->
-    <section id="spin-section" style="display: none; text-align:center;">
+    <section id="spin-section" style="display: none;">
       <h2>🎯 Try Your Luck!</h2>
-      
-      <div style="position: relative; display: inline-block;">
-        <!-- Pointer Arrow -->
-        <div style="
-          position: absolute;
-          top: -15px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
-          height: 0;
-          border-left: 15px solid transparent;
-          border-right: 15px solid transparent;
-          border-bottom: 25px solid red;
-          z-index: 10;
-        "></div>
-
-        <!-- Canvas Wheel -->
-        <canvas id="wheelCanvas" width="270" height="270" style="border-radius: 50%; background: #fff; box-shadow: 0 0 15px rgba(0,0,0,0.3);"></canvas>
-      </div>
-
+      <img src="assets/logo/spin-wheel.png" id="wheel" />
       <br><br>
-      <button id="spin-btn" style="
-        background: linear-gradient(45deg, #ff9800, #ff5722);
-        border: none;
-        padding: 12px 30px;
-        font-size: 18px;
-        color: white;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      ">SPIN</button>
-      <p id="spin-result" style="margin-top: 15px; font-weight: bold; color: gold;">Tap SPIN to win!</p>
+      <button id="spin-btn">SPIN</button>
+      <p id="spin-result">Tap SPIN to win!</p>
     </section>
 
     <!-- 💰 BALANCE PANEL -->
@@ -104,6 +84,70 @@
       <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
     </div>
 
+    <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    import { app } from './firebase.js';
+
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let refillDismissed = false;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const uid = user.uid;
+        document.getElementById("user-uid").textContent = uid;
+
+        const userRef = ref(db, `users/${uid}`);
+        onValue(userRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            const spins = data.spins || 0;
+            const isLocked = data.locked || false;
+
+            if (!isLocked && spins === 0 && !refillDismissed) {
+              document.getElementById("refill-section").style.display = "block";
+            } else {
+              document.getElementById("refill-section").style.display = "none";
+            }
+
+            document.getElementById("refill-btn").onclick = () => {
+              const whatsappNumber = "6283194274244";
+              const message = `Hello, I want to refill my account. My unique id is ${uid}`;
+              window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
+            };
+
+            document.getElementById("close-refill").onclick = () => {
+              document.getElementById("refill-section").style.display = "none";
+              refillDismissed = true;
+            };
+          }
+        });
+      }
+    });
+
+    // 🎡 Spin Wheel Logic
+    const spinBtn = document.getElementById("spin-btn");
+    const wheel = document.getElementById("wheel");
+    const spinResult = document.getElementById("spin-result");
+    const spinSound = document.getElementById("spin-sound");
+    const winSound = document.getElementById("win-sound");
+
+    spinBtn.addEventListener("click", () => {
+      if (wheel.classList.contains("spinning")) return;
+
+      wheel.classList.add("spinning");
+      spinSound.play();
+
+      setTimeout(() => {
+        wheel.classList.remove("spinning");
+        winSound.play();
+        spinResult.textContent = "🎉 You won ₹" + (Math.floor(Math.random() * 100) + 1);
+      }, 4000);
+    });
+    </script>
+
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
       <h3>📢 Notifications</h3>
@@ -120,126 +164,48 @@
     </section>
   </main>
 
-  <!-- 🎉 Confetti Canvas -->
   <canvas id="confetti-canvas"></canvas>
 
-  <!-- 🔊 Sound Effects -->
   <audio id="spin-sound" src="assets/spin.mp3"></audio>
   <audio id="win-sound" src="assets/win.mp3"></audio>
   <audio id="error-sound" src="assets/sounds/error.mp3"></audio>
-  <!-- ✅ Scripts -->
-  <script type="module" src="js/user.js"></script>
+
   <script src="js/spin.js"></script>
   <canvas id="whatsappQR"></canvas>
 
-
-  <!-- ✅ Wheel Logic -->
-<script>
-  const canvas = document.getElementById("wheelCanvas");
-  const ctx = canvas.getContext("2d");
-  const spinBtn = document.getElementById("spin-btn");
-  const resultText = document.getElementById("spin-result");
-
-  const segments = ["Try Again", "Small Prize", "Jackpot", "Bonus Spin", "Better Luck", "Big Prize"];
-  const colors = ["#FF5733","#33FF57","#3357FF","#FF33A6","#FFC300","#00CED1"];
-  let startAngle = 0;
-  let spinAngle = 0;
-  let spinning = false;
-
-  const center = canvas.width / 2; // 135 for 270px
-  const radius = center - 5; // leave margin for border
-
-  function drawWheel() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const arc = Math.PI * 2 / segments.length;
-    for (let i = 0; i < segments.length; i++) {
-      const angle = startAngle + i * arc;
-      ctx.beginPath();
-      ctx.fillStyle = colors[i];
-      ctx.moveTo(center, center);
-      ctx.arc(center, center, radius, angle, angle + arc);
-      ctx.fill();
-      ctx.save();
-      ctx.translate(center, center);
-      ctx.rotate(angle + arc / 2);
-      ctx.textAlign = "right";
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Montserrat";
-      ctx.fillText(segments[i], radius - 10, 5);
-      ctx.restore();
-    }
-  }
-
-  function spinWheel() {
-    if (spinning) return;
-    spinning = true;
-    resultText.textContent = "Spinning...";
-    spinAngle = Math.random() * 1000 + 2000; // total spin angle
-    const duration = 4000; // spin time
-    const startTime = performance.now();
-
-    function animate(time) {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3); // smooth slow-down
-      startAngle += (spinAngle * (1 - easeOut)) / 100;
-      drawWheel();
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        spinning = false;
-        determineResult();
-      }
-    }
-    requestAnimationFrame(animate);
-  }
-
-  function determineResult() {
-    const arc = Math.PI * 2 / segments.length;
-    const degrees = startAngle * 180 / Math.PI + 90;
-    const normalized = (degrees % 360 + 360) % 360;
-    const index = Math.floor((360 - normalized) / (360 / segments.length)) % segments.length;
-    resultText.textContent = `🎉 You got: ${segments[index]}!`;
-  }
-
-  drawWheel();
-  spinBtn.addEventListener("click", spinWheel);
-</script>
-
-
   <script>
-    function openWhatsApp() {
-      let uid = document.getElementById("user-uid").textContent.trim();
-      if (uid.startsWith("UID#")) {
-        uid = uid.slice(4);
-      }
-      const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
-      const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank");
+  function openWhatsApp() {
+    let uid = document.getElementById("user-uid").textContent.trim();
+    if (uid.startsWith("UID#")) {
+      uid = uid.slice(4);
     }
+    const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
+    const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
 
-    function copyReferral() {
-      const link = document.getElementById("referral-link");
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(link.value).then(() => {
-          alert("Referral link copied!");
-        }).catch(() => {
-          fallbackCopyText(link);
-        });
-      } else {
-        fallbackCopyText(link);
-      }
-    }
-
-    function fallbackCopyText(element) {
-      element.select();
-      try {
-        document.execCommand("copy");
+  function copyReferral() {
+    const link = document.getElementById("referral-link");
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link.value).then(() => {
         alert("Referral link copied!");
-      } catch (err) {
-        alert("Failed to copy. Please copy manually.");
-      }
+      }).catch(() => {
+        fallbackCopyText(link);
+      });
+    } else {
+      fallbackCopyText(link);
     }
+  }
+
+  function fallbackCopyText(element) {
+    element.select();
+    try {
+      document.execCommand("copy");
+      alert("Referral link copied!");
+    } catch (err) {
+      alert("Failed to copy. Please copy manually.");
+    }
+  }
   </script>
 
 </body>
