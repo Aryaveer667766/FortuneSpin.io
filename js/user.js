@@ -37,7 +37,6 @@ const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 // Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
-const mysteryBoxSection = document.getElementById("mystery-box-section"); // Added for toggle visibility
 
 // 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
@@ -100,9 +99,6 @@ onAuthStateChanged(auth, async (user) => {
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
-    // Hide mystery box if locked
-    if (mysteryBoxSection) mysteryBoxSection.style.display = "none";
-
     watchUnlockAndGiveReferralBonus(userRef);
     setupMysteryBox(userRef);
     return;
@@ -115,14 +111,8 @@ onAuthStateChanged(auth, async (user) => {
 
   if (data.unlocked) {
     document.getElementById("spin-section").style.display = "block";
-
-    // Show mystery box section if unlocked
-    if (mysteryBoxSection) mysteryBoxSection.style.display = "block";
   } else {
     document.getElementById("locked-msg").style.display = "block";
-
-    // Hide mystery box section if locked
-    if (mysteryBoxSection) mysteryBoxSection.style.display = "none";
   }
 
   loadNotifications();
@@ -334,8 +324,8 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    // Reward: random spins between 1 and 3
-    const spinsReward = Math.floor(Math.random() * 3) + 1;
+    // Reward: random amount between 1 and 50 Rs
+    const rewardAmount = Math.floor(Math.random() * 50) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
@@ -344,16 +334,16 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     }
     const data = snap.val();
 
-    const newSpinsLeft = (data.spinsLeft || 0) + spinsReward;
+    const newBalance = (data.balance || 0) + rewardAmount;
 
-    // Update spinsLeft and mysteryBoxLastClaim timestamp in Firebase
+    // Update balance and mysteryBoxLastClaim timestamp in Firebase
     await update(userRef, {
-      spinsLeft: newSpinsLeft,
+      balance: newBalance,
       mysteryBoxLastClaim: new Date().toISOString()
     });
 
-    mysteryBoxStatus.innerText = `🎉 Congrats! You got +${spinsReward} spins!`;
-    balanceEl.innerText = data.balance || 0;
+    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
+    balanceEl.innerText = newBalance;
 
     // Confetti & sound effect
     document.getElementById('box-sound').play();
@@ -361,7 +351,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
     // Enable spin section if hidden
     if (!data.unlocked) {
-      mysteryBoxStatus.innerText += " (Unlock your account to use spins)";
+      mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
     } else {
       document.getElementById("spin-section").style.display = "block";
     }
