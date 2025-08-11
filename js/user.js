@@ -324,8 +324,8 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    // Reward: random spins between 1 and 5
-    const spinsReward = Math.floor(Math.random() * 5) + 1;
+    // Reward: random spins between 1 and 3
+    const spinsReward = Math.floor(Math.random() * 3) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
