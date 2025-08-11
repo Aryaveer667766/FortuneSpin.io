@@ -73,55 +73,33 @@
       <button id="close-refill" style="margin-left: 10px; padding: 10px 15px; background: red; color: white; border: none; border-radius: 5px; cursor: pointer;">I will refill later</button>
     </div>
 
-    <script type="module">
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-    import { app } from './firebase.js'; // Use your firebase.js config
-
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    let refillDismissed = false; // Tracks if user closed the section
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const uid = user.uid;
-
-        // Display UID in header without "UID#" prefix
-        document.getElementById("user-uid").textContent = uid;
-
-        // Get user lock status & spins
-        const userRef = ref(db, users/${uid});
-        onValue(userRef, (snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.val();
-            const spins = data.spins || 0;
-            const isLocked = data.locked || false;
-
-            // Show refill section only if unlocked and spins == 0 (unless dismissed)
-            if (!isLocked && spins === 0 && !refillDismissed) {
-              document.getElementById("refill-section").style.display = "block";
-            } else {
-              document.getElementById("refill-section").style.display = "none";
-            }
-
-            // Setup refill button click
-            document.getElementById("refill-btn").onclick = () => {
-              const whatsappNumber = "6283194274244"; // Admin's WhatsApp
-              const message = Hello, I want to refill my account. My unique id is ${uid};
-              window.open(https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}, "_blank");
-            };
-
-            // Close button hides refill section permanently in this session
-            document.getElementById("close-refill").onclick = () => {
-              document.getElementById("refill-section").style.display = "none";
-              refillDismissed = true;
-            };
-          }
-        });
-      }
-    });
-    </script>
+    <!-- 🎁 MYSTERY BOX SECTION -->
+    <section id="mystery-box-section" style="margin: 30px auto; max-width: 400px; text-align: center; padding: 20px; border-radius: 12px; background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%); box-shadow: 0 0 20px #ff4e50aa; color: #fff; font-weight: 700; font-family: 'Montserrat', sans-serif;">
+      <h2 style="margin-bottom: 15px; font-size: 1.8rem; text-shadow: 0 0 8px #fff;">
+        🎁 Daily Mystery Box
+      </h2>
+      <button id="mystery-box-btn" disabled
+        style="
+          background: #fff;
+          color: #ff4e50;
+          font-size: 1.5rem;
+          font-weight: 700;
+          padding: 15px 30px;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          box-shadow: 0 0 15px #fff;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        "
+        onmouseenter="this.style.transform='scale(1.1)'; this.style.boxShadow='0 0 25px #ff4e50ff';"
+        onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 0 15px #fff';"
+      >
+        🔓 Unlock your Mystery Box!
+      </button>
+      <p id="mystery-box-status" style="margin-top: 12px; font-size: 1.1rem; text-shadow: 0 0 5px #fff;">
+        Loading Mystery Box status...
+      </p>
+    </section>
 
     <!-- 📢 NOTIFICATIONS -->
     <section class="notification-section">
@@ -160,8 +138,8 @@
     if (uid.startsWith("UID#")) {
       uid = uid.slice(4);
     }
-    const message = Hi, my UID is ${uid}. Please unlock my FortuneSpin account.;
-    const url = https://wa.me/6283194274244?text=${encodeURIComponent(message)};
+    const message = `Hi, my UID is ${uid}. Please unlock my FortuneSpin account.`;
+    const url = `https://wa.me/6283194274244?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
 
