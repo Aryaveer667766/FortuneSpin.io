@@ -47,12 +47,21 @@
         "></div>
 
         <!-- Canvas Wheel -->
-        <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        <canvas id="wheelCanvas" width="400" height="400" style="border-radius: 50%; background: #fff; box-shadow: 0 0 15px rgba(0,0,0,0.3);"></canvas>
       </div>
 
       <br><br>
-      <button id="spin-btn" onclick="spinWheel()">SPIN</button>
-      <p id="spin-result">Tap SPIN to win!</p>
+      <button id="spin-btn" onclick="spinWheel()" style="
+        background: linear-gradient(45deg, #ff9800, #ff5722);
+        border: none;
+        padding: 12px 30px;
+        font-size: 18px;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      ">SPIN</button>
+      <p id="spin-result" style="margin-top: 15px; font-weight: bold; color: gold;">Tap SPIN to win!</p>
     </section>
 
     <!-- 💰 BALANCE PANEL -->
@@ -95,21 +104,18 @@
     <script type="module">
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-    import { app } from './firebase.js'; // Use your firebase.js config
+    import { app } from './firebase.js';
 
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    let refillDismissed = false; // Tracks if user closed the section
+    let refillDismissed = false;
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
         const uid = user.uid;
-
-        // Display UID in header
         document.getElementById("user-uid").textContent = uid;
 
-        // Get user lock status & spins
         const userRef = ref(db, `users/${uid}`);
         onValue(userRef, (snapshot) => {
           if (snapshot.exists()) {
@@ -117,21 +123,18 @@
             const spins = data.spins || 0;
             const isLocked = data.locked || false;
 
-            // Show refill section only if unlocked and spins == 0 (unless dismissed)
             if (!isLocked && spins === 0 && !refillDismissed) {
               document.getElementById("refill-section").style.display = "block";
             } else {
               document.getElementById("refill-section").style.display = "none";
             }
 
-            // Setup refill button click
             document.getElementById("refill-btn").onclick = () => {
-              const whatsappNumber = "6283194274244"; // Admin's WhatsApp
+              const whatsappNumber = "6283194274244";
               const message = `Hello, I want to refill my account. My unique id is ${uid}`;
               window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
             };
 
-            // Close button hides refill section permanently in this session
             document.getElementById("close-refill").onclick = () => {
               document.getElementById("refill-section").style.display = "none";
               refillDismissed = true;
