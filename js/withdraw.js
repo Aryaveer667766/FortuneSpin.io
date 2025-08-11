@@ -5,10 +5,7 @@ import {
   ref,
   set,
   push,
-  get,
-  query,
-  orderByChild,
-  equalTo
+  get
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
@@ -35,42 +32,104 @@ const methodSelect = document.getElementById("payment-method");
 const upiSection = document.getElementById("upi-section");
 const bankSection = document.getElementById("bank-section");
 const historyList = document.getElementById("withdrawal-history");
-const successSound = document.getElementById("withdraw-sound"); // 🔊 Correct ID here
+const successSound = document.getElementById("withdraw-sound");
 
-// Toast container for warnings
+// Create toast container once
 let toastTimeout;
+let toast;
+(function createToast() {
+  toast = document.createElement("div");
+  toast.id = "toast-message";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 220px;
+    max-width: 320px;
+    padding: 14px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #000;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    background-color: #ffcc00;
+    transform: translateY(-20px);
+    z-index: 9999;
+  `;
+
+  // Icon span
+  const icon = document.createElement("span");
+  icon.id = "toast-icon";
+  icon.style.fontSize = "20px";
+  toast.appendChild(icon);
+
+  // Message span
+  const message = document.createElement("span");
+  message.id = "toast-text";
+  message.style.flex = "1";
+  toast.appendChild(message);
+
+  // Close button
+  const closeBtn = document.createElement("span");
+  closeBtn.textContent = "×";
+  closeBtn.style.cursor = "pointer";
+  closeBtn.style.fontWeight = "bold";
+  closeBtn.style.fontSize = "20px";
+  closeBtn.style.marginLeft = "10px";
+  closeBtn.title = "Dismiss";
+  closeBtn.onclick = () => hideToast();
+  toast.appendChild(closeBtn);
+
+  document.body.appendChild(toast);
+})();
+
+// Toast show/hide logic
 function showToast(message, type = "warning") {
-  let toast = document.getElementById("toast-message");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "toast-message";
-    toast.style = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background-color: ${type === "warning" ? "#ffcc00" : "#4caf50"};
-      color: #000;
-      padding: 12px 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      font-weight: bold;
-      z-index: 9999;
-      font-family: 'Orbitron', sans-serif;
-      min-width: 200px;
-      text-align: center;
-    `;
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.style.backgroundColor = type === "warning" ? "#ffcc00" : "#4caf50";
+  const iconEl = document.getElementById("toast-icon");
+  const textEl = document.getElementById("toast-text");
+
+  // Define icon + colors by type
+  const icons = {
+    success: "✔️",
+    warning: "⚠️",
+    error: "❌",
+    info: "ℹ️",
+  };
+
+  const bgColors = {
+    success: "#4caf50",
+    warning: "#ffcc00",
+    error: "#f44336",
+    info: "#2196f3",
+  };
+
+  toast.style.backgroundColor = bgColors[type] || bgColors.warning;
   toast.style.color = "#000";
+  iconEl.textContent = icons[type] || icons.warning;
+  textEl.textContent = message;
+
+  toast.style.pointerEvents = "auto";
+  toast.style.opacity = "1";
+  toast.style.transform = "translateY(0)";
 
   clearTimeout(toastTimeout);
-  toast.style.opacity = "1";
-
   toastTimeout = setTimeout(() => {
-    toast.style.opacity = "0";
-  }, 3500);
+    hideToast();
+  }, 4000);
+}
+
+function hideToast() {
+  toast.style.opacity = "0";
+  toast.style.transform = "translateY(-20px)";
+  toast.style.pointerEvents = "none";
+  clearTimeout(toastTimeout);
 }
 
 // UI toggle for method
@@ -82,13 +141,12 @@ methodSelect.addEventListener("change", () => {
 
 let currentUID = null;
 let currentBalance = 0;
-let currentUIDCode = null; // We'll store the uidCode here for referral matching
+let currentUIDCode = null;
 
 // Auth check
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUID = user.uid;
-    // Fetch current user info (including balance and uidCode)
     const userSnap = await get(ref(db, `users/${currentUID}`));
     if (userSnap.exists()) {
       const userData = userSnap.val();
@@ -97,7 +155,6 @@ onAuthStateChanged(auth, async user => {
       balanceEl.textContent = `Balance: ₹${currentBalance}`;
       loadWithdrawalHistory();
     } else {
-      // If user record not found, redirect to login
       window.location.href = "index.html";
     }
   } else {
@@ -115,7 +172,6 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  // Before processing withdrawal, check referral count
   const unlockedReferralsCount = await countUnlockedReferrals(currentUIDCode);
 
   if (unlockedReferralsCount < 3) {
@@ -175,15 +231,14 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    // Create withdrawal request
     const newRef = push(ref(db, `withdrawals/${currentUID}`));
     await set(newRef, data);
 
-    // Deduct balance
     await set(ref(db, `users/${currentUID}/balance`), currentBalance - amount);
 
     msg.textContent = "Withdrawal request submitted!";
     msg.style.color = "lime";
+    showToast("Withdrawal request submitted successfully!", "success");
     playEffects();
     form.reset();
     fetchBalance();
@@ -192,18 +247,18 @@ form.addEventListener("submit", async (e) => {
     console.error("Error submitting withdrawal:", error);
     msg.textContent = "Error occurred. Try again.";
     msg.style.color = "red";
+    showToast("Error occurred. Please try again.", "error");
   }
 });
 
 // Count unlocked referrals for current user based on uidCode
 async function countUnlockedReferrals(uidCode) {
-  // Query users where referralBy === uidCode
   const usersRef = ref(db, 'users');
   const usersSnap = await get(usersRef);
   let count = 0;
   if (usersSnap.exists()) {
     const users = usersSnap.val();
-    for (const [key, user] of Object.entries(users)) {
+    for (const user of Object.values(users)) {
       if (user.referralBy === uidCode && user.unlocked === true) {
         count++;
       }
