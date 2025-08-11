@@ -3,7 +3,6 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-
 import {
   ref,
   get,
@@ -34,7 +33,7 @@ const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 
-// 🧠 UID Generator — no UID# prefix anymore
+// 🧠 UID Generator
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -164,6 +163,17 @@ function watchUnlockAndGiveReferralBonus(userRef) {
   });
 }
 
+// Wheel Segments
+const wheelSegments = [
+  { label: "Try Again", amount: 0 },
+  { label: "Small Prize", amount: 20 },
+  { label: "Medium Prize", amount: 50 },
+  { label: "Jackpot", amount: 200 }, // rare
+  { label: "Bonus", amount: 100 },
+  { label: "Lucky Spin", amount: 150 }
+];
+const segmentAngle = 360 / wheelSegments.length;
+
 // Track spins & total win
 let spinCount = 0;
 let totalWin = 0;
@@ -175,71 +185,69 @@ window.spinWheel = async () => {
   const data = snap.val();
 
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
-  if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left! Message us on WhatsApp to refill.");
 
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
 
-  // 🎡 Animate the wheel
-  if (wheelEl) {
-    wheelEl.style.transition = "transform 3s ease-out";
-    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
-    var randomOffset = Math.floor(Math.random() * 360); // random final angle
-    wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
+  // Make jackpot rare by limiting its probability
+  let jackpotChance = Math.random();
+  let randomOffset;
+  if (jackpotChance < 0.05) {
+    // land in jackpot segment range
+    const jackpotIndex = wheelSegments.findIndex(s => s.label === "Jackpot");
+    const jackpotStart = jackpotIndex * segmentAngle;
+    randomOffset = jackpotStart + Math.random() * segmentAngle;
+  } else {
+    // any other segment except jackpot
+    let possibleOffsets = [];
+    wheelSegments.forEach((seg, idx) => {
+      if (seg.label !== "Jackpot") {
+        const start = idx * segmentAngle;
+        possibleOffsets.push(start + Math.random() * segmentAngle);
+      }
+    });
+    randomOffset = possibleOffsets[Math.floor(Math.random() * possibleOffsets.length)];
   }
 
+  const randomTurns = 3 + Math.floor(Math.random() * 3);
+  const finalRotation = randomTurns * 360 + randomOffset;
+
+  wheelEl.style.transition = "transform 3s ease-out";
+  wheelEl.style.transform = `rotate(${finalRotation}deg)`;
+
   setTimeout(async () => {
-    let maxWin = data.maxWinAmount ?? null;
-    let targetTotal;
-    if (maxWin === null) {
-      targetTotal = 480 + Math.floor(Math.random() * 20);
+    // Determine landed segment
+    const normalizedRotation = (360 - (finalRotation % 360)) % 360;
+    const segmentIndex = Math.floor(normalizedRotation / segmentAngle);
+    const landedSegment = wheelSegments[segmentIndex];
+
+    let outcomeAmount = landedSegment.amount;
+
+    // Apply maxWin cap
+    if (outcomeAmount > 0 && typeof data.maxWinAmount === "number") {
+      outcomeAmount = Math.min(outcomeAmount, data.maxWinAmount);
+    }
+
+    // Show result
+    if (outcomeAmount > 0) {
+      winSound.play();
+      confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
+      document.getElementById("spin-result").innerText = `🎉 ${landedSegment.label}! You won ₹${outcomeAmount}`;
+      const newBalance = (data.balance || 0) + outcomeAmount;
+      await update(userRef, { balance: newBalance, spinsLeft: data.spinsLeft - 1 });
+      balanceEl.innerText = newBalance;
     } else {
-      targetTotal = Math.min(maxWin, 499);
+      document.getElementById("spin-result").innerText = `😢 ${landedSegment.label}`;
+      await update(userRef, { spinsLeft: data.spinsLeft - 1 });
     }
 
-    if (spinCount === 1) totalWin = 0;
-
-    const minPerSpin = 10;
-    const remainingSpins = 3 - (spinCount - 1);
-    const remainingTarget = targetTotal - totalWin;
-
-    let outcome;
-    if (spinCount < 3) {
-      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
-      maxPossible = Math.max(maxPossible, minPerSpin);
-      outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
-    } else {
-      outcome = remainingTarget;
-    }
-
-    totalWin += outcome;
-
-    winSound.play();
-    confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
-
-    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
-
-    const newBalance = (data.balance || 0) + outcome;
-    await update(userRef, {
-      balance: newBalance,
-      spinsLeft: data.spinsLeft - 1
-    });
-
-    balanceEl.innerText = newBalance;
-
-    if (spinCount === 3) {
-      spinCount = 0;
-      totalWin = 0;
-    }
-
-    // Reset wheel angle for next spin
-    if (wheelEl) {
-      setTimeout(() => {
-        wheelEl.style.transition = "none";
-        wheelEl.style.transform = `rotate(${randomOffset}deg)`;
-      }, 200);
-    }
+    // Reset wheel position after short delay
+    setTimeout(() => {
+      wheelEl.style.transition = "none";
+      wheelEl.style.transform = `rotate(${normalizedRotation}deg)`;
+    }, 200);
   }, 3000);
 };
 
