@@ -32,6 +32,7 @@ const winSound = new Audio('assets/win.mp3');
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
+const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 
 // 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
@@ -40,7 +41,7 @@ function generateUID(length = 6) {
   for (let i = 0; i < length; i++) {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
-  return result; // now returns only letters/numbers
+  return result;
 }
 
 // ✅ On Auth Login
@@ -53,15 +54,12 @@ onAuthStateChanged(auth, async (user) => {
   const userRef = ref(db, `users/${uid}`);
   const userSnap = await get(userRef);
 
-  // Referral code from URL is now expected to be the referrer's uidCode
   const urlParams = new URLSearchParams(window.location.search);
   const referralByCode = urlParams.get("ref");
 
   if (!userSnap.exists()) {
-    // Create new user entry
     const newUID = generateUID();
 
-    // Find referrer UID (firebase key) by uidCode from referralByCode
     let referralByUid = "";
     if (referralByCode) {
       const usersSnap = await get(ref(db, 'users'));
@@ -81,7 +79,7 @@ onAuthStateChanged(auth, async (user) => {
       balance: 0,
       unlocked: false,
       uidCode: newUID,
-      referralBy: referralByCode || "", // store uidCode string here
+      referralBy: referralByCode || "",
       referralBonusGiven: false,
       notifications: [],
       spinsLeft: 1
@@ -96,9 +94,7 @@ onAuthStateChanged(auth, async (user) => {
     referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
-    // Watch for unlock changes to grant referral bonus
     watchUnlockAndGiveReferralBonus(userRef);
-
     return;
   }
 
@@ -114,8 +110,6 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   loadNotifications();
-
-  // Watch for unlock changes to grant referral bonus
   watchUnlockAndGiveReferralBonus(userRef);
 });
 
@@ -138,8 +132,6 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       !userData.referralBonusGiven
     ) {
       const referrerUidCode = userData.referralBy;
-
-      // Search for referrer by uidCode string
       const usersSnap = await get(ref(db, 'users'));
       if (!usersSnap.exists()) return;
 
@@ -163,8 +155,6 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       const updatedBalance = currentBalance + 99;
 
       await update(referrerRef, { balance: updatedBalance });
-
-      // Mark bonus given so it doesn’t repeat
       await update(userRef, { referralBonusGiven: true });
 
       console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
@@ -174,7 +164,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
   });
 }
 
-// Track spins & total win for the current 3-spin cycle
+// Track spins & total win
 let spinCount = 0;
 let totalWin = 0;
 
@@ -190,6 +180,14 @@ window.spinWheel = async () => {
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
+
+  // 🎡 Animate the wheel
+  if (wheelEl) {
+    wheelEl.style.transition = "transform 3s ease-out";
+    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
+    var randomOffset = Math.floor(Math.random() * 360); // random final angle
+    wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
+  }
 
   setTimeout(async () => {
     let maxWin = data.maxWinAmount ?? null;
@@ -233,6 +231,14 @@ window.spinWheel = async () => {
     if (spinCount === 3) {
       spinCount = 0;
       totalWin = 0;
+    }
+
+    // Reset wheel angle for next spin
+    if (wheelEl) {
+      setTimeout(() => {
+        wheelEl.style.transition = "none";
+        wheelEl.style.transform = `rotate(${randomOffset}deg)`;
+      }, 200);
     }
   }, 3000);
 };
