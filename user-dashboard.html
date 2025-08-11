@@ -28,11 +28,30 @@
     </div>
 
     <!-- 🎡 SPIN WHEEL -->
-    <section id="spin-section" style="display: none;">
+    <section id="spin-section" style="display: none; text-align:center;">
       <h2>🎯 Try Your Luck!</h2>
-      <img src="assets/logo/spin-wheel.png" id="wheel" />
+      
+      <div style="position: relative; display: inline-block;">
+        <!-- Pointer Arrow -->
+        <div style="
+          position: absolute;
+          top: -15px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 15px solid transparent;
+          border-right: 15px solid transparent;
+          border-bottom: 25px solid red;
+          z-index: 10;
+        "></div>
+
+        <!-- Canvas Wheel -->
+        <canvas id="wheelCanvas" width="400" height="400"></canvas>
+      </div>
+
       <br><br>
-      <button onclick="spinWheel()">SPIN</button>
+      <button id="spin-btn" onclick="spinWheel()">SPIN</button>
       <p id="spin-result">Tap SPIN to win!</p>
     </section>
 
@@ -87,7 +106,7 @@
       if (user) {
         const uid = user.uid;
 
-        // Display UID in header without "UID#" prefix
+        // Display UID in header
         document.getElementById("user-uid").textContent = uid;
 
         // Get user lock status & spins
@@ -135,7 +154,6 @@
       <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #FFD700; font-weight:bold;" id="winner-feed">
         🎉 X83KTR won ₹10,000 • 🎉 M22BDX won ₹5,000 • 🎉 A77ZZQ won ₹25,000 • 🎉 L94HTU won ₹2,000 • 🎉 F18JOP won ₹15,000 • 🎉 T73YLM won ₹3,000 •
         🎉 W62QAZ won ₹12,000 • 🎉 D55VBN won ₹8,500 • 🎉 K12ZXC won ₹9,000 • 🎉 H77WER won ₹7,000 • 🎉 G99NBV won ₹11,000 • 🎉 P34MKO won ₹6,500 •
-        <!-- add more winners as you like -->
       </marquee>
     </section>
   </main>
@@ -156,7 +174,6 @@
   <script>
   function openWhatsApp() {
     let uid = document.getElementById("user-uid").textContent.trim();
-    // Remove "UID#" prefix if present
     if (uid.startsWith("UID#")) {
       uid = uid.slice(4);
     }
