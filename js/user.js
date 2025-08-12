@@ -175,7 +175,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 let spinCount = 0;
 let totalWin = 0;
 
-// 🎡 SPIN Wheel Logic
+// 🎡 SPIN Wheel Logic with spinsLeft-based max win caps
 window.spinWheel = async () => {
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
@@ -197,17 +197,22 @@ window.spinWheel = async () => {
   }
 
   setTimeout(async () => {
-    // Default caps based on spins left (or fallback to 3)
-    const defaultCaps = {
+    // Define max total wins based on spinsLeft
+    const spinsMaxWins = {
       3: 300,
       6: 400,
-      15: 800,
+      15: 800
     };
-    const spinsForCap = [3, 6, 15].includes(data.spinsLeft) ? data.spinsLeft : 3;
-    const defaultMaxTotal = defaultCaps[spinsForCap] || 300;
 
-    // Admin override maxWinAmount used if set, else default caps
-    const targetTotal = (typeof data.maxWinAmount === 'number') ? data.maxWinAmount : defaultMaxTotal;
+    // Default cap based on spinsLeft or fallback to 300
+    const defaultMaxTotal = spinsMaxWins[data.spinsLeft] ?? 300;
+
+    // Use admin-set maxWinAmount if set and is a number
+    let targetTotal = defaultMaxTotal;
+    if (typeof data.maxWinAmount === 'number') {
+      // If admin cap is lower than default, respect the lower cap (bypass)
+      targetTotal = Math.min(data.maxWinAmount, defaultMaxTotal);
+    }
 
     if (spinCount === 1) totalWin = 0;
 
@@ -217,12 +222,17 @@ window.spinWheel = async () => {
 
     let outcome;
     if (spinCount < data.spinsLeft) {
+      // Calculate max allowed win for this spin so sum of spins won't exceed targetTotal
       let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
       maxPossible = Math.max(maxPossible, minPerSpin);
       outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
     } else {
+      // Last spin: assign remaining amount to exactly reach targetTotal
       outcome = remainingTarget;
     }
+
+    // Edge case: avoid negative or zero outcome
+    if (outcome <= 0) outcome = minPerSpin;
 
     totalWin += outcome;
 
