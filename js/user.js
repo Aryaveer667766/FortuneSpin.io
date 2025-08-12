@@ -17,23 +17,28 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
+// 🎨 Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 if (confettiCanvas) {
   confettiCanvas.width = window.innerWidth;
   confettiCanvas.height = window.innerHeight;
 }
 
+// 🎵 Sounds
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
 
+// 💸 Elements
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
-const wheelEl = document.getElementById("wheel");
+const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
 
+// Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
 
+// 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -43,13 +48,14 @@ function generateUID(length = 6) {
   return result;
 }
 
+// ✅ On Auth Login
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "index.html";
 
   currentUser = user;
   uid = user.uid;
 
-  const userRef = ref(db, `users/${uid}`);
+  const userRef = ref(db, users/${uid});
   const userSnap = await get(userRef);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -80,17 +86,17 @@ onAuthStateChanged(auth, async (user) => {
       referralBy: referralByCode || "",
       referralBonusGiven: false,
       notifications: [],
-      spinsLeft: 3,
-      mysteryBoxLastClaim: null
+      spinsLeft: 1,
+      mysteryBoxLastClaim: null  // track mystery box claim timestamp
     });
 
     if (referralByUid) {
-      const referralRef = ref(db, `referrals/${referralByUid}/${uid}`);
+      const referralRef = ref(db, referrals/${referralByUid}/${uid});
       await set(referralRef, true);
     }
 
     uidEl.innerText = newUID;
-    referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
+    referralEl.value = https://fortunespin.online/signup?ref=${newUID};
     document.getElementById("locked-msg").style.display = "block";
 
     watchUnlockAndGiveReferralBonus(userRef);
@@ -100,7 +106,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const data = userSnap.val();
   uidEl.innerText = data.uidCode;
-  referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;
+  referralEl.value = https://fortunespin.online/signup?ref=${data.uidCode};
   balanceEl.innerText = data.balance || 0;
 
   if (data.unlocked) {
@@ -147,21 +153,25 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
       if (!referrerKey) return;
 
-      const referrerRef = ref(db, `users/${referrerKey}`);
+      const referrerRef = ref(db, users/${referrerKey});
       const referrerSnap = await get(referrerRef);
       if (!referrerSnap.exists()) return;
 
       const referrerData = referrerSnap.val();
-      const updatedBalance = (Number(referrerData.balance) || 0) + 49;
+      const currentBalance = Number(referrerData.balance) || 0;
+      const updatedBalance = currentBalance + 49;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
+
+      console.log(Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.);
     }
 
     previousUnlockedStatus = userData.unlocked;
   });
 }
 
+// Track spins & total win
 let spinCount = 0;
 let totalWin = 0;
 
@@ -190,7 +200,7 @@ window.spinWheel = async () => {
     let maxWin = data.maxWinAmount ?? null;
     let targetTotal;
     if (maxWin === null) {
-      targetTotal = 280 + Math.floor(Math.random() * 22);
+      targetTotal = 480 + Math.floor(Math.random() * 20);
     } else {
       targetTotal = Math.min(maxWin, 499);
     }
@@ -240,13 +250,13 @@ window.spinWheel = async () => {
   }, 3000);
 };
 
-
+// 🧾 Submit Support Ticket
 window.submitTicket = async () => {
   const subject = document.getElementById("ticket-subject").value;
   const msg = document.getElementById("ticket-message").value;
   if (!subject || !msg) return alert("Please fill both subject and message.");
 
-  const ticketRef = ref(db, `supportTickets/${uid}`);
+  const ticketRef = ref(db, supportTickets/${uid});
   await push(ticketRef, {
     subject,
     message: msg,
@@ -259,8 +269,9 @@ window.submitTicket = async () => {
   document.getElementById("ticket-message").value = "";
 };
 
+// 🔔 Real-Time Notifications
 function loadNotifications() {
-  const notifRef = ref(db, `users/${uid}/notifications`);
+  const notifRef = ref(db, users/${uid}/notifications);
   onValue(notifRef, (snapshot) => {
     const data = snapshot.val();
     const container = document.getElementById("notifications");
@@ -269,7 +280,7 @@ function loadNotifications() {
     if (data) {
       Object.values(data).forEach(msg => {
         const p = document.createElement("p");
-        p.innerText = `🔔 ${msg}`;
+        p.innerText = 🔔 ${msg};
         container.appendChild(p);
       });
     } else {
@@ -278,42 +289,65 @@ function loadNotifications() {
   });
 }
 
-// 🎁 Mystery Box with Countdown
-function setupMysteryBox(userRef, lastClaimTimestamp = null) {
+// 🎁 Mystery Box Logic
+
+// ... all your imports and setup remain the same ...
+
+async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
-  function updateCountdown() {
-    if (!lastClaimTimestamp) {
-      mysteryBoxBtn.disabled = false;
-      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open!";
-      return;
-    }
-    const lastClaimTime = new Date(lastClaimTimestamp).getTime();
-    const nextAvailableTime = lastClaimTime + (24 * 60 * 60 * 1000);
-    const now = Date.now();
-    const diff = nextAvailableTime - now;
+  mysteryBoxBtn.disabled = true;
+  mysteryBoxStatus.innerText = "Loading Mystery Box status...";
 
-    if (diff <= 0) {
-      mysteryBoxBtn.disabled = false;
-      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open!";
-    } else {
-      mysteryBoxBtn.disabled = true;
-      const hrs = Math.floor(diff / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
-      mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hrs}h ${mins}m ${secs}s`;
-    }
+  function startCountdown(targetTime) {
+    const timerInterval = setInterval(() => {
+      const now = new Date();
+      const diffMs = targetTime - now;
+
+      if (diffMs <= 0) {
+        clearInterval(timerInterval);
+        mysteryBoxBtn.disabled = false;
+        mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+        return;
+      }
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+      mysteryBoxStatus.innerText = `⏳ Next Mystery Box in ${hours}h ${minutes}m ${seconds}s`;
+    }, 1000);
   }
 
-  setInterval(updateCountdown, 1000);
-  updateCountdown();
+  // Check if 24 hours have passed since last claim
+  let canClaim = false;
+
+  if (lastClaimTimestamp) {
+    const lastClaimDate = new Date(lastClaimTimestamp);
+    const now = new Date();
+    const diffMs = now - lastClaimDate;
+    const diffHrs = diffMs / (1000 * 60 * 60);
+    if (diffHrs >= 24) {
+      canClaim = true;
+    } else {
+      const nextClaimTime = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+      startCountdown(nextClaimTime);
+    }
+  } else {
+    canClaim = true; // never claimed before
+  }
+
+  if (canClaim) {
+    mysteryBoxBtn.disabled = false;
+    mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+  }
 
   mysteryBoxBtn.onclick = async () => {
-    if (mysteryBoxBtn.disabled) return;
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    const rewardAmount = Math.floor(Math.random() * 10) + 1;
+    // Reward: random amount between 1 and 50 Rs
+    const rewardAmount = Math.floor(Math.random() * 50) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
@@ -321,19 +355,32 @@ function setupMysteryBox(userRef, lastClaimTimestamp = null) {
       return;
     }
     const data = snap.val();
+
     const newBalance = (data.balance || 0) + rewardAmount;
 
+    // Update balance and mysteryBoxLastClaim timestamp in Firebase
+    const claimTime = new Date().toISOString();
     await update(userRef, {
       balance: newBalance,
-      mysteryBoxLastClaim: new Date().toISOString()
+      mysteryBoxLastClaim: claimTime
     });
 
-    lastClaimTimestamp = new Date().toISOString();
-
-    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount}!`;
+    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
     balanceEl.innerText = newBalance;
 
+    // Confetti & sound effect
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
+
+    // Start countdown again for the next box
+    const nextClaimTime = new Date(new Date(claimTime).getTime() + 24 * 60 * 60 * 1000);
+    startCountdown(nextClaimTime);
+
+    // Enable spin section if hidden
+    if (!data.unlocked) {
+      mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
+    } else {
+      document.getElementById("spin-section").style.display = "block";
+    }
   };
 }
