@@ -165,53 +165,57 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 let spinCount = 0;
 let totalWin = 0;
 
+// 🎡 SPIN Wheel Logic
 window.spinWheel = async () => {
-  const userRef = ref(db, `users/${uid}`);
+  const userRef = ref(db, users/${uid});
   const snap = await get(userRef);
   const data = snap.val();
 
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
-  if (data.spinsLeft <= 0) return alert("😢 No spins left!");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
 
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
 
+  // 🎡 Animate the wheel
   if (wheelEl) {
     wheelEl.style.transition = "transform 3s ease-out";
-    const randomTurns = 3 + Math.floor(Math.random() * 3);
-    var randomOffset = Math.floor(Math.random() * 360);
-    wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
+    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
+    var randomOffset = Math.floor(Math.random() * 360); // random final angle
+    wheelEl.style.transform = rotate(${randomTurns * 360 + randomOffset}deg);
   }
 
   setTimeout(async () => {
-    let maxWin = data.maxWinAmount ?? 310;
-    maxWin = Math.min(maxWin, 310);
+    let maxWin = data.maxWinAmount ?? null;
+    let targetTotal;
+    if (maxWin === null) {
+      targetTotal = 280 + Math.floor(Math.random() * 22);
+    } else {
+      targetTotal = Math.min(maxWin, 499);
+    }
 
     if (spinCount === 1) totalWin = 0;
 
-    const minTotalWin = 300;
-    const spinsTotal = 3;
-
-    const remainingSpins = spinsTotal - (spinCount - 1);
-    const remainingTargetMin = minTotalWin - totalWin;
-    const remainingTargetMax = maxWin - totalWin;
-
-    const minPerSpin = Math.max(10, Math.ceil(remainingTargetMin / remainingSpins));
-    const maxPerSpin = Math.max(minPerSpin, Math.floor(remainingTargetMax / remainingSpins));
+    const minPerSpin = 10;
+    const remainingSpins = 3 - (spinCount - 1);
+    const remainingTarget = targetTotal - totalWin;
 
     let outcome;
-    if (spinCount < spinsTotal) {
-      outcome = Math.floor(Math.random() * (maxPerSpin - minPerSpin + 1)) + minPerSpin;
+    if (spinCount < 3) {
+      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
+      maxPossible = Math.max(maxPossible, minPerSpin);
+      outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
     } else {
-      outcome = remainingTargetMin;
+      outcome = remainingTarget;
     }
 
     totalWin += outcome;
+
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
-    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
+    document.getElementById("spin-result").innerText = 🎉 You won ₹${outcome}!;
 
     const newBalance = (data.balance || 0) + outcome;
     await update(userRef, {
@@ -221,19 +225,21 @@ window.spinWheel = async () => {
 
     balanceEl.innerText = newBalance;
 
-    if (spinCount === spinsTotal) {
+    if (spinCount === 3) {
       spinCount = 0;
       totalWin = 0;
     }
 
+    // Reset wheel angle for next spin
     if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
-        wheelEl.style.transform = `rotate(${randomOffset}deg)`;
+        wheelEl.style.transform = rotate(${randomOffset}deg);
       }, 200);
     }
   }, 3000);
 };
+
 
 window.submitTicket = async () => {
   const subject = document.getElementById("ticket-subject").value;
