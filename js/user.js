@@ -287,7 +287,7 @@ function loadNotifications() {
   });
 }
 
-// 🎁 Mystery Box Logic
+// 🎁 Mystery Box Logic with Countdown, Glow, Shake
 async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
@@ -295,12 +295,12 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   mysteryBoxStatus.innerText = "Loading Mystery Box status...";
 
   let canClaim = false;
+  let nextAvailableTime = null;
+
   if (lastClaimTimestamp) {
     const lastClaimDate = new Date(lastClaimTimestamp);
-    const now = new Date();
-    const diffMs = now - lastClaimDate;
-    const diffHrs = diffMs / (1000 * 60 * 60);
-    if (diffHrs >= 24) {
+    nextAvailableTime = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+    if (new Date() >= nextAvailableTime) {
       canClaim = true;
     }
   } else {
@@ -310,14 +310,71 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (canClaim) {
     mysteryBoxBtn.disabled = false;
     mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+    mysteryBoxStatus.style.animation = "";
+    mysteryBoxBtn.style.animation = "";
   } else {
     mysteryBoxBtn.disabled = true;
-    mysteryBoxStatus.innerText = "⏳ Mystery Box will be available in 24 hours after last claim.";
+    updateCountdown();
   }
+
+  function updateCountdown() {
+    const now = new Date();
+    const diffMs = nextAvailableTime - now;
+
+    if (diffMs <= 0) {
+      mysteryBoxBtn.disabled = false;
+      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+      mysteryBoxStatus.style.animation = "";
+      mysteryBoxBtn.style.animation = "";
+      return;
+    }
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hours}h ${minutes}m ${seconds}s`;
+
+    // Glow when under 1 min
+    if (diffMs <= 60 * 1000) {
+      mysteryBoxStatus.style.animation = "glowPulse 1s infinite";
+    } else {
+      mysteryBoxStatus.style.animation = "";
+    }
+
+    // Shake when under 10 sec
+    if (diffMs <= 10 * 1000) {
+      mysteryBoxBtn.style.animation = "shakeButton 0.5s infinite";
+    } else {
+      mysteryBoxBtn.style.animation = "";
+    }
+
+    setTimeout(updateCountdown, 1000);
+  }
+
+  // Add CSS animations
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes glowPulse {
+      0% { color: #ff4d4d; text-shadow: 0 0 5px #ff4d4d, 0 0 10px #ff8080; }
+      50% { color: #ffff66; text-shadow: 0 0 10px #ffff66, 0 0 20px #ffff99; }
+      100% { color: #4dff4d; text-shadow: 0 0 5px #4dff4d, 0 0 10px #80ff80; }
+    }
+    @keyframes shakeButton {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+  `;
+  document.head.appendChild(style);
 
   mysteryBoxBtn.onclick = async () => {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
+    mysteryBoxStatus.style.animation = "";
+    mysteryBoxBtn.style.animation = "";
 
     const rewardAmount = Math.floor(Math.random() * 50) + 1;
 
