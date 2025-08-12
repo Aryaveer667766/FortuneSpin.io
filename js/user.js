@@ -159,12 +159,12 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
       const referrerData = referrerSnap.val();
       const currentBalance = Number(referrerData.balance) || 0;
-      const updatedBalance = currentBalance + 99;
+      const updatedBalance = currentBalance + 49;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
 
-      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
+      console.log(`Referral bonus ₹49 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
@@ -335,14 +335,12 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
     mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hours}h ${minutes}m ${seconds}s`;
 
-    // Glow when under 1 min
     if (diffMs <= 60 * 1000) {
       mysteryBoxStatus.style.animation = "glowPulse 1s infinite";
     } else {
       mysteryBoxStatus.style.animation = "";
     }
 
-    // Shake when under 10 sec
     if (diffMs <= 10 * 1000) {
       mysteryBoxBtn.style.animation = "shakeButton 0.5s infinite";
     } else {
@@ -352,7 +350,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     setTimeout(updateCountdown, 1000);
   }
 
-  // Add CSS animations
+  // CSS animations for glow and shake
   const style = document.createElement("style");
   style.innerHTML = `
     @keyframes glowPulse {
@@ -376,7 +374,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.style.animation = "";
     mysteryBoxBtn.style.animation = "";
 
-    const rewardAmount = Math.floor(Math.random() * 50) + 1;
+    const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
