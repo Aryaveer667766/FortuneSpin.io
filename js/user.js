@@ -55,7 +55,7 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   uid = user.uid;
 
-  const userRef = ref(db, users/${uid});
+  const userRef = ref(db, `users/${uid}`);
   const userSnap = await get(userRef);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -91,12 +91,12 @@ onAuthStateChanged(auth, async (user) => {
     });
 
     if (referralByUid) {
-      const referralRef = ref(db, referrals/${referralByUid}/${uid});
+      const referralRef = ref(db, `referrals/${referralByUid}/${uid}`);
       await set(referralRef, true);
     }
 
     uidEl.innerText = newUID;
-    referralEl.value = https://fortunespin.online/signup?ref=${newUID};
+    referralEl.value = `https://fortunespin.online/signup?ref=${newUID}`;
     document.getElementById("locked-msg").style.display = "block";
 
     watchUnlockAndGiveReferralBonus(userRef);
@@ -106,7 +106,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const data = userSnap.val();
   uidEl.innerText = data.uidCode;
-  referralEl.value = https://fortunespin.online/signup?ref=${data.uidCode};
+  referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;
   balanceEl.innerText = data.balance || 0;
 
   if (data.unlocked) {
@@ -153,18 +153,18 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
       if (!referrerKey) return;
 
-      const referrerRef = ref(db, users/${referrerKey});
+      const referrerRef = ref(db, `users/${referrerKey}`);
       const referrerSnap = await get(referrerRef);
       if (!referrerSnap.exists()) return;
 
       const referrerData = referrerSnap.val();
       const currentBalance = Number(referrerData.balance) || 0;
-      const updatedBalance = currentBalance + 49;
+      const updatedBalance = currentBalance + 99;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
 
-      console.log(Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.);
+      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
@@ -177,7 +177,7 @@ let totalWin = 0;
 
 // 🎡 SPIN Wheel Logic
 window.spinWheel = async () => {
-  const userRef = ref(db, users/${uid});
+  const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
   const data = snap.val();
 
@@ -193,7 +193,7 @@ window.spinWheel = async () => {
     wheelEl.style.transition = "transform 3s ease-out";
     const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
     var randomOffset = Math.floor(Math.random() * 360); // random final angle
-    wheelEl.style.transform = rotate(${randomTurns * 360 + randomOffset}deg);
+    wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
   }
 
   setTimeout(async () => {
@@ -225,7 +225,7 @@ window.spinWheel = async () => {
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
-    document.getElementById("spin-result").innerText = 🎉 You won ₹${outcome}!;
+    document.getElementById("spin-result").innerText = `🎉 You won ₹${outcome}!`;
 
     const newBalance = (data.balance || 0) + outcome;
     await update(userRef, {
@@ -244,7 +244,7 @@ window.spinWheel = async () => {
     if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
-        wheelEl.style.transform = rotate(${randomOffset}deg);
+        wheelEl.style.transform = `rotate(${randomOffset}deg)`;
       }, 200);
     }
   }, 3000);
@@ -256,7 +256,7 @@ window.submitTicket = async () => {
   const msg = document.getElementById("ticket-message").value;
   if (!subject || !msg) return alert("Please fill both subject and message.");
 
-  const ticketRef = ref(db, supportTickets/${uid});
+  const ticketRef = ref(db, `supportTickets/${uid}`);
   await push(ticketRef, {
     subject,
     message: msg,
@@ -271,7 +271,7 @@ window.submitTicket = async () => {
 
 // 🔔 Real-Time Notifications
 function loadNotifications() {
-  const notifRef = ref(db, users/${uid}/notifications);
+  const notifRef = ref(db, `users/${uid}/notifications`);
   onValue(notifRef, (snapshot) => {
     const data = snapshot.val();
     const container = document.getElementById("notifications");
@@ -280,7 +280,7 @@ function loadNotifications() {
     if (data) {
       Object.values(data).forEach(msg => {
         const p = document.createElement("p");
-        p.innerText = 🔔 ${msg};
+        p.innerText = `🔔 ${msg}`;
         container.appendChild(p);
       });
     } else {
@@ -325,7 +325,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
     // Reward: random amount between 1 and 50 Rs
-    const rewardAmount = Math.floor(Math.random() * 10) + 1;
+    const rewardAmount = Math.floor(Math.random() * 50) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
@@ -342,7 +342,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
       mysteryBoxLastClaim: new Date().toISOString()
     });
 
-    mysteryBoxStatus.innerText = 🎉 Congrats! You got ₹${rewardAmount} added to your balance!;
+    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
     balanceEl.innerText = newBalance;
 
     // Confetti & sound effect
