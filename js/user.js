@@ -171,7 +171,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
   });
 }
 
-// Track spins & total win globally
+// Track spins & total win
 let spinCount = 0;
 let totalWin = 0;
 
@@ -184,6 +184,21 @@ window.spinWheel = async () => {
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
   if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
 
+  const totalSpins = data.spinsLeft; // get current spins left before decrement
+
+  // Determine max allowed total win based on spins
+  let allowedMaxWin;
+  if (totalSpins === 3) allowedMaxWin = 300;
+  else if (totalSpins === 6) allowedMaxWin = 400;
+  else if (totalSpins === 15) allowedMaxWin = 800;
+  else allowedMaxWin = 499; // fallback default max
+
+  // Check maxWin set by admin
+  if (data.maxWinAmount !== undefined && data.maxWinAmount !== null) {
+    // Take the lower of admin maxWin and allowedMaxWin to enforce strict limit
+    allowedMaxWin = Math.min(allowedMaxWin, data.maxWinAmount);
+  }
+
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
@@ -191,46 +206,29 @@ window.spinWheel = async () => {
   // 🎡 Animate the wheel
   if (wheelEl) {
     wheelEl.style.transition = "transform 3s ease-out";
-    const randomTurns = 3 + Math.floor(Math.random() * 3);
-    var randomOffset = Math.floor(Math.random() * 360);
+    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
+    var randomOffset = Math.floor(Math.random() * 360); // random final angle
     wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
   }
 
   setTimeout(async () => {
-    // Max wins per spinsLeft
-    const spinsMaxWins = {3: 300, 6: 400, 15: 800};
-    const userSpinsLeft = data.spinsLeft + 1; // Because spinsLeft is decremented after spin
-
-    // Determine max total win cap
-    let defaultMaxTotal = spinsMaxWins[userSpinsLeft] ?? 300;
-
-    // Admin override but no exceeding defaultMaxTotal
-    let targetTotal = defaultMaxTotal;
-    if (typeof data.maxWinAmount === 'number') {
-      targetTotal = Math.min(data.maxWinAmount, defaultMaxTotal);
-    }
-
-    if (spinCount === 1) totalWin = 0; // Reset total win at first spin in this round
+    if (spinCount === 1) totalWin = 0;
 
     const minPerSpin = 10;
-    const totalSpinsForThisRound = userSpinsLeft;
-
-    // Calculate remaining spins including this spin
-    const spinsDone = spinCount - 1; 
-    const spinsRemaining = totalSpinsForThisRound - spinsDone;
-
-    const remainingTarget = targetTotal - totalWin;
+    const remainingSpins = totalSpins - (spinCount - 1); // dynamic remaining spins
+    const remainingTarget = allowedMaxWin - totalWin;
 
     let outcome;
-    if (spinCount < totalSpinsForThisRound) {
-      let maxPossible = remainingTarget - minPerSpin * (spinsRemaining - 1);
+    if (spinCount < totalSpins) {
+      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
       maxPossible = Math.max(maxPossible, minPerSpin);
       outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
     } else {
-      outcome = remainingTarget; // Last spin gets remainder
+      outcome = remainingTarget;
     }
 
-    if (outcome <= 0) outcome = minPerSpin;
+    // Ensure outcome never negative or zero
+    if (outcome < minPerSpin) outcome = minPerSpin;
 
     totalWin += outcome;
 
@@ -247,11 +245,12 @@ window.spinWheel = async () => {
 
     balanceEl.innerText = newBalance;
 
-    if (spinCount === totalSpinsForThisRound) {
+    if (spinCount === totalSpins) {
       spinCount = 0;
       totalWin = 0;
     }
 
+    // Reset wheel angle for next spin
     if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
@@ -301,12 +300,14 @@ function loadNotifications() {
 }
 
 // 🎁 Mystery Box Logic
+
 async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
   mysteryBoxBtn.disabled = true;
   mysteryBoxStatus.innerText = "Loading Mystery Box status...";
 
+  // Check if 24 hours have passed since last claim
   let canClaim = false;
 
   if (lastClaimTimestamp) {
@@ -333,6 +334,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
+    // Reward: random amount between 1 and 10 Rs
     const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
@@ -344,6 +346,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
     const newBalance = (data.balance || 0) + rewardAmount;
 
+    // Update balance and mysteryBoxLastClaim timestamp in Firebase
     await update(userRef, {
       balance: newBalance,
       mysteryBoxLastClaim: new Date().toISOString()
@@ -352,9 +355,11 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
     balanceEl.innerText = newBalance;
 
+    // Confetti & sound effect
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
 
+    // Enable spin section if hidden
     if (!data.unlocked) {
       mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
     } else {
