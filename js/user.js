@@ -164,7 +164,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
 
-      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
+      console.log(`Referral bonus ₹49 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
@@ -197,22 +197,26 @@ window.spinWheel = async () => {
   }
 
   setTimeout(async () => {
-    let maxWin = data.maxWinAmount ?? null;
-    let targetTotal;
-    if (maxWin === null) {
-      targetTotal = 480 + Math.floor(Math.random() * 20);
-    } else {
-      targetTotal = Math.min(maxWin, 499);
-    }
+    // Default caps based on spins left (or fallback to 3)
+    const defaultCaps = {
+      3: 300,
+      6: 400,
+      15: 800,
+    };
+    const spinsForCap = [3, 6, 15].includes(data.spinsLeft) ? data.spinsLeft : 3;
+    const defaultMaxTotal = defaultCaps[spinsForCap] || 300;
+
+    // Admin override maxWinAmount used if set, else default caps
+    const targetTotal = (typeof data.maxWinAmount === 'number') ? data.maxWinAmount : defaultMaxTotal;
 
     if (spinCount === 1) totalWin = 0;
 
     const minPerSpin = 10;
-    const remainingSpins = 3 - (spinCount - 1);
+    const remainingSpins = data.spinsLeft - (spinCount - 1);
     const remainingTarget = targetTotal - totalWin;
 
     let outcome;
-    if (spinCount < 3) {
+    if (spinCount < data.spinsLeft) {
       let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
       maxPossible = Math.max(maxPossible, minPerSpin);
       outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
@@ -235,7 +239,7 @@ window.spinWheel = async () => {
 
     balanceEl.innerText = newBalance;
 
-    if (spinCount === 3) {
+    if (spinCount === data.spinsLeft) {
       spinCount = 0;
       totalWin = 0;
     }
@@ -324,7 +328,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    // Reward: random amount between 1 and 50 Rs
+    // Reward: random amount between 1 and 10 Rs
     const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
