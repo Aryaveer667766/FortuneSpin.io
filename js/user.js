@@ -325,7 +325,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
     // Reward: random amount between 1 and 50 Rs
-    const rewardAmount = Math.floor(Math.random() * 50) + 1;
+    const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
