@@ -159,7 +159,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 
       const referrerData = referrerSnap.val();
       const currentBalance = Number(referrerData.balance) || 0;
-      const updatedBalance = currentBalance + 69;
+      const updatedBalance = currentBalance + 49;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
