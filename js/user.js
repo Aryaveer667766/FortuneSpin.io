@@ -32,13 +32,13 @@ const winSound = new Audio('assets/win.mp3');
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
-const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
+const wheelEl = document.getElementById("wheel");
 
 // Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
 
-// 🧠 UID Generator — no UID# prefix anymore
+// 🧠 UID Generator
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -87,7 +87,7 @@ onAuthStateChanged(auth, async (user) => {
       referralBonusGiven: false,
       notifications: [],
       spinsLeft: 1,
-      mysteryBoxLastClaim: null  // track mystery box claim timestamp
+      mysteryBoxLastClaim: null
     });
 
     if (referralByUid) {
@@ -188,11 +188,10 @@ window.spinWheel = async () => {
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
 
-  // 🎡 Animate the wheel
   if (wheelEl) {
     wheelEl.style.transition = "transform 3s ease-out";
-    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
-    var randomOffset = Math.floor(Math.random() * 360); // random final angle
+    const randomTurns = 3 + Math.floor(Math.random() * 3);
+    var randomOffset = Math.floor(Math.random() * 360);
     wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
   }
 
@@ -200,9 +199,9 @@ window.spinWheel = async () => {
     let maxWin = data.maxWinAmount ?? null;
     let targetTotal;
     if (maxWin === null) {
-      targetTotal = 480 + Math.floor(Math.random() * 20);
+      targetTotal = 280 + Math.floor(Math.random() * 22);
     } else {
-      targetTotal = Math.min(maxWin, 499);
+      targetTotal = Math.min(maxWin, 310);
     }
 
     if (spinCount === 1) totalWin = 0;
@@ -240,7 +239,6 @@ window.spinWheel = async () => {
       totalWin = 0;
     }
 
-    // Reset wheel angle for next spin
     if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
@@ -290,16 +288,13 @@ function loadNotifications() {
 }
 
 // 🎁 Mystery Box Logic
-
 async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
   mysteryBoxBtn.disabled = true;
   mysteryBoxStatus.innerText = "Loading Mystery Box status...";
 
-  // Check if 24 hours have passed since last claim
   let canClaim = false;
-
   if (lastClaimTimestamp) {
     const lastClaimDate = new Date(lastClaimTimestamp);
     const now = new Date();
@@ -309,7 +304,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
       canClaim = true;
     }
   } else {
-    canClaim = true; // never claimed before
+    canClaim = true;
   }
 
   if (canClaim) {
@@ -324,7 +319,6 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    // Reward: random amount between 1 and 50 Rs
     const rewardAmount = Math.floor(Math.random() * 50) + 1;
 
     const snap = await get(userRef);
@@ -336,7 +330,6 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
     const newBalance = (data.balance || 0) + rewardAmount;
 
-    // Update balance and mysteryBoxLastClaim timestamp in Firebase
     await update(userRef, {
       balance: newBalance,
       mysteryBoxLastClaim: new Date().toISOString()
@@ -345,11 +338,9 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
     balanceEl.innerText = newBalance;
 
-    // Confetti & sound effect
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
 
-    // Enable spin section if hidden
     if (!data.unlocked) {
       mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
     } else {
