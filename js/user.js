@@ -291,33 +291,11 @@ function loadNotifications() {
 
 // 🎁 Mystery Box Logic
 
-// ... all your imports and setup remain the same ...
-
 async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
   mysteryBoxBtn.disabled = true;
   mysteryBoxStatus.innerText = "Loading Mystery Box status...";
-
-  function startCountdown(targetTime) {
-    const timerInterval = setInterval(() => {
-      const now = new Date();
-      const diffMs = targetTime - now;
-
-      if (diffMs <= 0) {
-        clearInterval(timerInterval);
-        mysteryBoxBtn.disabled = false;
-        mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
-        return;
-      }
-
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-      mysteryBoxStatus.innerText = `⏳ Next Mystery Box in ${hours}h ${minutes}m ${seconds}s`;
-    }, 1000);
-  }
 
   // Check if 24 hours have passed since last claim
   let canClaim = false;
@@ -329,9 +307,6 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     const diffHrs = diffMs / (1000 * 60 * 60);
     if (diffHrs >= 24) {
       canClaim = true;
-    } else {
-      const nextClaimTime = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
-      startCountdown(nextClaimTime);
     }
   } else {
     canClaim = true; // never claimed before
@@ -340,6 +315,9 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (canClaim) {
     mysteryBoxBtn.disabled = false;
     mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+  } else {
+    mysteryBoxBtn.disabled = true;
+    mysteryBoxStatus.innerText = "⏳ Mystery Box will be available in 24 hours after last claim.";
   }
 
   mysteryBoxBtn.onclick = async () => {
@@ -347,7 +325,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
     // Reward: random amount between 1 and 50 Rs
-    const rewardAmount = Math.floor(Math.random() * 50) + 1;
+    const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
     if (!snap.exists()) {
@@ -359,22 +337,17 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     const newBalance = (data.balance || 0) + rewardAmount;
 
     // Update balance and mysteryBoxLastClaim timestamp in Firebase
-    const claimTime = new Date().toISOString();
     await update(userRef, {
       balance: newBalance,
-      mysteryBoxLastClaim: claimTime
+      mysteryBoxLastClaim: new Date().toISOString()
     });
 
-    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
+    mysteryBoxStatus.innerText = 🎉 Congrats! You got ₹${rewardAmount} added to your balance!;
     balanceEl.innerText = newBalance;
 
     // Confetti & sound effect
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
-
-    // Start countdown again for the next box
-    const nextClaimTime = new Date(new Date(claimTime).getTime() + 24 * 60 * 60 * 1000);
-    startCountdown(nextClaimTime);
 
     // Enable spin section if hidden
     if (!data.unlocked) {
