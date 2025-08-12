@@ -86,7 +86,7 @@ onAuthStateChanged(auth, async (user) => {
       referralBy: referralByCode || "",
       referralBonusGiven: false,
       notifications: [],
-      spinsLeft: 1,
+      spinsLeft: 3,
       mysteryBoxLastClaim: null  // track mystery box claim timestamp
     });
 
@@ -164,7 +164,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
 
-      console.log(`Referral bonus ₹99 added to user ${referrerKey} for unlocking user ${uid}.`);
+      console.log(`Referral bonus ₹49 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
@@ -184,21 +184,6 @@ window.spinWheel = async () => {
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
   if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
 
-  const totalSpins = data.spinsLeft; // get current spins left before decrement
-
-  // Determine max allowed total win based on spins
-  let allowedMaxWin;
-  if (totalSpins === 3) allowedMaxWin = 300;
-  else if (totalSpins === 6) allowedMaxWin = 400;
-  else if (totalSpins === 15) allowedMaxWin = 800;
-  else allowedMaxWin = 499; // fallback default max
-
-  // Check maxWin set by admin
-  if (data.maxWinAmount !== undefined && data.maxWinAmount !== null) {
-    // Take the lower of admin maxWin and allowedMaxWin to enforce strict limit
-    allowedMaxWin = Math.min(allowedMaxWin, data.maxWinAmount);
-  }
-
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
@@ -212,23 +197,29 @@ window.spinWheel = async () => {
   }
 
   setTimeout(async () => {
+    // Default max total win = 310
+    let maxWin = data.maxWinAmount ?? 310;
+    maxWin = Math.min(maxWin, 310); // cap maxWin to 310
+
     if (spinCount === 1) totalWin = 0;
 
-    const minPerSpin = 10;
-    const remainingSpins = totalSpins - (spinCount - 1); // dynamic remaining spins
-    const remainingTarget = allowedMaxWin - totalWin;
+    const minTotalWin = 300;
+    const spinsTotal = 3;
+
+    const remainingSpins = spinsTotal - (spinCount - 1);
+    const remainingTargetMin = minTotalWin - totalWin;
+    const remainingTargetMax = maxWin - totalWin;
+
+    const minPerSpin = Math.max(10, Math.ceil(remainingTargetMin / remainingSpins));
+    const maxPerSpin = Math.max(minPerSpin, Math.floor(remainingTargetMax / remainingSpins));
 
     let outcome;
-    if (spinCount < totalSpins) {
-      let maxPossible = remainingTarget - minPerSpin * (remainingSpins - 1);
-      maxPossible = Math.max(maxPossible, minPerSpin);
-      outcome = Math.floor(Math.random() * (maxPossible - minPerSpin + 1)) + minPerSpin;
-    } else {
-      outcome = remainingTarget;
-    }
 
-    // Ensure outcome never negative or zero
-    if (outcome < minPerSpin) outcome = minPerSpin;
+    if (spinCount < spinsTotal) {
+      outcome = Math.floor(Math.random() * (maxPerSpin - minPerSpin + 1)) + minPerSpin;
+    } else {
+      outcome = remainingTargetMin;
+    }
 
     totalWin += outcome;
 
@@ -245,7 +236,7 @@ window.spinWheel = async () => {
 
     balanceEl.innerText = newBalance;
 
-    if (spinCount === totalSpins) {
+    if (spinCount === spinsTotal) {
       spinCount = 0;
       totalWin = 0;
     }
