@@ -17,28 +17,29 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
-// 🎨 Confetti Canvas
+// Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 if (confettiCanvas) {
   confettiCanvas.width = window.innerWidth;
   confettiCanvas.height = window.innerHeight;
 }
 
-// 🎵 Sounds
+// Sounds
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
 
-// 💸 Elements
+// Elements
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
 const wheelEl = document.getElementById("wheel");
+const mysteryBoxSection = document.getElementById("mystery-box-section");
 
 // Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
 
-// 🧠 UID Generator
+// UID Generator
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -48,7 +49,7 @@ function generateUID(length = 6) {
   return result;
 }
 
-// ✅ On Auth Login
+// On Auth Login
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "index.html";
 
@@ -109,10 +110,13 @@ onAuthStateChanged(auth, async (user) => {
   referralEl.value = `https://fortunespin.online/signup?ref=${data.uidCode}`;
   balanceEl.innerText = data.balance || 0;
 
+  // Show spin section if unlocked
   if (data.unlocked) {
     document.getElementById("spin-section").style.display = "block";
+    if (mysteryBoxSection) mysteryBoxSection.style.display = "";
   } else {
     document.getElementById("locked-msg").style.display = "block";
+    if (mysteryBoxSection) mysteryBoxSection.style.display = "none"; // Hides mystery box if locked
   }
 
   loadNotifications();
@@ -126,6 +130,15 @@ function watchUnlockAndGiveReferralBonus(userRef) {
   onValue(userRef, async (snapshot) => {
     if (!snapshot.exists()) return;
     const userData = snapshot.val();
+
+    // Real-time hide/show mystery box based on unlocked status
+    if (mysteryBoxSection) {
+      if (userData.unlocked) {
+        mysteryBoxSection.style.display = "";
+      } else {
+        mysteryBoxSection.style.display = "none";
+      }
+    }
 
     if (previousUnlockedStatus === null) {
       previousUnlockedStatus = userData.unlocked;
@@ -175,7 +188,7 @@ function watchUnlockAndGiveReferralBonus(userRef) {
 let spinCount = 0;
 let totalWin = 0;
 
-// 🎡 SPIN Wheel Logic
+// SPIN Wheel Logic
 window.spinWheel = async () => {
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
@@ -199,9 +212,9 @@ window.spinWheel = async () => {
     let maxWin = data.maxWinAmount ?? null;
     let targetTotal;
     if (maxWin === null) {
-      targetTotal = 480 + Math.floor(Math.random() * 20);
+      targetTotal = 300 + Math.floor(Math.random() * 11); // 300–310
     } else {
-      targetTotal = Math.min(maxWin, 499);
+      targetTotal = Math.min(maxWin, 310);
     }
 
     if (spinCount === 1) totalWin = 0;
@@ -248,7 +261,7 @@ window.spinWheel = async () => {
   }, 3000);
 };
 
-// 🧾 Submit Support Ticket
+// Submit Support Ticket
 window.submitTicket = async () => {
   const subject = document.getElementById("ticket-subject").value;
   const msg = document.getElementById("ticket-message").value;
@@ -267,7 +280,7 @@ window.submitTicket = async () => {
   document.getElementById("ticket-message").value = "";
 };
 
-// 🔔 Real-Time Notifications
+// Real-Time Notifications
 function loadNotifications() {
   const notifRef = ref(db, `users/${uid}/notifications`);
   onValue(notifRef, (snapshot) => {
@@ -287,38 +300,21 @@ function loadNotifications() {
   });
 }
 
-// 🎁 Mystery Box Logic + Countdown
+// Mystery Box Logic
 async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
-  const updateCountdown = (endTime) => {
-    const now = new Date().getTime();
-    const distance = endTime - now;
-
-    if (distance <= 0) {
-      clearInterval(countdownInterval);
-      mysteryBoxBtn.disabled = false;
-      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
-      return;
-    }
-
-    const hours = Math.floor((distance / (1000 * 60 * 60)));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-    mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hours}h ${minutes}m ${seconds}s`;
-  };
+  mysteryBoxBtn.disabled = true;
+  mysteryBoxStatus.innerText = "Loading Mystery Box status...";
 
   let canClaim = false;
+  let nextAvailableTime = null;
+
   if (lastClaimTimestamp) {
     const lastClaimDate = new Date(lastClaimTimestamp);
-    const nextAvailable = lastClaimDate.getTime() + (24 * 60 * 60 * 1000);
-    const now = new Date().getTime();
-    if (now >= nextAvailable) {
+    nextAvailableTime = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+    if (new Date() >= nextAvailableTime) {
       canClaim = true;
-    } else {
-      mysteryBoxBtn.disabled = true;
-      updateCountdown(nextAvailable);
-      var countdownInterval = setInterval(() => updateCountdown(nextAvailable), 1000);
     }
   } else {
     canClaim = true;
@@ -326,12 +322,70 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
   if (canClaim) {
     mysteryBoxBtn.disabled = false;
-    mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
+    mysteryBoxStatus.innerText = "🎁 Mystery Box is ready to open! Click the button.";
+    mysteryBoxStatus.style.animation = "";
+    mysteryBoxBtn.style.animation = "";
+  } else {
+    mysteryBoxBtn.disabled = true;
+    updateCountdown();
   }
+
+  function updateCountdown() {
+    const now = new Date();
+    const diffMs = nextAvailableTime - now;
+
+    if (diffMs <= 0) {
+      mysteryBoxBtn.disabled = false;
+      mysteryBoxStatus.innerText = "🎁 Mystery Box is ready to open! Click the button.";
+      mysteryBoxStatus.style.animation = "";
+      mysteryBoxBtn.style.animation = "";
+      return;
+    }
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hours}h ${minutes}m ${seconds}s`;
+
+    if (diffMs <= 60 * 1000) {
+      mysteryBoxStatus.style.animation = "glowPulse 1s infinite";
+    } else {
+      mysteryBoxStatus.style.animation = "";
+    }
+
+    if (diffMs <= 10 * 1000) {
+      mysteryBoxBtn.style.animation = "shakeButton 0.5s infinite";
+    } else {
+      mysteryBoxBtn.style.animation = "";
+    }
+
+    setTimeout(updateCountdown, 1000);
+  }
+
+  // CSS animations
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes glowPulse {
+      0% { color: #ff4d4d; text-shadow: 0 0 5px #ff4d4d, 0 0 10px #ff8080; }
+      50% { color: #ffff66; text-shadow: 0 0 10px #ffff66, 0 0 20px #ffff99; }
+      100% { color: #4dff4d; text-shadow: 0 0 5px #4dff4d, 0 0 10px #80ff80; }
+    }
+    @keyframes shakeButton {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+  `;
+  document.head.appendChild(style);
 
   mysteryBoxBtn.onclick = async () => {
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
+    mysteryBoxStatus.style.animation = "";
+    mysteryBoxBtn.style.animation = "";
 
     const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
@@ -354,5 +408,11 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
 
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
+
+    if (!data.unlocked) {
+      mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
+    } else {
+      document.getElementById("spin-section").style.display = "block";
+    }
   };
 }
