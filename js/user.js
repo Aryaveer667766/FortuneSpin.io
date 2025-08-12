@@ -17,28 +17,23 @@ import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
 let currentUser, uid;
 
-// 🎨 Confetti Canvas
 const confettiCanvas = document.getElementById("confetti-canvas");
 if (confettiCanvas) {
   confettiCanvas.width = window.innerWidth;
   confettiCanvas.height = window.innerHeight;
 }
 
-// 🎵 Sounds
 const spinSound = new Audio('assets/spin.mp3');
 const winSound = new Audio('assets/win.mp3');
 
-// 💸 Elements
 const balanceEl = document.getElementById("user-balance");
 const uidEl = document.getElementById("user-uid");
 const referralEl = document.getElementById("referral-link");
-const wheelEl = document.getElementById("wheel"); // 🎡 Wheel image element
+const wheelEl = document.getElementById("wheel");
 
-// Mystery Box Elements
 const mysteryBoxBtn = document.getElementById("mystery-box-btn");
 const mysteryBoxStatus = document.getElementById("mystery-box-status");
 
-// 🧠 UID Generator — no UID# prefix anymore
 function generateUID(length = 6) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -48,7 +43,6 @@ function generateUID(length = 6) {
   return result;
 }
 
-// ✅ On Auth Login
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "index.html";
 
@@ -87,7 +81,7 @@ onAuthStateChanged(auth, async (user) => {
       referralBonusGiven: false,
       notifications: [],
       spinsLeft: 3,
-      mysteryBoxLastClaim: null  // track mystery box claim timestamp
+      mysteryBoxLastClaim: null
     });
 
     if (referralByUid) {
@@ -158,48 +152,41 @@ function watchUnlockAndGiveReferralBonus(userRef) {
       if (!referrerSnap.exists()) return;
 
       const referrerData = referrerSnap.val();
-      const currentBalance = Number(referrerData.balance) || 0;
-      const updatedBalance = currentBalance + 49;
+      const updatedBalance = (Number(referrerData.balance) || 0) + 49;
 
       await update(referrerRef, { balance: updatedBalance });
       await update(userRef, { referralBonusGiven: true });
-
-      console.log(`Referral bonus ₹49 added to user ${referrerKey} for unlocking user ${uid}.`);
     }
 
     previousUnlockedStatus = userData.unlocked;
   });
 }
 
-// Track spins & total win
 let spinCount = 0;
 let totalWin = 0;
 
-// 🎡 SPIN Wheel Logic
 window.spinWheel = async () => {
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
   const data = snap.val();
 
   if (!data.unlocked) return alert("🔒 Spin locked. Share your referral link to unlock.");
-  if (data.spinsLeft <= 0) return alert("😢 No spins left! message refill on whatsapp to refill your spins");
+  if (data.spinsLeft <= 0) return alert("😢 No spins left!");
 
   spinCount++;
   spinSound.play();
   document.getElementById("spin-result").innerText = "Spinning...";
 
-  // 🎡 Animate the wheel
   if (wheelEl) {
     wheelEl.style.transition = "transform 3s ease-out";
-    const randomTurns = 3 + Math.floor(Math.random() * 3); // 3–5 full spins
-    var randomOffset = Math.floor(Math.random() * 360); // random final angle
+    const randomTurns = 3 + Math.floor(Math.random() * 3);
+    var randomOffset = Math.floor(Math.random() * 360);
     wheelEl.style.transform = `rotate(${randomTurns * 360 + randomOffset}deg)`;
   }
 
   setTimeout(async () => {
-    // Default max total win = 310
     let maxWin = data.maxWinAmount ?? 310;
-    maxWin = Math.min(maxWin, 310); // cap maxWin to 310
+    maxWin = Math.min(maxWin, 310);
 
     if (spinCount === 1) totalWin = 0;
 
@@ -214,7 +201,6 @@ window.spinWheel = async () => {
     const maxPerSpin = Math.max(minPerSpin, Math.floor(remainingTargetMax / remainingSpins));
 
     let outcome;
-
     if (spinCount < spinsTotal) {
       outcome = Math.floor(Math.random() * (maxPerSpin - minPerSpin + 1)) + minPerSpin;
     } else {
@@ -222,7 +208,6 @@ window.spinWheel = async () => {
     }
 
     totalWin += outcome;
-
     winSound.play();
     confetti({ origin: { y: 0.5 }, particleCount: 150, spread: 80 });
 
@@ -241,7 +226,6 @@ window.spinWheel = async () => {
       totalWin = 0;
     }
 
-    // Reset wheel angle for next spin
     if (wheelEl) {
       setTimeout(() => {
         wheelEl.style.transition = "none";
@@ -251,7 +235,6 @@ window.spinWheel = async () => {
   }, 3000);
 };
 
-// 🧾 Submit Support Ticket
 window.submitTicket = async () => {
   const subject = document.getElementById("ticket-subject").value;
   const msg = document.getElementById("ticket-message").value;
@@ -270,7 +253,6 @@ window.submitTicket = async () => {
   document.getElementById("ticket-message").value = "";
 };
 
-// 🔔 Real-Time Notifications
 function loadNotifications() {
   const notifRef = ref(db, `users/${uid}/notifications`);
   onValue(notifRef, (snapshot) => {
@@ -290,42 +272,41 @@ function loadNotifications() {
   });
 }
 
-// 🎁 Mystery Box Logic
-
-async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
+// 🎁 Mystery Box with Countdown
+function setupMysteryBox(userRef, lastClaimTimestamp = null) {
   if (!mysteryBoxBtn || !mysteryBoxStatus) return;
 
-  mysteryBoxBtn.disabled = true;
-  mysteryBoxStatus.innerText = "Loading Mystery Box status...";
-
-  // Check if 24 hours have passed since last claim
-  let canClaim = false;
-
-  if (lastClaimTimestamp) {
-    const lastClaimDate = new Date(lastClaimTimestamp);
-    const now = new Date();
-    const diffMs = now - lastClaimDate;
-    const diffHrs = diffMs / (1000 * 60 * 60);
-    if (diffHrs >= 24) {
-      canClaim = true;
+  function updateCountdown() {
+    if (!lastClaimTimestamp) {
+      mysteryBoxBtn.disabled = false;
+      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open!";
+      return;
     }
-  } else {
-    canClaim = true; // never claimed before
+    const lastClaimTime = new Date(lastClaimTimestamp).getTime();
+    const nextAvailableTime = lastClaimTime + (24 * 60 * 60 * 1000);
+    const now = Date.now();
+    const diff = nextAvailableTime - now;
+
+    if (diff <= 0) {
+      mysteryBoxBtn.disabled = false;
+      mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open!";
+    } else {
+      mysteryBoxBtn.disabled = true;
+      const hrs = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hrs}h ${mins}m ${secs}s`;
+    }
   }
 
-  if (canClaim) {
-    mysteryBoxBtn.disabled = false;
-    mysteryBoxStatus.innerText = "🎉 Mystery Box is ready to open! Click the button.";
-  } else {
-    mysteryBoxBtn.disabled = true;
-    mysteryBoxStatus.innerText = "⏳ Mystery Box will be available in 24 hours after last claim.";
-  }
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
 
   mysteryBoxBtn.onclick = async () => {
+    if (mysteryBoxBtn.disabled) return;
     mysteryBoxBtn.disabled = true;
     mysteryBoxStatus.innerText = "Opening Mystery Box...";
 
-    // Reward: random amount between 1 and 10 Rs
     const rewardAmount = Math.floor(Math.random() * 10) + 1;
 
     const snap = await get(userRef);
@@ -334,27 +315,19 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
       return;
     }
     const data = snap.val();
-
     const newBalance = (data.balance || 0) + rewardAmount;
 
-    // Update balance and mysteryBoxLastClaim timestamp in Firebase
     await update(userRef, {
       balance: newBalance,
       mysteryBoxLastClaim: new Date().toISOString()
     });
 
-    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount} added to your balance!`;
+    lastClaimTimestamp = new Date().toISOString();
+
+    mysteryBoxStatus.innerText = `🎉 Congrats! You got ₹${rewardAmount}!`;
     balanceEl.innerText = newBalance;
 
-    // Confetti & sound effect
     document.getElementById('box-sound').play();
     confetti({ origin: { y: 0.5 }, particleCount: 200, spread: 90 });
-
-    // Enable spin section if hidden
-    if (!data.unlocked) {
-      mysteryBoxStatus.innerText += " (Unlock your account to use your balance)";
-    } else {
-      document.getElementById("spin-section").style.display = "block";
-    }
   };
 }
