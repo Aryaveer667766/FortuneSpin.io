@@ -346,7 +346,7 @@ async function setupMysteryBox(userRef, lastClaimTimestamp = null) {
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
 
-    mysteryBoxStatus.innerText = `⏳ Next Mystery Box in: ${hours}h ${minutes}m ${seconds}s`;
+    mysteryBoxStatus.innerText = `⏳ Next Box in: ${hours}h ${minutes}m ${seconds}s`;
 
     if (diffMs <= 60 * 1000) {
       mysteryBoxStatus.style.animation = "glowPulse 1s infinite";
